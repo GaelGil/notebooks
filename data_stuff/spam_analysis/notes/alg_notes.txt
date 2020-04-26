@@ -1,0 +1,57 @@
+#NOTES
+#is_spam_or_not function will take in a dictonary and string as its argument
+#based on value assigned to every word in compare_to_spam it will determine
+#if the string/message is spam or not.
+#The function add_to_spam wil either return 'spam' or 'not spam'.
+#
+#create a function to compare to non spam words same way it does with spam 
+#words, idk.
+#
+#Use phrases instead
+#Create driver/main function
+
+
+
+#PROBLEMS 
+#Adding all words to spam dict could add non spam words.
+#
+#Taking into account words like 'you', 'the', 'and', common words 
+#that don't really mean much.
+#
+#Point system.
+#
+#Maybe instead of words use phrases.
+#
+#This would also require lots of entries to understand what spam words
+#are meaning the first couple of times it would mostlikely fail. 
+
+
+###### 11/21/19
+Since I have I have nested dictonaries for both spam
+words and the sms itself. When I compare the sms to 
+the spam likely words I can only append words of the
+sms that I have labeled as spam. 
+######
+
+# not_spam = "Are you free for dinner?"
+# spam = "Do you want free stuff?"
+
+# words_and_nums = {
+#     'num' : 5,
+#     'red' : 2,
+# }
+
+# print(words_and_nums.get('num'))
+
+# if 'num' in words_and_nums:
+#     add = words_and_nums.get('num')
+#     new_val = add + 1 
+#     words_and_nums['num'] = new_val
+# else:
+#     print('no')
+
+# print(words_and_nums.get('num'))
+
+
+# is_spam_or_not(spam)
+# is_spam_or_not(not_spam)

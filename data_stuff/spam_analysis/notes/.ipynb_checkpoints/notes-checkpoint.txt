@@ -1,0 +1,374 @@
+lunch = ["pizza", "soda", "banana"]
+
+sms = "win a free phone"
+
+win = 129
+a = -675
+free = -5
+phone = 3
+
+sms_encoded = [12, -5, 3]
+sms_encoded = [12, -5, 33]
+sms_encoded = [-99, -5, 3545]
+
+
+
+assert sum(sms_encoded) == 10
+
+
+val = sum(sms_encoded) # 10
+
+def decision(value, cutoff):
+    if value > cutoff:
+        return "spam"
+    return "ham"
+
+decision(val, 0) # spam
+decision(val, 20) # ham
+
+
+two things to figure out:
+   the mappings from words to numbers
+   the cutoff criteria
+
+p_spam(free | documents)
+
+
+{
+    "free": {"spam": 95, "ham": 12},
+    "win": {"spam": 5, "ham": 1},
+    "the": {"spam": 10000, "ham": 10000}
+}
+
+{
+    "free": 95/12,
+    "win": 5/1,
+    "the": 100000/100000
+}
+
+
+
+
+# SPAM_DICT = {} #maybe a global variable with spam likely words, idk
+# NON_SPAM_DICT = {} #maybe to compare
+
+# def is_spam_or_not(message:list, message_dict:dict):
+#     """
+#     This function detemines if message is spam or 
+#     not based on ...
+#     """
+#     spam_num = 0
+#     for val in message_dict.values():
+#         spam_num += val
+#     if spam_num >= (len(message) * 10):
+#         add_to_spam(message)
+#         print('spam')
+#     else:
+#         print('not spam')
+
+
+# def add_to_spam(spam:list):
+#     """
+#     If the message is spam it'll append the words
+#     from the message to a dict. If words are alredy
+#     in the dict it'll add plus one the their excisting 
+#     value. If the word is not in the dict it will get 
+#     added as a key with a value of one.
+#     """
+#     for i in range(len(spam)):
+#         word = spam[i]
+#         if spam[i] in SPAM_DICT:
+#             previous_val = SPAM_DICT.get(word)
+#             new_val = previous_val + 1 
+#             SPAM_DICT[i] = new_val 
+#         else:
+#             SPAM_DICT[spam(i)] = 0 #previously at 1 now at 0 idk
+
+
+# def compare_to_words(message:str):
+#     """
+#     This function takes in a string as its argument. The
+#     string is turned into a list which then is looped through
+#     comparing everyword to words in a dictionay filled with
+#     spam likely words. 
+#     """
+#     message = message.split()
+#     message = [message.lower() for word in message] 
+#     message_list = list(message)
+#     message_dict = {}
+#     for i in range(len(message_list)):
+#         word = message_list[i]
+#         message_dict[word] = int(0)
+#         if word in SPAM_DICT:
+#             previous_val = message_dict.get(word)
+#             new_val = previous_val + 10 #change 1 to the value in SPAM_DICT maybe
+#             message_dict[i] = new_val
+#         elif message_list[i] not in SPAM_DICT:
+#             pass
+#     return message, message_dict
+
+
+# def compare_to_phrases(phrases:dict):
+#     """
+#     """
+#     for key in phrases:
+#         phrase = key
+#         if phrase in SPAM_DICT:
+#             previous_val = phrases.get(key)
+#             new_val = previous_val + 1 
+#             phrases[key] = new_val
+            
+
+# def get_bigrams(message:str):
+#     """
+#     This function takes in a string as its argument and creates a 
+#     dictionary of bigrams
+#     """
+#     words = message.split()
+#     words = [words.lower() for word in words] 
+#     words_list =  list(words)
+#     phrases_dict = {}
+#     for i in range(len(words_list)-1):
+#         current_word = words_list[i]
+#         next_word = words_list[i + 1]
+#         phrase = current_word + ' ' + next_word
+#         phrases_dict[phrase] = 0 
+#     return message, phrases_dict
+
+# #DRIVER FUNCTIONS
+# def spam_words(text):
+#     test_string = text
+#     message, message_dict = compare_to_words(text)
+#     is_spam_or_not(message, message_dict)
+
+
+# def spam_bigrams(text):
+#     test_string = text
+#     message, phrases = get_bigrams(test_string)
+    
+
+# def basic_test():
+#     sentence_list = [
+#         'this is a sentence',
+#     ]
+#     for i in range(len(sentence_list)):
+#         spam_words(sentence_list[i])
+
+
+# basic_test()
+
+# def algorithm_v1(sms: str) -> bool:
+#     """
+#     This function accepts an SMS message as a string and returns `True` if
+#     it is spam. Otherwise, it returns `False` if it's ham.
+#     """
+#     if "Free" in sms:
+#         return True
+
+#     return False
+
+
+# def algorithm_v2(sms:str):
+
+
+# SPAM_DICT = {
+#     'you' : 0,
+#     'won' : 0 ,
+#     'free' : 0,
+#     'money' : 0,
+#     'try' : 0,
+#     'claim' : 0,
+#     'prize' : 0,
+#     'get' : 0,
+#     'eligable': 0,
+# }
+
+
+# #####Check using words######
+# def is_spam_or_not(message:list, message_dict:dict):
+#     """
+#     This function detemines if message is spam or 
+#     not based on ...
+#     """
+#     spam_num = 0
+#     for val in message_dict.values():
+#         spam_num += val
+#     if spam_num >= ((len(message)/2) * 10):
+#         add_to_spam(message)
+#         # print('spam')
+#         return('spam')
+#     else:
+#         # print('ham')
+#         return('ham')
+
+# def add_to_spam(spam:list):
+#     """
+#     If the message is spam it'll append the words
+#     from the message to a dict. If words are alredy
+#     in the dict it'll add plus one the their excisting 
+#     value. If the word is not in the dict it will get 
+#     added as a key with a value of one.
+#     """
+#     for i in range(len(spam)):
+#         word = spam[i]
+#         if spam[i] in SPAM_DICT:
+#             previous_val = SPAM_DICT.get(word)
+#             new_val = previous_val + 5
+#             SPAM_DICT[i] = new_val 
+#         else:
+#             SPAM_DICT[word] = 0 #previously at 1 now at 0 idk
+
+# def compare_to_words(message:str):
+#     """
+#     This function takes in a string as its argument. The
+#     string is turned into a list which then is looped through
+#     comparing everyword to words in a dictionay filled with
+#     spam likely words. 
+#     """
+#     # message = message.lower()
+#     message = message.split()
+#     message_list = list(message)
+#     message_dict = {}
+#     for i in range(len(message_list)):
+#         word = message_list[i]
+#         message_dict[word] = int(0)
+#         if word in SPAM_DICT:
+#             previous_val = message_dict.get(word)
+#             new_val = previous_val + 10 #change 1 to the value in SPAM_DICT maybe
+#             message_dict[word] = new_val
+#         elif word not in SPAM_DICT:
+#             pass
+#     return message_list, message_dict
+
+# def right_or_wrong(sms:list, result:str, label:str):
+#     """
+#     This function takes in the message, result of my function,
+#     and real label of the function. If the result matches the 
+#     labe everything is cood. If the result does not match the
+#     """
+#     if result == label:
+#         pass
+#     elif result != label:
+#         add_to_spam(sms)
+
+# def check(sms, label):
+#     message_list, message_dict = compare_to_words(sms)
+#     result = is_spam_or_not(message_list, message_dict)
+#     right_or_wrong(message_list, message_dict, result, label)
+
+# #####last check using words####
+# def check_again(sms):
+#     message_list, message_dict = compare_to_words(sms)
+#     is_spam_or_not(message_list, message_dict)
+
+
+
+###########THIS USED TO BE get_probs_for_words
+
+
+    # words that aren't in PROBS dict
+    other_words = []
+
+    # dictionary with the probabilties or sms
+    probs_dict = {}
+    spam_prob = 0 
+    ham_prob = 0
+
+    for i in range(len(sms_list)):
+        word = sms_list[i]
+        word = str(word)
+        if word not in PROBS:
+            # If the word is not in the dictionary
+            # we ignore it for now
+            other_words.append(word)
+        else:
+            # get the occurance of word being in spam or ham
+            spam_prob = PROBS[word]['spam']
+            ham_prob = PROBS[word]['ham']
+
+            # all ocurrances of a word
+            word_prob = spam_prob+ham_prob
+
+            # probablity of word being spam or ham
+            spam = float(spam_prob/word_prob)
+            ham = float(ham_prob/word_prob)
+
+            # dictionay with word and spam and ham probability
+            probs_dict[word] = {'spam' : spam, 'ham' : ham}
+
+    return probs_dict, other_words
+
+
+
+
+def spam_or_ham(ham_val:int, spam_val:int, length_of_list:int, PROBS_HAM:float, PROBS_SPAM:float):
+    """
+    """
+    ham = ham_val/length_of_list
+    spam = spam_val/length_of_list
+    prob_spam_sms = (spam * PROBS_SPAM)/(spam * PROBS_SPAM + ham * PROBS_HAM)
+    prob_ham_sms = (ham * PROBS_HAM)/(ham * PROBS_HAM + spam * PROBS_SPAM)
+    if prob_ham_sms > prob_spam_sms:
+        return('ham')
+    elif prob_spam_sms > prob_ham_sms:
+        return('spam')
+    elif prob_ham_sms == prob_ham_sms:
+       return('spam')
+    else:
+        pass    
+
+
+def add_probabilites(sms_list:list, probs_dict:dict, PROBS_HAM:float, PROBS_SPAM:float):
+    """
+    """
+    spam_val = 0
+    ham_val = 0
+    length_of_list = len(sms_list)
+    for i in range(len(sms_list)):
+        word = sms_list[i]
+        spam = PROBS[word]['spam']
+        ham = PROBS[word]['ham']
+        prob_spam_word = (spam * PROBS_SPAM)/(spam * PROBS_SPAM + ham * PROBS_HAM)
+        prob_ham_word = (ham * PROBS_HAM)/(ham * PROBS_HAM + spam * PROBS_SPAM)
+        if prob_ham_word > prob_spam_word:
+            ham_val +=1
+        elif prob_spam_word > prob_ham_word:
+            spam_val += 1
+        elif prob_ham_word == prob_ham_word:
+            ham_val += 1
+            spam_val +=1
+        else:
+            pass
+
+    return ham_val, spam_val, length_of_list
+
+
+
+
+
+
+# def memorize_alg(thing_to_be_scored, training_dataset):
+#     """
+#     This algorithm takes the training data (which is the ONLY data we will have
+#     if we're data scientists) and splits the training data into two lists: a list
+#     of HAM messages and a list of SPAM messages. If `thing_to_be_scored` is in HAM,
+#     this function returns HAM. If `thing_to_be_scored` is in SPAM, this function returns
+#     SPAM. If `thing_to_be_scored` is is neither....
+#     """
+    
+#     """
+#     HINTS:
+#     normal the text: "Wanna hang out??"  -->  "wnn hng t"
+    
+#     def distance(txt_1, txt_2)
+    
+#         distance("whats up", "wha's upp") == 4
+#         distance("whats up", "buy free stuff") = 85
+        
+#         EDIT DISTANCE
+#     """
+    
+#     pass
+
+
+# memorize_alg_v1
