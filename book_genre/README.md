@@ -1,21 +1,3 @@
-http://www.gutenberg.org/ebooks/39586
+In this project I will try to predict the category of a book.
 
-http://www.gutenberg.org/ebooks/345
-
-http://www.gutenberg.org/ebooks/25525
-
-http://www.gutenberg.org/files/100/100-h/100-h.htm
-
-
-http://www.gutenberg.org/ebooks/1661
-
-http://www.gutenberg.org/ebooks/514
-
-
-http://www.gutenberg.org/ebooks/46
-
-
-http://www.gutenberg.org/ebooks/55
-
-
-http://www.gutenberg.org/ebooks/236
+In read `read_books.py` I have functions that will get features from a book such as `book length` and other features that maybe usefull in predicting the category of the book. This features I will then use in a jupyter notebook to try and evalute the importance of each feature to see which are usefull and which are not in predictiong the category of a book. 
