@@ -1,4 +1,5 @@
 import os
+import re
 
 
 def read_book(book):
@@ -44,6 +45,7 @@ def common_words():
     Int
        This int will show many words they have in common 
     """
+    return 0
 
 def download_book(link:str):
     """
@@ -78,6 +80,12 @@ def get_average_word_length(book):
     int
         This int will be the average length of a word
     """
+    average_word = 0
+    for i in range(len(book)):
+        average_word += len(book[i])
+    
+
+    return (average_word/len(book))
 
 def get_length(book):
     """
@@ -135,9 +143,11 @@ def clean_book(book):
         This function returns a list of all the words in the book without 
         any punctuation
     """
-    clean_book = book
+    cleaned = re.sub(r'[\.!#$%*()@,:/;"{}+=-]', ' ', book)
+    cleaned = re.sub(r'[0-9]', ' ', cleaned)
+    
 
-    return clean_book
+    return cleaned
 
 
 
@@ -184,10 +194,13 @@ def get_length_all(dict_of_books: dict):
         This function returns nothing it just prints the name of the book and 
         number of words in it
     """
+    length_dict = {}
     for book in dict_of_books:
         length_of_book = get_length(dict_of_books[book])
+        length_dict[book] = length_of_book
         print(f"{book}, {length_of_book} ")
      
+    return length_dict
 
 def make_dict_of_book(pathway):
     """
@@ -212,8 +225,9 @@ def make_dict_of_book(pathway):
         # select all txt files
         if file.endswith(".txt"):
             book_name = file
+            # read_books() returns a list of words in book
             book_list = read_book(os.path.join(f"./{pathway}/" + book_name))
-            # get rid of .txt
+            # add the name of the book (without .txt) and its words
             book_dict[book_name[:-4]] = book_list
 
 
@@ -238,9 +252,13 @@ def get_features():
     
         The dict contains the title as a key and all its words as a value. 
     """
+    # dictionary with words and book
     book_dict = make_dict_of_book("data")
-    get_length_all(book_dict)
+    # dictionary with book and length
+    length_dict = get_length_all(book_dict)
+    # average_word = get_average_word_length(book_dict)
 
+    return length_dict, average_word
 
 
 
