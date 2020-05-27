@@ -1,6 +1,6 @@
 import os
 import re
-
+import pandas as pd
 
 def read_book(book):
     """
@@ -80,12 +80,12 @@ def get_average_word_length(book):
     int
         This int will be the average length of a word
     """
-    average_word = 0
+    length_of_all = 0
     for i in range(len(book)):
-        average_word += len(book[i])
+        length_of_all += len(book[i])
     
 
-    return (average_word/len(book))
+    return (length_of_all/len(book))
 
 def get_length(book):
     """
@@ -108,7 +108,7 @@ def get_length(book):
 
 
 
-def most(book:list):
+def most_occuring_word(book:list):
     """
    This function takes in a book as its arugment which is a list of all the words 
    in the book and will return a list of the most occuring words in the book
@@ -198,7 +198,7 @@ def get_length_all(dict_of_books: dict):
     for book in dict_of_books:
         length_of_book = get_length(dict_of_books[book])
         length_dict[book] = length_of_book
-        print(f"{book}, {length_of_book} ")
+        # print(f"{book}, {length_of_book} ")
      
     return length_dict
 
@@ -234,6 +234,36 @@ def make_dict_of_book(pathway):
     return book_dict
 
 
+def to_dataframe(length_dict:dict, book_dict:dict):
+    """
+    This functions gets passed in 2 dictionaries containing some data from
+    the books which are the features. This function will then put that into 
+    a pandas dataframe. 
+
+    Parameters:
+    -----------
+    length_dict: dict
+        This is a dictionary with the name of the book as its key and the total
+        number of words as its value
+
+
+    Returns:
+    --------
+    pandas dataframe
+        
+    """
+    data = []
+    for book in length_dict:
+        data.append(  [book, length_dict[book], get_average_word_length(book_dict[book]) ] )
+
+    
+    df = pd.DataFrame(data, columns = ['Name', 'Book Length', 'Average Word Length']) 
+
+    return df
+
+    
+
+
 def get_features():
     """
     This function is the driver function and takes in no arguments. The purpose of 
@@ -256,9 +286,8 @@ def get_features():
     book_dict = make_dict_of_book("data")
     # dictionary with book and length
     length_dict = get_length_all(book_dict)
-    # average_word = get_average_word_length(book_dict)
 
-    return length_dict, average_word
+    dataframe = to_dataframe(length_dict, book_dict)
 
-
+    return dataframe
 
