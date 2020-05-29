@@ -65,6 +65,7 @@ def download_book(link:str):
 
     return book
 
+
 def get_average_word_length(book):
     """
     This function accepts a book as its argument and will return the average length
@@ -202,6 +203,42 @@ def get_length_all(dict_of_books: dict):
      
     return length_dict
 
+def count_repeat(book_dict: dict):
+    """
+    This function takes in dictionary as its argument and checks if words in books are repeated.
+    This function will return a dictionary with the avarage times a books words repeat.
+
+
+    Parameters
+    ----------
+    dict_of_books; dict
+        This is a dictionary of books where the key is title of the book and value is
+        all words in the book
+
+    Returns
+    -------
+    dict
+        This function returns a dictionary with the name of the book as its key and the 
+        average times the words repeate as its value.
+    """
+    repeat_dict = {}
+    seen = []
+    average_repeate = 0
+    for book in book_dict:
+        words = book_dict[book]
+        for i in range(len(words)):
+            if i in words:
+                average_repeate += 1
+                seen.append(i)
+            else:
+                seen.append(i)
+        repeat_dict[book] = (average_repeate/len(words))
+        average_repeate = 0
+    
+    return repeat_dict
+
+
+
 def make_dict_of_book(pathway):
     """
     This function accepts the pathway to some book data. The data Should be formated so that 
@@ -234,6 +271,7 @@ def make_dict_of_book(pathway):
     return book_dict
 
 
+
 def to_dataframe(length_dict:dict, book_dict:dict):
     """
     This functions gets passed in 2 dictionaries containing some data from
@@ -249,7 +287,7 @@ def to_dataframe(length_dict:dict, book_dict:dict):
 
     Returns:
     --------
-    pandas dataframe
+    Pandas Dataframe
         
     """
     data = []
@@ -268,8 +306,9 @@ def get_features():
     """
     This function is the driver function and takes in no arguments. The purpose of 
     this function is to get features from a book i.e `book length`etc. This function 
-    takes in no arguments but will return all the features it has collected. First the 
-    function calls the book create dictionary function to get all our data of books.
+    takes in no arguments but will return a dataframe with all the features it has
+    collected. First the function calls the book create dictionary function to get 
+    all our data of books.
     Then we will do some cleaning and.
 
     Parameters:
@@ -279,13 +318,16 @@ def get_features():
 
     Returns:
     --------
-    
-        The dict contains the title as a key and all its words as a value. 
+    Pandas Dataframe
+        This dataframe constains all the 
     """
     # dictionary with words and book
     book_dict = make_dict_of_book("data")
     # dictionary with book and length
     length_dict = get_length_all(book_dict)
+
+    # get average repaeting 
+    # repeat = count_repeat(book_dict)
 
     dataframe = to_dataframe(length_dict, book_dict)
 
