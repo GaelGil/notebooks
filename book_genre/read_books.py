@@ -152,7 +152,7 @@ def clean_book(book):
 
 
 
-def rmv_long_short(book):
+def rmv_long_short_words(book):
     """
     This function takes in a book as its argument and will remove all the very long 
     words as well as all the very short words. The function will then return a list
@@ -238,6 +238,31 @@ def count_repeat(book_dict: dict):
     return repeat_dict
 
 
+def get_book_length_noreapeat(book_dict:dict):
+    """
+    This function takes in a dictionary of books and prints thet length of the books
+
+    Parameters
+    ----------
+    book_dict; dict
+        This is a dictionary of books where the key is title of the book and value is
+        all words in the book
+
+    Returns
+    -------
+    dict
+        This function returns a dictionary with the name as the key and legnth of book with
+        no repeates as its value
+    """
+    length_norepeat = {}
+    for book in book_dict:
+        # call function that returns length of lists
+        set_words = set(list(book_dict[book]))
+        no_repetition = get_length(set_words)
+        # add the value and key to the dictionary
+        length_norepeat[book] = no_repetition
+
+    return length_norepeat
 
 def make_dict_of_book(pathway):
     """
@@ -272,7 +297,9 @@ def make_dict_of_book(pathway):
 
 
 
-def to_dataframe(length_dict:dict, book_dict:dict):
+
+
+def to_dataframe(length_dict:dict, book_dict:dict, no_repeat:dict):
     """
     This functions gets passed in 2 dictionaries containing some data from
     the books which are the features. This function will then put that into 
@@ -292,14 +319,16 @@ def to_dataframe(length_dict:dict, book_dict:dict):
     """
     data = []
     for book in length_dict:
-        data.append(  [book, length_dict[book], get_average_word_length(book_dict[book]) ] )
+        data.append(  [book, length_dict[book], get_average_word_length(book_dict[book]), no_repeat[book] ] )
 
     
-    df = pd.DataFrame(data, columns = ['Name', 'Book Length', 'Average Word Length']) 
+    df = pd.DataFrame(data, columns = ['Name', 'Book Length', 'Average Word Length', 'Length NoRepeat']) 
 
     return df
 
     
+
+
 
 
 def get_features():
@@ -326,10 +355,11 @@ def get_features():
     # dictionary with book and length
     length_dict = get_length_all(book_dict)
 
+    no_repeat = get_book_length_noreapeat(book_dict)
     # get average repaeting 
     # repeat = count_repeat(book_dict)
 
-    dataframe = to_dataframe(length_dict, book_dict)
+    dataframe = to_dataframe(length_dict, book_dict, no_repeat)
 
     return dataframe
 
