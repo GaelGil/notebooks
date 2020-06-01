@@ -319,10 +319,10 @@ def to_dataframe(length_dict:dict, book_dict:dict, no_repeat:dict):
     """
     data = []
     for book in length_dict:
-        data.append(  [book, length_dict[book], get_average_word_length(book_dict[book]), no_repeat[book] ] )
+        data.append(  [book, length_dict[book], get_average_word_length(book_dict[book]), no_repeat[book], book_dict[book] ] )
 
     
-    df = pd.DataFrame(data, columns = ['Name', 'Book Length', 'Average Word Length', 'Length NoRepeat']) 
+    df = pd.DataFrame(data, columns = ['Name', 'Book Length', 'Average Word Length', 'Length NoRepeat', 'Words']) 
 
     return df
 
