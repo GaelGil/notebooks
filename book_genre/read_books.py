@@ -225,7 +225,7 @@ def get_average_word_length(book):
     return int(length_of_all/len(book))
 
 
-
+#new comment
 
 def get_length(book):
     """
