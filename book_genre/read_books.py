@@ -1,6 +1,42 @@
 import os
 import re
 import pandas as pd
+from stop_words import get_stop_words as words_to_remove
+
+
+
+def make_dict_of_book(pathway):
+    """
+    This function accepts the pathway to some book data. The data Should be formated so that 
+    the names start with a category name i.e `0_edgar_allen_poe.txt`. This funtction returns a dict
+    where the key of the dict is the book name and the value is all words. 
+
+    Parameters:
+    -----------
+    pathway: str
+        A pathway in the file system where the data is.
+
+
+    Returns:
+    --------
+    dict
+        The dict contains the title as a key and all its words as a value. 
+    """
+    book_dict = {}
+    # loop through the directory
+    for file in os.listdir(f"./{pathway}"):
+        # select all txt files
+        if file.endswith(".txt"):
+            book_name = file
+            # read_books() returns a list of words in book
+            clean = read_book(os.path.join(f"./{pathway}/" + book_name))
+            book_list = clean_book(clean)
+            # add the name of the book (without .txt) and its words
+            book_dict[book_name[:-4]] = book_list
+
+    return book_dict
+
+
 
 def read_book(book):
     """
@@ -9,7 +45,7 @@ def read_book(book):
 
     Parameters
     ----------
-    book; str
+    book: str
         This is a string which contains the pathway and name of te book
         that we will open and read 
 
@@ -18,21 +54,114 @@ def read_book(book):
     list
         Returns a list of all the words in the book
     """
-    # open book
     with open(book, 'r') as file:        
         data = file.read().replace('\n', ' ')  
-        # get book into list form with all lowercase words
-        tokens = data.split()
-        tokens = [token.lower() for token in tokens] 
-        tokens_index = list(set(tokens))
-    return tokens_index
+    return data
 
 
-def common_words():
+
+def clean_book(book:list):
     """
-    This function accepts the pathway to some book data. The data Should be formated so that 
-    the names start with a category name i.e `0_edgar_allen_poe.txt`. This funtction returns a dict
-    where the key of the dict is the book name and the value is all words. 
+    This function takes in a list as its argument which contains the words to a book.
+    The function will clean the list by removing some punctuation, numbers, and make 
+    all words lowercase. The function will then return the cleaned version of the book
+
+    Parameters
+    ----------
+    book; list
+        This is a list of all the words in the book 
+
+    Returns
+    -------
+    list
+        This function returns a list of all the words in the book without 
+        any punctuation
+    """
+    cleaned = re.sub(r'[\.!#$%*?[()@,:/;"{}+=-]', ' ', book)
+    clean_nums = re.sub(r'[0-9]', ' ', cleaned)
+    tokens = clean_nums.split()
+    tokens = [token.lower() for token in tokens]
+    words = rmv_stop_words(tokens)
+    return words
+
+
+
+###### This function doesnt do anything
+def rmv_stop_words(book:list):
+    """
+    This function takes in a list containing all the words to a book as its argument.
+    The function will remove stop words ie `the`, `and`, `they` and will return a list
+    without the stop words
+
+    Parameters
+    ----------
+    book; list
+        This is a list of all the words in the book 
+
+    Returns
+    -------
+    list
+        This function will return a list of all the words in the book without stop
+        words
+    """
+    stop_words = words_to_remove()
+    for i in range(len(stop_words)):
+        word = stop_words[i]
+        if word in book:
+            book.remove(word)
+
+    return book
+
+
+def count_most_occuring_words(books_words:list):
+    """
+    This function takes in a list of words from a book as its argument. 
+
+    Parameters:
+    -----------
+    books_words: list
+        A list of words belonging to a book
+
+
+    Returns:
+    --------
+    dict
+       This int will show many words they have in common 
+    """
+    word_counter = {}
+    common = {}
+    # count the frequency of the words
+    for word in books_words:
+        if word in word_counter:
+            word_counter[word] += 1
+        else:
+            word_counter[word] = 1
+
+    common_words = sorted(word_counter, key = word_counter.get, reverse = True)
+
+    # get least and most common
+    top_five = common_words[:5]
+    bottom_five = common_words[-5:]
+    least_and_most_common = top_five + bottom_five
+
+    # make a dictionary with least and most common words
+    for i in range(len(least_and_most_common)):
+        word = least_and_most_common[i]
+        if word in word_counter:
+            # add the word as a key and its frequency as its value
+            common[word] = word_counter[word]
+    
+    return common
+
+
+
+def most_common_words(book_dict:dict):
+    """
+    This function takes in a dictionary as its argument in which the dictionary
+    contains the title of a book as its key and the words as its value. The function
+    passess the value to another function to then count the frequency of the words 
+    for that book. Once we have the frequency of the words for each book we add it
+    to a dictionary. We then return the dictionary witht the word frequency.
 
     Parameters:
     -----------
@@ -45,8 +174,17 @@ def common_words():
     Int
        This int will show many words they have in common 
     """
-    return 0
+    frequency_dict = {}
+    for book in book_dict:
+        book_word_list = book_dict[book]
+        words = count_most_occuring_words(book_word_list)
+        frequency_dict[book] = words
 
+    return frequency_dict
+
+
+
+###### This function doesnt do anything yet
 def download_book(link:str):
     """
     This function takes in a book as an argument and will return the book without
@@ -62,7 +200,6 @@ def download_book(link:str):
     list
         Returns a list of all the words in the book
     """
-
     return book
 
 
@@ -85,8 +222,10 @@ def get_average_word_length(book):
     for i in range(len(book)):
         length_of_all += len(book[i])
     
+    return int(length_of_all/len(book))
 
-    return (length_of_all/len(book))
+
+
 
 def get_length(book):
     """
@@ -106,77 +245,6 @@ def get_length(book):
     """
     return len(book)
 
-
-
-
-def most_occuring_word(book:list):
-    """
-   This function takes in a book as its arugment which is a list of all the words 
-   in the book and will return a list of the most occuring words in the book
-
-    Parameters
-    ----------
-    book; list
-        This is a list of all the words in the book 
-
-    Returns
-    -------
-    list
-        This function returns a list of the most occruring words in the book
-    """
-    most_occuring = book
-    return most_occuring
-
-
-def clean_book(book):
-    """
-    This function takes in a book as an argument and will return the book without
-    any puntctuation
-
-    Parameters
-    ----------
-    book; list
-        This is a list of all the words in the book 
-
-    Returns
-    -------
-    list
-        This function returns a list of all the words in the book without 
-        any punctuation
-    """
-    cleaned = re.sub(r'[\.!#$%*()@,:/;"{}+=-]', ' ', book)
-    cleaned = re.sub(r'[0-9]', ' ', cleaned)
-    
-
-    return cleaned
-
-
-
-def rmv_long_short_words(book):
-    """
-    This function takes in a book as its argument and will remove all the very long 
-    words as well as all the very short words. The function will then return a list
-    of all the words in the book expect the very long and very short ones. 
-
-    Parameters
-    ----------
-    book; list
-        This is a list of all the words in the book 
-
-    Returns
-    -------
-    list
-        This function will return a list of all the words in the book but will all the
-        very short and very long words removed
-    """
-    some_list = []
-    clean_book = []
-    for i in range(len(book)):
-        word = book[i]
-        if word not in some_list:
-            clean_book.append(word)
-
-    return clean_book
 
 
 def get_length_all(dict_of_books: dict):
@@ -199,10 +267,10 @@ def get_length_all(dict_of_books: dict):
     for book in dict_of_books:
         length_of_book = get_length(dict_of_books[book])
         length_dict[book] = length_of_book
-        # print(f"{book}, {length_of_book} ")
      
     return length_dict
 
+###### This function doesnt do anything yet
 def count_repeat(book_dict: dict):
     """
     This function takes in dictionary as its argument and checks if words in books are repeated.
@@ -258,42 +326,10 @@ def get_book_length_noreapeat(book_dict:dict):
     for book in book_dict:
         # call function that returns length of lists
         set_words = set(list(book_dict[book]))
-        no_repetition = get_length(set_words)
-        # add the value and key to the dictionary
-        length_norepeat[book] = no_repetition
+        # add to dictionary
+        length_norepeat[book] = len(set_words)
 
     return length_norepeat
-
-def make_dict_of_book(pathway):
-    """
-    This function accepts the pathway to some book data. The data Should be formated so that 
-    the names start with a category name i.e `0_edgar_allen_poe.txt`. This funtction returns a dict
-    where the key of the dict is the book name and the value is all words. 
-
-    Parameters:
-    -----------
-    pathway: str
-        A pathway in the file system where the data is.
-
-
-    Returns:
-    --------
-    dict
-        The dict contains the title as a key and all its words as a value. 
-    """
-    book_dict = {}
-    # loop through the directory
-    for file in os.listdir(f"./{pathway}"):
-        # select all txt files
-        if file.endswith(".txt"):
-            book_name = file
-            # read_books() returns a list of words in book
-            book_list = read_book(os.path.join(f"./{pathway}/" + book_name))
-            # add the name of the book (without .txt) and its words
-            book_dict[book_name[:-4]] = book_list
-
-
-    return book_dict
 
 
 
@@ -301,7 +337,7 @@ def make_dict_of_book(pathway):
 
 def to_dataframe(length_dict:dict, book_dict:dict, no_repeat:dict):
     """
-    This functions gets passed in 2 dictionaries containing some data from
+    This functions gets passed in 3 dictionaries containing some data from
     the books which are the features. This function will then put that into 
     a pandas dataframe. 
 
@@ -325,9 +361,6 @@ def to_dataframe(length_dict:dict, book_dict:dict, no_repeat:dict):
     df = pd.DataFrame(data, columns = ['Name', 'Book Length', 'Average Word Length', 'Length NoRepeat', 'Words']) 
 
     return df
-
-    
-
 
 
 
@@ -356,10 +389,12 @@ def get_features():
     length_dict = get_length_all(book_dict)
 
     no_repeat = get_book_length_noreapeat(book_dict)
-    # get average repaeting 
-    # repeat = count_repeat(book_dict)
+  
+    least_most_common_words = most_common_words(book_dict)
 
     dataframe = to_dataframe(length_dict, book_dict, no_repeat)
 
     return dataframe
 
+
+get_features()
