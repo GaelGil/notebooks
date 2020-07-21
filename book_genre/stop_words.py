@@ -125,7 +125,9 @@ STOP_WORDS = [
     'just',
     'don',
     'should',
-    'now',]
+    'now'
+    'newsletter'
+    ,]
 
 def get_stop_words():
     return STOP_WORDS
