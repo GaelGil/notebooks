@@ -65,7 +65,7 @@ u =  upper_left_corner[100:200, 100:200, :]
 list = [1, 2, 3, 4, 5, 6, 7]
 
 
-cv2.imshow('upper lefct', u)
+# cv2.imshow('upper lefct', u)
 
 # RGB - Blue
 # cv2.imshow('B-RGB', b)
@@ -77,8 +77,8 @@ cv2.imshow('upper lefct', u)
 # cv2.imshow('R-RGB', r)
 
 
-# cv2.imshow("Over the Clouds", img)
-# cv2.imshow("Over the Clouds - gray", gray)
+cv2.imshow("Over the Clouds", img)
+cv2.imshow("Over the Clouds - gray", gray)
 # cv2.imshow("Over the Clouds - blur", img_blur)
 # cv2.imshow("Over the Clouds - canny", img_canny)
 # cv2.imshow("Over the Clouds - upperleft", upper_left_corner)
