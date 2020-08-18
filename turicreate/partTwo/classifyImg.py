@@ -1,20 +1,6 @@
 import turicreate as tc
 
 
-def toSframe(dataFolder:str):
-    """
-    This function 
-    """
-    # Load images from folder
-    data = tc.image_analysis.load_images(dataFolder, with_path=True)
-
-    # Create label column based on folder name
-    data['sneaker_name'] = data['path'].apply(lambda path: os.path.basename(os.path.dirname(path)))
-
-    # Save as .sframe
-    data.save('img.sframe')
-
-
 
 def sneakerClassifier(model:str, sneakerImg:str):
     """
@@ -24,13 +10,23 @@ def sneakerClassifier(model:str, sneakerImg:str):
     img = tc.Image(sneakerImg)
     prediction = model.predict(img)
 
+    print(f'{sneakerImg}: {prediction}')
+
     return prediction
 
 
 
 model = 'turi.model'
-img = './sneakers/jordan_eleven/shoe.png'
 
-print(sneakerClassifier(model, img))
+img1 = '../sneakers/jordan_eleven/shoe1.png'
+img2 = '../sneakers/jordan_eleven/shoe2.png'
+img3 = '../sneakers/jordan_eleven/shoe3.png'
+img4 = '../sneakers/jordan_one/shoe1.png'
+img5 = '../sneakers/jordan_one/shoe2.png'
 
 
+sneakerClassifier(model, img1)
+sneakerClassifier(model, img2)
+sneakerClassifier(model, img3)
+sneakerClassifier(model, img4)
+sneakerClassifier(model, img5)
