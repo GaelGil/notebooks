@@ -7,10 +7,6 @@ edgeFilter = np.array([[-1, -1, -1],
 
 
 
-basicFilter = np.array([[2, 2, 2],
-                       [2, 2, 2],
-                       [2, 2, 2]])
-
 img = cv2.imread("sneaker.png")
 
 
