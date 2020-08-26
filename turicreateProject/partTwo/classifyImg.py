@@ -25,6 +25,8 @@ img4 = '../sneakers/jordan_one/shoe1.png'
 img5 = '../sneakers/jordan_one/shoe2.png'
 
 
+
+
 sneakerClassifier(model, img1)
 sneakerClassifier(model, img2)
 sneakerClassifier(model, img3)
