@@ -5,7 +5,7 @@ def trainAndSaveModel():
     """
     """
     # 1. Load the data
-    data = tc.SFrame('sneaker.sframe')
+    data = tc.SFrame('moreSneakers.sframe')
 
     # 2. Split to train and test data
     train_data, test_data = data.random_split(0.8)
@@ -21,7 +21,7 @@ def trainAndSaveModel():
     print(metrics['accuracy'])
 
     # 6. Save the model
-    model.save('sneaker.model')
+    model.save('moreSneaker.model')
 
 
 trainAndSaveModel()

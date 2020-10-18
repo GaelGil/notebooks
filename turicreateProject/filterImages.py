@@ -38,6 +38,7 @@ def loadImagesFromFolder(folder):
                     # apply filter
                     # filteredImg = filter(img, edgeFilter)
 
+
                     # black and white image
                     blackAndGrey = cv2.cvtColor(img.copy(), cv2.COLOR_BGR2GRAY)
                     # make a slighlty blurred image
@@ -49,23 +50,32 @@ def loadImagesFromFolder(folder):
                     # flip image vertically
                     veritcally = cv2.flip(img.copy(), 0)
 
+                    fNameOne = (f'1{filename}')
+                    fNameTwo = (f'2{filename}')
+                    fNameThree = (f'3{filename}')
+                    fNameFour = (f'4{filename}')
+                    fNameFive = (f'5{filename}')
+                    fNameSix = (f'6{filename}')
+
+
+
                     # save it to new folder
-                    cv2.imwrite(os.path.join(directory , filename), img.copy())
+                    cv2.imwrite(os.path.join(directory , fNameOne), img.copy())
                     cv2.waitKey(0)
 
-                    cv2.imwrite(os.path.join(directory , filename), blackAndGrey)
+                    cv2.imwrite(os.path.join(directory , fNameTwo), blackAndGrey)
                     cv2.waitKey(0)
                    
-                    cv2.imwrite(os.path.join(directory , filename), blurred)
+                    cv2.imwrite(os.path.join(directory , fNameThree), blurred)
                     cv2.waitKey(0)
 
-                    cv2.imwrite(os.path.join(directory , filename), saturated)
+                    cv2.imwrite(os.path.join(directory , fNameFour), saturated)
                     cv2.waitKey(0)
 
-                    cv2.imwrite(os.path.join(directory , filename), horizontal)
+                    cv2.imwrite(os.path.join(directory , fNameFive), horizontal)
                     cv2.waitKey(0)
 
-                    cv2.imwrite(os.path.join(directory , filename), veritcally)
+                    cv2.imwrite(os.path.join(directory , fNameSix), veritcally)
                     cv2.waitKey(0)
 
 
