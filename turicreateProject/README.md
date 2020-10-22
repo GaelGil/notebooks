@@ -47,12 +47,12 @@ The images come from reddit and stockx. I have data for jordan `one,three,four,e
 
 I know I needed to get more data so to increase my data I created a file callled 'addFilterToImages.py'. In this file I run all all the images in the folder `dataset` through a function that applies a filter to them. Each photo would get 5 filters applied to them (fliped vertically, fillped horizontally, black and white, saturated, blurred). Once I did this I ended up with about 900 images for each class. Here are some examples:
 
-![alt example](./dataset/jordan_one/1Screen Shot 2020-09-13 at 3.57.04 PM.png)
-![alt example](./dataset/jordan_one/21Screen Shot 2020-09-13 at 3.57.04 PM.png)
-![alt example](./dataset/jordan_one/31Screen Shot 2020-09-13 at 3.57.04 PM.png)
-![alt example](./dataset/jordan_one/41Screen Shot 2020-09-13 at 3.57.04 PM.png)
-![alt example](./dataset/jordan_one/51Screen Shot 2020-09-13 at 3.57.04 PM.png)
-![alt example](./dataset/jordan_one/61Screen Shot 2020-09-13 at 3.57.04 PM.png)
+![alt example](./dataset/jordan_eleven/1Screen Shot 2020-09-13 at 3.57.04 PM.png)
+![alt example](./dataset/jordan_eleven/21Screen Shot 2020-09-13 at 3.57.04 PM.png)
+![alt example](./dataset/jordan_eleven/31Screen Shot 2020-09-13 at 3.57.04 PM.png)
+![alt example](./dataset/jordan_eleven/41Screen Shot 2020-09-13 at 3.57.04 PM.png)
+![alt example](./dataset/jordan_eleven/51Screen Shot 2020-09-13 at 3.57.04 PM.png)
+![alt example](./dataset/jordan_eleven/61Screen Shot 2020-09-13 at 3.57.04 PM.png)
 
 
 I then tried to run my model again and see if test accuracy would change but there was little to know change. My model was performing best when my classes where slightly disbalanced. This could mean my model was predicting a certain class more often because of my dataset and there for getting high test accuracy. I can try and prove this by creating a model with a very disbalanced dataset and see how that turns out.
