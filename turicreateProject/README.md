@@ -39,7 +39,7 @@ Test Accuracy:
 
 
 
-## Where the Dataset Came From
+## Data Pipeline
 The images come from reddit and stockx. I have data for jordan `one,three,four,eleven` (these are models of jordans). I took a screenshot of each shoe some at different angles. I have about an average of 130 for each jordan. Some are high quality some are blury, some are being worn, some are just shoes, some have 2 shoes in one photo, different angles (ie. back, front, left, right). I also have a dataset with all the same images but with a filter applied to them in `filteredDataset` which I then created a model using those images to see if this would get me better results. All classes have 150 images some 160. Here are some examples of the images I have. 
 
 ![alt example](./dataset/jordan_one/readMeImg.png)
@@ -47,22 +47,21 @@ The images come from reddit and stockx. I have data for jordan `one,three,four,e
 
 I know I needed to get more data so to increase my data I created a file callled 'addFilterToImages.py'. In this file I run all all the images in the folder `dataset` through a function that applies a filter to them. Each photo would get 5 filters applied to them (fliped vertically, fillped horizontally, black and white, saturated, blurred). Once I did this I ended up with about 900 images for each class. Here are some examples:
 
-![alt example](./dataset/jordan_eleven/1Screen Shot 2020-09-13 at 3.57.04 PM.png)
-![alt example](./dataset/jordan_eleven/21Screen Shot 2020-09-13 at 3.57.04 PM.png)
-![alt example](./dataset/jordan_eleven/31Screen Shot 2020-09-13 at 3.57.04 PM.png)
-![alt example](./dataset/jordan_eleven/41Screen Shot 2020-09-13 at 3.57.04 PM.png)
-![alt example](./dataset/jordan_eleven/51Screen Shot 2020-09-13 at 3.57.04 PM.png)
-![alt example](./dataset/jordan_eleven/61Screen Shot 2020-09-13 at 3.57.04 PM.png)
+![alt example](./dataset/1jordanElevenRed.png)
+![alt example](./dataset/2jordanElevenRed.png)
+![alt example](./dataset/3jordanElevenRed.png)
+![alt example](./dataset/4jordanElevenRed.png)
+![alt example](./dataset/5jordanElevenRed.png)
+![alt example](./dataset/6jordanElevenRed.png)
 
 
 I then tried to run my model again and see if test accuracy would change but there was little to know change. My model was performing best when my classes where slightly disbalanced. This could mean my model was predicting a certain class more often because of my dataset and there for getting high test accuracy. I can try and prove this by creating a model with a very disbalanced dataset and see how that turns out.
 
 
-## Data Pipeline 
 I create a model using turicreate with iamges that I also found and took myself. A pipeline that would be good to have would be to have a brand identification then once we identify the brand we can send it to another model that specifies in shoe number. When testing out my models with images I took of my own shoes the most common mistake that would happen is labeling any shoe as a `jordan_eleven`
 
 
-## Testing with my own images
+## Evaluating
 I tested my model with images I took of my own shoes. Overall it predicted the shoe well. One thing I did realize is that its more likely to predict a shoe over another. The predictions can be seen in `modelEval.ipynb`
 
 ## Notes:
