@@ -63,7 +63,6 @@ I created a model using turi create with images that I also found and took mysel
  
 ## Evaluating
 I tested my model with images I took of my own shoes. Overall it predicted the shoe well. One thing I did realize is that it's more likely to predict a shoe over another. The predictions can be seen in `modelEval.ipynb`
- 
 
 
 

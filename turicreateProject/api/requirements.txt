@@ -1,0 +1,4 @@
+Flask-RESTful==0.3.8
+pipdeptree==1.0.0
+requests==2.24.0
+setuptools==40.8.0
