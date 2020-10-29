@@ -23,5 +23,6 @@ def trainAndSaveModel():
     # 6. Save the model
     model.save('moreSneaker.model')
 
+    return predictions
 
-trainAndSaveModel()
+# trainAndSaveModel()
