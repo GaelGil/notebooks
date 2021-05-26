@@ -9,6 +9,13 @@ __pycache__/
 # C extensions
 *.so
 
+*build_opencv
+*knn
+*logistic_regression
+*mathGraphs
+*sneakers
+*turiCreateProject
+
 # Distribution / packaging
 .Python
 build/
