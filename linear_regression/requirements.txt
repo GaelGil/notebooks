@@ -16,7 +16,7 @@ entrypoints==0.3
 idna==2.10
 importlib-metadata==4.5.0
 ipykernel==5.5.5
-ipython==7.24.1
+ipython==7.31.1
 ipython-genutils==0.2.0
 jedi==0.18.0
 Jinja2==3.0.1
@@ -46,7 +46,7 @@ pandocfilters==1.4.3
 parso==0.8.2
 pexpect==4.8.0
 pickleshare==0.7.5
-Pillow==8.3.2
+Pillow==9.0.0
 prometheus-client==0.11.0
 prompt-toolkit==3.0.18
 ptyprocess==0.7.0
