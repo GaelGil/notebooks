@@ -1,0 +1,3 @@
+In this project I will try to predict the category of a book.
+
+In read `read_books.py` I have functions that will get features from a book such as `book length` and other features that maybe usefull in predicting the category of the book. This features I will then use in a jupyter notebook to try and evalute the importance of each feature to see which are usefull and which are not in predictiong the category of a book. 
