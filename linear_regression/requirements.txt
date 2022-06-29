@@ -37,7 +37,7 @@ nbclassic==0.3.1
 nbclient==0.5.3
 nbconvert==6.0.7
 nest-asyncio==1.5.1
-notebook==6.4.10
+notebook==6.4.12
 numpy==1.21.0
 packaging==20.9
 pandas==1.2.4
