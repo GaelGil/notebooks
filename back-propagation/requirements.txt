@@ -43,7 +43,7 @@ nbclient==0.6.2
 nbconvert==6.5.0
 nbformat==5.4.0
 nest-asyncio==1.5.5
-notebook==6.4.11
+notebook==6.4.12
 notebook-shim==0.1.0
 numpy==1.22.3
 packaging==21.3
@@ -51,7 +51,7 @@ pandas==1.4.2
 pandocfilters==1.5.0
 parso==0.8.3
 pickleshare==0.7.5
-Pillow==9.1.0
+Pillow==9.1.1
 prometheus-client==0.14.1
 prompt-toolkit==3.0.29
 psutil==5.9.0
