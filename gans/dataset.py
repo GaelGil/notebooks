@@ -1,8 +1,17 @@
-import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
 import torchvision
 from torchvision import datasets, transforms
-from torchvision.datasets import ImageFolder
+
+# image transformations
+TRANSFORM_IMG = transforms.Compose([
+    transforms.Resize((255, 255)),
+    transforms.ToTensor(),
+   transforms.Normalize((0.5), (0.5))
+    ])
+
+# loading the whole mnist dataset
+DATA = torchvision.datasets.MNIST(
+    root="./data/",
+    train=False,
+    download=False,
+    transform=TRANSFORM_IMG
+)
