@@ -23,7 +23,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 gen = Generator(NOISE_DIM, CHANNELS_IMG, FEATURES_GEN).to(device)
 disc = Discriminator(CHANNELS_IMG, FEATURES_DISC).to(device)
 
-# set the optimizer for our models
+# set the optimizers for our models
 opt_gen = optim.Adam(gen.parameters(), lr=LR, betas=(0.5, 0.999))
 opt_disc = optim.Adam(disc.parameters(), lr=LR, betas=(0.5, 0.999))
 criterion = nn.BCELoss()
@@ -35,7 +35,7 @@ step = 0
 TRANSFORM_IMG = transforms.Compose([
     transforms.Resize((255, 255)),
     transforms.ToTensor(),
-   transforms.Normalize((0.5), (0.5))
+    transforms.Normalize((0.5), (0.5))
     ])
 
 # loading the whole mnist dataset
