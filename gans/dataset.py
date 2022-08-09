@@ -1,5 +1,4 @@
-import torchvision
-from torchvision import datasets, transforms
+
 
 # image transformations
 TRANSFORM_IMG = transforms.Compose([
