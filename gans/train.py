@@ -1,11 +1,12 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from dataset import data
+import torchvision
+from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from generative_adversial_network import Discriminator, Generator
 
-
+# hyper parameters
 LR = 0.001
 BATCH_SIZE = 128
 IMAGE_SIZE = 64
@@ -17,7 +18,6 @@ FEATURES_GEN = 64
 
 # set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 
 # load generator and disciminator with some hyperparameters
 gen = Generator(NOISE_DIM, CHANNELS_IMG, FEATURES_GEN).to(device)
@@ -31,8 +31,23 @@ criterion = nn.BCELoss()
 fixed_noise = torch.randn(32, NOISE_DIM, 1, 1).to(device)
 step = 0
 
-# create the data loader to access druing training
-data_loader = torch.utils.data.DataLoader(data, batch_size=BATCH_SIZE, shuffle=True)
+# image transformations
+TRANSFORM_IMG = transforms.Compose([
+    transforms.Resize((255, 255)),
+    transforms.ToTensor(),
+   transforms.Normalize((0.5), (0.5))
+    ])
+
+# loading the whole mnist dataset
+DATA = torchvision.datasets.MNIST(
+    root="./data/",
+    train=False,
+    download=False,
+    transform=TRANSFORM_IMG
+)
+
+# create the data loader to accesss our data
+data_loader = torch.utils.data.DataLoader(DATA, batch_size=BATCH_SIZE, shuffle=True)
 
 gen.train()
 disc.train()
