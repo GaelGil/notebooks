@@ -26,14 +26,16 @@ disc = Discriminator(CHANNELS_IMG, FEATURES_DISC).to(device)
 # set the optimizers for our models
 opt_gen = optim.Adam(gen.parameters(), lr=LR, betas=(0.5, 0.999))
 opt_disc = optim.Adam(disc.parameters(), lr=LR, betas=(0.5, 0.999))
+# set a loss
 criterion = nn.BCELoss()
 
+# fixed noise to generate some images
 fixed_noise = torch.randn(32, NOISE_DIM, 1, 1).to(device)
 step = 0
 
 # image transformations
 TRANSFORM_IMG = transforms.Compose([
-    transforms.Resize((255, 255)),
+    # transforms.Resize((2, 255)),
     transforms.ToTensor(),
     transforms.Normalize((0.5), (0.5))
     ])
@@ -75,8 +77,11 @@ def train_model(data, gen, disc, epochs=50):
     for epoch in range(epochs):
         # Target labels not needed! <3 unsupervised
         for batch_idx, (real, _) in enumerate(data):
+            # real image
             real = real.to(device)
+            # generated noise
             noise = torch.randn(BATCH_SIZE, NOISE_DIM, 1, 1).to(device)
+            # fake image created by generator
             fake = gen(noise)
 
             ### Train Discriminator: max log(D(x)) + log(1 - D(G(z)))
@@ -96,11 +101,16 @@ def train_model(data, gen, disc, epochs=50):
             loss_gen.backward()
             opt_gen.step()
 
-            # Print losses occasionally and print to tensorboard
+            # Print what iteration we are on along with batch index
             if batch_idx % 100 == 0:
                 print(
                     f"Epoch [{epoch}/{epochs}] Batch {batch_idx}/{len(data)}"
                 )
+                # generate some images
+
+                # save them to a folder
+
+
 
     return 0 
 
