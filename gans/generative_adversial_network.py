@@ -10,14 +10,14 @@ class Generator(nn.Module):
             self.block(features*16, features*8, kernel_size=4, stride=2, padding=1),
             self.block(features*8, features*4, kernel_size=4, stride=2, padding=1),
             self.block(features*4, features*2, kernel_size=4, stride=2, padding=1),
-            nn.ConvTranspose2D(features*2, img_channels, kernel_size=4, stride=2, padding=1),
+            nn.ConvTranspose2d(features*2, img_channels, kernel_size=4, stride=2, padding=1),
             nn.Tanh()
         )
 
-    def block(self, in_channels, out_channels, kernel_size, stride):
+    def block(self, in_channels, out_channels, kernel_size, stride, padding):
         return nn.Sequential(
-            nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride, bias=False),
-            nn.BatchNorm2D(out_channels),
+            nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride, padding, bias=False),
+            nn.BatchNorm2d(out_channels),
             nn.ReLU()
         )
 
