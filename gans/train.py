@@ -4,17 +4,20 @@ import torch.optim as optim
 import torchvision
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
-from generative_adversial_network import Discriminator, Generator
+from torchvision.utils import save_image
+from generative_adversial_network import Discriminator, Generator, initialize_weights
 
 # hyper parameters
-LR = 0.001
+LR = 2e-4 
 BATCH_SIZE = 128
 IMAGE_SIZE = 64
 CHANNELS_IMG = 1
 NOISE_DIM = 100
-EPOCHS = 50
+EPOCHS = 100
 FEATURES_DISC = 64
 FEATURES_GEN = 64
+DATASET_NAME = 'MNIST'
+
 
 # set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -22,6 +25,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # load generator and disciminator with some hyperparameters
 gen = Generator(NOISE_DIM, CHANNELS_IMG, FEATURES_GEN).to(device)
 disc = Discriminator(CHANNELS_IMG, FEATURES_DISC).to(device)
+initialize_weights(gen)
+initialize_weights(disc)
 
 # set the optimizers for our models
 opt_gen = optim.Adam(gen.parameters(), lr=LR, betas=(0.5, 0.999))
@@ -35,7 +40,7 @@ step = 0
 
 # image transformations
 TRANSFORM_IMG = transforms.Compose([
-    # transforms.Resize((2, 255)),
+    transforms.Resize(IMAGE_SIZE),
     transforms.ToTensor(),
     transforms.Normalize((0.5), (0.5))
     ])
@@ -55,7 +60,7 @@ gen.train()
 disc.train()
 
 
-def train_model(data, gen, disc, epochs=50):
+def train_model(data, gen, disc, dataset_name, epochs=50):
     """
     Function to train a general adversial network.
 
@@ -84,6 +89,7 @@ def train_model(data, gen, disc, epochs=50):
             # fake image created by generator
             fake = gen(noise)
 
+
             ### Train Discriminator: max log(D(x)) + log(1 - D(G(z)))
             disc_real = disc(real).reshape(-1)
             loss_disc_real = criterion(disc_real, torch.ones_like(disc_real))
@@ -103,16 +109,16 @@ def train_model(data, gen, disc, epochs=50):
 
             # Print what iteration we are on along with batch index
             if batch_idx % 100 == 0:
-                print(
-                    f"Epoch [{epoch}/{epochs}] Batch {batch_idx}/{len(data)}"
-                )
-                # generate some images
-
-                # save them to a folder
-
-
+                print(f'Epoch [{epoch}/{epochs}] Batch {batch_idx}/{len(data)}')
+                with torch.no_grad():
+                    if epoch % 5 == 0:
+                        # generate some images
+                        fake_images = gen(fixed_noise)
+                        # save them to a folder
+                        save_image(fake_images, f'./generated/{dataset_name}/train/image{epoch}.jpg')
 
     return 0 
 
 
-train_model(data=data_loader, gen=gen, disc=disc, epochs=EPOCHS)
+train_model(data=data_loader, gen=gen, disc=disc, dataset_name=DATASET_NAME, epochs=EPOCHS)
+torch.save(gen.state_dict(), f'./models/{DATASET_NAME}')

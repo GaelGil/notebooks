@@ -29,7 +29,7 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.discriminator = nn.Sequential(
             nn.Conv2d(in_channels=img_channels, out_channels=features, kernel_size=4, stride=2, padding=1),
-            nn.LeakyReLu(0.2),
+            nn.LeakyReLU(0.2),
             self.block(in_channels=features, out_channels=features*2, kernel_size=4, stride=2, padding=1),
             self.block(in_channels=features*2, out_channels=features*4, kernel_size=4, stride=2, padding=1),
             self.block(in_channels=features*4, out_channels=features*8, kernel_size=4, stride=2, padding=1),
@@ -42,9 +42,18 @@ class Discriminator(nn.Module):
         return nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, bias=False),
             nn.BatchNorm2d(out_channels),
-            nn.LeakyReLu(0.2)
+            nn.LeakyReLU(0.2)
         )
 
 
     def forward(self, x):
         return self.discriminator(x)
+
+
+
+def initialize_weights(model):
+    # Initializes weights according to the DCGAN paper
+    for m in model.modules():
+        if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d, nn.BatchNorm2d)):
+            nn.init.normal_(m.weight.data, 0.0, 0.02)
+
