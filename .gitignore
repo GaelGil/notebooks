@@ -8,7 +8,7 @@ __pycache__/
 
 # C extensions
 *.so
-
+ 
 *build_opencv
 *knn
 *logistic_regression
