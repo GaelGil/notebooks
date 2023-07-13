@@ -9,6 +9,11 @@ __pycache__/
 # C extensions
 *.so
  
+
+/drug_alcohol_relation
+*.csv
+
+
 *build_opencv
 *knn
 *logistic_regression
