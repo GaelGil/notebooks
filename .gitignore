@@ -12,7 +12,7 @@ __pycache__/
 
 /drug_alcohol_relation
 *.csv
-*.txt
+household_power_consumption.txt
 
 *build_opencv
 *knn
