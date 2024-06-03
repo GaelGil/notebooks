@@ -515,7 +515,7 @@ jupyterlab==4.0.3
       traitlets==5.9.0
       websocket-client==1.6.1
     packaging==23.1
-    requests==2.31.0
+    requests==2.32.2
       certifi==2023.5.7
       charset-normalizer==3.2.0
       idna==3.7
