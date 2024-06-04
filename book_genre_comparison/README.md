@@ -1,6 +1,0 @@
-<!-- In this project I will try to predict the category of a book. -->
-<!-- 
-In read `read_books.py` I have functions that will get features from a book such as `book length` and other features that maybe usefull in predicting the category of the book. This features I will then use in a jupyter notebook to try and evalute the importance of each feature to see which are usefull and which are not in predictiong the category of a book.  -->
-
-
-In this project I am going to see if I can visualize graphically the difference between two different types of book genres. The two book genres I am choosing to compare are cook books and gothic/horror. Before I do that tho I will start with a smaller example. First I will try to visualize positive and negative words. The way in which I will do this is by embedding some word data. This means I will turn some word `positive_word` into a vector (`[34 , 423, 5, ....  6456 , 343]`). I will get the word embeddings by using the BERT model. Once I have the embeddings I will use dimensionality reduction algorithms (PCA, TSNE) to get them down to a vector of two components. Lastly once I have done this I will then use the book data to do the same. This notebook will not go too much into the techincal aspects of BERT, PCA, TSNE. I am simply using tools to visualize text data.
