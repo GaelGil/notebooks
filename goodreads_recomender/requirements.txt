@@ -519,7 +519,7 @@ jupyterlab==4.0.11
       certifi==2023.5.7
       charset-normalizer==3.2.0
       idna==3.7
-      urllib3==2.0.3
+      urllib3==2.2.2
   notebook_shim==0.2.3
     jupyter_server==2.7.0
       anyio==3.7.1
