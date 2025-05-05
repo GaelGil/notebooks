@@ -54,10 +54,10 @@ class Generator(nn.Module):
             nn.LeakyReLU(0.2),
             PixelNorm(),
         )
-
         self.initial_rgb = WSConv2d(in_channels, img_channels, kernel_size=1, stride=1)
         self.prog_blocks = nn.ModuleList()
         self.rgb_layers = nn.ModuleList(self.initial_rgb)
+
         for i in range(len(factors)-1):
             conv_in_c = int(in_channels * factors[i])
             conv_out_c = int(in_channels* factors[i+1])
@@ -67,8 +67,8 @@ class Generator(nn.Module):
     def fade_in(self, alpha, upscaled, generated):
         return torch.tanh(alpha * generated + (1-alpha) * upscaled)
 
-    def forward(self, x, alpha, steps):
-        out = self.initial(x)
+    def forward(self, X, alpha, steps):
+        out = self.initial(X)
         if steps == 0:
             return self.initial_rgb(out)
         
@@ -83,4 +83,18 @@ class Generator(nn.Module):
         return self.fade_in(alpha, final_upscaled, final_out)
 
 class Discriminator(nn.Module):
-    pass
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.prog_block = nn.ModuleList()
+        self.rgb_layers = nn.ModuleList()
+        self.leaky = nn.LeakyReLU(0.2)
+
+        # for i in range(len(factors)-1, 0, -1):
+
+        return
+
+    def fade_in(self):
+        pass
+    def minibatch(self, X):
+        pass
+    def forward(self, X)
