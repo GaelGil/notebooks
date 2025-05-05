@@ -19,10 +19,28 @@ class WSConv2d(nn.Module):
         return self.conv(x * self.scale ) + self.bias.view(1, self.bias.shape[0], 1, 1)
 
 class PixelNorm(nn.Module):
-    pass
+    def __init__(self):
+        super().__init__()
+        self.epsilon = 1e-8
+        
+    def forward(self, x):
+        return x / torch.sqrt(torch.mean(x**2, dim=1, keepdim=True)+ self.epsilon)
 
 class ConvBlock(nn.Module):
-    pass
+    def __init__(self, in_channels, out_channels, use_pixelnorm=True):
+        super().__init__()
+        self.conv1 = WSConv2d(in_channels, out_channels)
+        self.conv2 = WSConv2d(out_channels, out_channels)
+        self.leaky = nn.LeakyReLU(0.2)
+        self.pn = PixelNorm()
+        self.use_pn = use_pixelnorm
+
+    def forward(self, X):
+        X = self.leaky(self.conv1(X))
+        X = self.pn(X) if self.use_pn else X
+        X = self.leaky(self.conv2(X))
+        X = self.pn(X) if self.use_pn else X
+        return X
 
 
 class Generator(nn.Module):
