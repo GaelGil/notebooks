@@ -97,4 +97,5 @@ class Discriminator(nn.Module):
         pass
     def minibatch(self, X):
         pass
-    def forward(self, X)
+    def forward(self, X):
+        pass
