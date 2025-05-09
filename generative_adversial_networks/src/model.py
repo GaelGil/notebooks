@@ -3,7 +3,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from math import log2
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 factors = [1, 1, 1, 1,  1/2, 1/4, 1/8, 1/16, 1/32]
+
+
 
 class WSConv2d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=1, stride=1, padding=1, gain=2):
@@ -46,7 +50,7 @@ class ConvBlock(nn.Module):
 class Generator(nn.Module):
     def __init__(self, z_dim,  in_channels, img_channels=3):
         super().__init__()
-        self,initial = nn.Sequential(
+        self.initial = nn.Sequential(
             PixelNorm(), 
             nn.ConvTranspose2d(z_dim, in_channels, 4, 1, 0), # 1 x 1 to 4 x 4
             nn.LeakyReLU(0.2),
@@ -54,15 +58,15 @@ class Generator(nn.Module):
             nn.LeakyReLU(0.2),
             PixelNorm(),
         )
-        self.initial_rgb = WSConv2d(in_channels, img_channels, kernel_size=1, stride=1)
+        self.initial_rgb = WSConv2d(in_channels, img_channels, kernel_size=1, stride=1, padding=0)
         self.prog_blocks = nn.ModuleList()
-        self.rgb_layers = nn.ModuleList(self.initial_rgb)
+        self.rgb_layers = nn.ModuleList([self.initial_rgb])
 
         for i in range(len(factors)-1):
             conv_in_c = int(in_channels * factors[i])
             conv_out_c = int(in_channels* factors[i+1])
             self.prog_blocks.append(ConvBlock(conv_in_c, conv_out_c))
-            self.rgb_layers.append(WSConv2d(conv_out_c, img_channels, kernel_size=1, stride=1))
+            self.rgb_layers.append(WSConv2d(conv_out_c, img_channels, kernel_size=1, stride=1, padding=0))
 
     def fade_in(self, alpha, upscaled, generated):
         return torch.tanh(alpha * generated + (1-alpha) * upscaled)
@@ -93,18 +97,18 @@ class Discriminator(nn.Module):
             conv_in_c = int(in_channels * factors[i])
             conv_out_c = int(in_channels * factors[i-1])
             self.prog_blocks.append(ConvBlock(conv_in_c, conv_out_c, use_pixelnorm=False))
-            self.rgb_layers.append(WSConv2d(img_channels, conv_in_c, kernel_size=1, stride=1))
+            self.rgb_layers.append(WSConv2d(img_channels, conv_in_c, kernel_size=1, stride=1, padding=0))
 
 
-        self.intial_rgb = WSConv2d(img_channels, in_channels, kernel_size=1, stride=1)
+        self.intial_rgb = WSConv2d(img_channels, in_channels, kernel_size=1, stride=1, padding=0)
         self.avg_pool = nn.AvgPool2d(kernel_size=2, stride=2)
 
         self.final_block = nn.Sequential(
             WSConv2d(in_channels+1, in_channels, kernel_size=3, stride=1, padding=1),
             nn.LeakyReLU(0.2),
-            WSConv2d(in_channels, in_channels, kernel_size=4, padding=0, stride=1),
+            WSConv2d(in_channels, in_channels, kernel_size=4, stride=1, padding=0),
             nn.LeakyReLU(0.2),
-            WSConv2d(in_channels, 1, kernel_size=1, padding=0, stride=1)
+            WSConv2d(in_channels, 1, kernel_size=1, stride=1, padding=0)
                                         )
 
 
@@ -112,7 +116,7 @@ class Discriminator(nn.Module):
         return alpha * out + (1-alpha) * downscaled
     
     def minibatch(self, X):
-        batch_statistics =  torch.std(X, dim=0).mean().repeat(X.shape[0], 1, X.shape[2], X.shape[3]])
+        batch_statistics =  torch.std(X, dim=0).mean().repeat(X.shape[0], 1, X.shape[2], X.shape[3])
         return torch.cat([X, batch_statistics], dim=1)
         
     def forward(self, X, alpha, steps):
@@ -129,6 +133,24 @@ class Discriminator(nn.Module):
             out = self.prog_blocks[step](out)
             out = self.avg_pool(out)
 
-
         out = self.minibatch_std(out)
         return self.final_block(out).view(out.shape[0], -1)
+    
+
+
+
+if __name__ == '__main__':
+    Z_DIM = 50
+    IN_CHANNELS = 256
+    gen = Generator(Z_DIM, IN_CHANNELS, img_channels=3)
+    dis = Discriminator(IN_CHANNELS, img_channels=3)
+
+
+    for img_size in [4, 8, 16, 32, 64, 128, 256, 512, 1024]:
+        num_steps = int(log2(img_size / 4))
+        x = torch.randn((1, Z_DIM, 1, 1))
+        z = gen(x, 0.5, steps=num_steps)
+        assert z.shape == (1, 3, img_size, img_size)
+        out = dis(z, alpha=0.5, steps=num_steps)
+        assert out.shape == (1, 1)
+        print(f'success at image size: {img_size}')
