@@ -5,16 +5,16 @@ from math import log2
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-factors = [1, 1, 1, 1,  1/2, 1/4, 1/8, 1/16, 1/32]
-
+factors = [1, 1, 1, 1, 1/2, 1/4, 1/8, 1/16, 1/32]
 
 
 class WSConv2d(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=1, stride=1, padding=1, gain=2):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1, gain=2):
         super().__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
         self.scale = (gain / (in_channels * kernel_size ** 2)) ** 0.5
         self.bias = self.conv.bias
+        self.conv.bias = None
 
         nn.init.normal_(self.conv.weight)
         nn.init.zeros_(self.bias)
@@ -24,7 +24,7 @@ class WSConv2d(nn.Module):
 
 class PixelNorm(nn.Module):
     def __init__(self):
-        super().__init__()
+        super(PixelNorm, self).__init__()
         self.epsilon = 1e-8
         
     def forward(self, x):
@@ -32,24 +32,25 @@ class PixelNorm(nn.Module):
 
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, use_pixelnorm=True):
-        super().__init__()
+        super(ConvBlock, self).__init__()
         self.conv1 = WSConv2d(in_channels, out_channels)
         self.conv2 = WSConv2d(out_channels, out_channels)
         self.leaky = nn.LeakyReLU(0.2)
         self.pn = PixelNorm()
         self.use_pn = use_pixelnorm
 
-    def forward(self, X):
-        X = self.leaky(self.conv1(X))
-        X = self.pn(X) if self.use_pn else X
-        X = self.leaky(self.conv2(X))
-        X = self.pn(X) if self.use_pn else X
-        return X
+    def forward(self, x):
+        x = self.leaky(self.conv1(x))
+        x = self.pn(x) if self.use_pn else x
+        x = self.leaky(self.conv2(x))
+        x = self.pn(x) if self.use_pn else x
+        return x
 
 
 class Generator(nn.Module):
     def __init__(self, z_dim,  in_channels, img_channels=3):
-        super().__init__()
+        super(Generator, self).__init__()
+
         self.initial = nn.Sequential(
             PixelNorm(), 
             nn.ConvTranspose2d(z_dim, in_channels, 4, 1, 0), # 1 x 1 to 4 x 4
@@ -58,21 +59,29 @@ class Generator(nn.Module):
             nn.LeakyReLU(0.2),
             PixelNorm(),
         )
-        self.initial_rgb = WSConv2d(in_channels, img_channels, kernel_size=1, stride=1, padding=0)
-        self.prog_blocks = nn.ModuleList()
-        self.rgb_layers = nn.ModuleList([self.initial_rgb])
+
+        self.initial_rgb = WSConv2d(
+            in_channels, img_channels, kernel_size=1, stride=1, padding=0
+            )
+        
+        self.prog_blocks, self.rgb_layers = (
+            nn.ModuleList([]),
+            nn.ModuleList([self.initial_rgb]),
+        )
 
         for i in range(len(factors)-1):
             conv_in_c = int(in_channels * factors[i])
             conv_out_c = int(in_channels* factors[i+1])
             self.prog_blocks.append(ConvBlock(conv_in_c, conv_out_c))
-            self.rgb_layers.append(WSConv2d(conv_out_c, img_channels, kernel_size=1, stride=1, padding=0))
+            self.rgb_layers.append(
+                WSConv2d(conv_out_c, img_channels, kernel_size=1, stride=1, padding=0)
+            )
 
     def fade_in(self, alpha, upscaled, generated):
         return torch.tanh(alpha * generated + (1-alpha) * upscaled)
 
-    def forward(self, X, alpha, steps):
-        out = self.initial(X)
+    def forward(self, x, alpha, steps):
+        out = self.initial(x)
         if steps == 0:
             return self.initial_rgb(out)
         
@@ -83,14 +92,12 @@ class Generator(nn.Module):
         final_upscaled = self.rgb_layers[steps-1](upscaled)
         final_out = self.rgb_layers[steps](out)
 
-
         return self.fade_in(alpha, final_upscaled, final_out)
 
 class Discriminator(nn.Module):
     def __init__(self, in_channels, img_channels=3):
-        super().__init__()
-        self.prog_blocks = nn.ModuleList()
-        self.rgb_layers = nn.ModuleList()
+        super(Discriminator, self).__init__()
+        self.prog_blocks, self.rgb_layers = nn.ModuleList([]), nn.ModuleList([])
         self.leaky = nn.LeakyReLU(0.2)
 
         for i in range(len(factors)-1, 0, -1):
@@ -100,22 +107,29 @@ class Discriminator(nn.Module):
             self.rgb_layers.append(WSConv2d(img_channels, conv_in_c, kernel_size=1, stride=1, padding=0))
 
 
-        self.intial_rgb = WSConv2d(img_channels, in_channels, kernel_size=1, stride=1, padding=0)
-        self.avg_pool = nn.AvgPool2d(kernel_size=2, stride=2)
+        self.initial_rgb = WSConv2d(
+            img_channels, in_channels, kernel_size=1, stride=1, padding=0
+        )
+        self.rgb_layers.append(self.initial_rgb)
+        self.avg_pool = nn.AvgPool2d(
+            kernel_size=2, stride=2
+        ) 
 
         self.final_block = nn.Sequential(
-            WSConv2d(in_channels+1, in_channels, kernel_size=3, stride=1, padding=1),
+            WSConv2d(in_channels + 1, in_channels, kernel_size=3, padding=1),
             nn.LeakyReLU(0.2),
-            WSConv2d(in_channels, in_channels, kernel_size=4, stride=1, padding=0),
+            WSConv2d(in_channels, in_channels, kernel_size=4, padding=0, stride=1),
             nn.LeakyReLU(0.2),
-            WSConv2d(in_channels, 1, kernel_size=1, stride=1, padding=0)
-                                        )
+            WSConv2d(
+                in_channels, 1, kernel_size=1, padding=0, stride=1
+            ),  
+        )
 
 
     def fade_in(self, out, alpha, downscaled):
         return alpha * out + (1-alpha) * downscaled
     
-    def minibatch(self, X):
+    def minibatch_std(self, X):
         batch_statistics =  torch.std(X, dim=0).mean().repeat(X.shape[0], 1, X.shape[2], X.shape[3])
         return torch.cat([X, batch_statistics], dim=1)
         
