@@ -39,3 +39,46 @@ def gradient_penalty(critic, real, fake, alpha, train_step, device='cpu'):
     gradient_norm = gradient.norm(2, dim=1)
     gradient_penalty = torch.mean((gradient_norm - 1) ** 2)
     return gradient_penalty
+
+
+def save_checkpoint(model, optimizer, filename="my_checkpoint.pth.tar"):
+    print("=> Saving checkpoint")
+    checkpoint = {
+        "state_dict": model.state_dict(),
+        "optimizer": optimizer.state_dict(),
+    }
+    torch.save(checkpoint, filename)
+
+
+def load_checkpoint(checkpoint_file, model, optimizer, lr):
+    print("=> Loading checkpoint")
+    checkpoint = torch.load(checkpoint_file, map_location="cuda")
+    model.load_state_dict(checkpoint["state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer"])
+
+    for param_group in optimizer.param_groups:
+        param_group["lr"] = lr
+
+
+
+def seed_everything(seed=42):
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+
+def generate_examples(gen, steps, truncation=0.7, n=100):
+    gen.eval()
+    alpha = 1.0
+    for i in range(n):
+        with torch.no_grad():
+            noise = torch.tensor(truncnorm.rvs(-truncation, truncation, size=(1, config.Z_DIM, 1, 1)), device=config.DEVICE, dtype=torch.float32)
+            img = gen(noise, alpha, steps)
+            save_image(img*0.5+0.5, f"saved_examples/img_{i}.png")
+    gen.train()
