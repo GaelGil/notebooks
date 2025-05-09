@@ -4,17 +4,17 @@ import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from utils import (
+from pro_gan.utils import (
     gradient_penalty,
     plot_to_tensorboard,
     save_checkpoint,
     load_checkpoint,
     generate_examples,
 )
-from model import Discriminator, Generator
+from pro_gan.model import Discriminator, Generator
 from math import log2
 from tqdm import tqdm
-import config
+import pro_gan.config as config
 
 torch.backends.cudnn.benchmarks = True
 

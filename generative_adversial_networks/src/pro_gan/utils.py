@@ -4,7 +4,7 @@ import numpy as np
 import os
 import torchvision
 import torch.nn as nn
-import config
+import pro_gan.config as config
 from torchvision.utils import save_image
 from scipy.stats import truncnorm
 
