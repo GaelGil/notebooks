@@ -9,7 +9,11 @@ factors = [1, 1, 1, 1, 1/2, 1/4, 1/8, 1/16, 1/32]
 
 
 class WSConv2d(nn.Module):
+    """
+    """
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1, gain=2):
+        """
+        """
         super().__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
         self.scale = (gain / (in_channels * kernel_size ** 2)) ** 0.5
@@ -20,17 +24,26 @@ class WSConv2d(nn.Module):
         nn.init.zeros_(self.bias)
 
     def forward(self, x):
+        """
+        """
         return self.conv(x * self.scale ) + self.bias.view(1, self.bias.shape[0], 1, 1)
 
 class PixelNorm(nn.Module):
+    """
+    """
     def __init__(self):
+        """
+        """
         super(PixelNorm, self).__init__()
         self.epsilon = 1e-8
         
     def forward(self, x):
+        """"""
         return x / torch.sqrt(torch.mean(x**2, dim=1, keepdim=True)+ self.epsilon)
 
 class ConvBlock(nn.Module):
+    """
+    """
     def __init__(self, in_channels, out_channels, use_pixelnorm=True):
         super(ConvBlock, self).__init__()
         self.conv1 = WSConv2d(in_channels, out_channels)
@@ -48,7 +61,11 @@ class ConvBlock(nn.Module):
 
 
 class Generator(nn.Module):
+    """
+    """
     def __init__(self, z_dim,  in_channels, img_channels=3):
+        """
+        """
         super(Generator, self).__init__()
 
         self.initial = nn.Sequential(
@@ -78,9 +95,13 @@ class Generator(nn.Module):
             )
 
     def fade_in(self, alpha, upscaled, generated):
+        """
+        """
         return torch.tanh(alpha * generated + (1-alpha) * upscaled)
 
     def forward(self, x, alpha, steps):
+        """
+        """
         out = self.initial(x)
         if steps == 0:
             return self.initial_rgb(out)
@@ -95,12 +116,18 @@ class Generator(nn.Module):
         return self.fade_in(alpha, final_upscaled, final_out)
 
 class Discriminator(nn.Module):
+    """
+    """
     def __init__(self, in_channels, img_channels=3):
+        """
+        """
         super(Discriminator, self).__init__()
         self.prog_blocks, self.rgb_layers = nn.ModuleList([]), nn.ModuleList([])
         self.leaky = nn.LeakyReLU(0.2)
 
         for i in range(len(factors)-1, 0, -1):
+            """
+            """
             conv_in_c = int(in_channels * factors[i])
             conv_out_c = int(in_channels * factors[i-1])
             self.prog_blocks.append(ConvBlock(conv_in_c, conv_out_c, use_pixelnorm=False))
@@ -127,13 +154,19 @@ class Discriminator(nn.Module):
 
 
     def fade_in(self, out, alpha, downscaled):
+        """
+        """
         return alpha * out + (1-alpha) * downscaled
     
     def minibatch_std(self, X):
+        """
+        """
         batch_statistics =  torch.std(X, dim=0).mean().repeat(X.shape[0], 1, X.shape[2], X.shape[3])
         return torch.cat([X, batch_statistics], dim=1)
         
     def forward(self, X, alpha, steps):
+        """
+        """
         cur_step = len(self.prog_blocks) - steps 
         out = self.leaky(self.rgb_layers[cur_step](X))
         if steps == 0:

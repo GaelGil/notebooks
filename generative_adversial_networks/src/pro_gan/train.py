@@ -18,7 +18,6 @@ import pro_gan.config as config
 
 torch.backends.cudnn.benchmarks = True
 
-
 def get_loader(image_size):
     transform = transforms.Compose(
         [
@@ -41,9 +40,6 @@ def get_loader(image_size):
         pin_memory=True,
     )
     return loader, dataset
-
-
-
 
 def train_fn(
     critic,
