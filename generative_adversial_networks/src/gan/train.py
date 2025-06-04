@@ -6,24 +6,17 @@ import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from model import Discriminator, Generator, initialize_weights
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-LEARNING_RATE = 2e-4  
-BATCH_SIZE = 128
-IMAGE_SIZE = 64
-CHANNELS_IMG = 1
-NOISE_DIM = 100
-NUM_EPOCHS = 5
-FEATURES_DISC = 64
-FEATURES_GEN = 64
+from Generator import Generator
+from Discriminator import Discriminator
+from init_weights import initialize_weights
+import config as config
 
 transforms = transforms.Compose(
     [
-        transforms.Resize(IMAGE_SIZE),
+        transforms.Resize(config.IMAGE_SIZE),
         transforms.ToTensor(),
         transforms.Normalize(
-            [0.5 for _ in range(CHANNELS_IMG)], [0.5 for _ in range(CHANNELS_IMG)]
+            [0.5 for _ in range(config.CHANNELS_IMG)], [0.5 for _ in range(config.CHANNELS_IMG)]
         ),
     ]
 )
@@ -32,17 +25,17 @@ dataset = datasets.MNIST(
     root="dataset/", train=True, transform=transforms, download=True
 )
 
-dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
-gen = Generator(NOISE_DIM, CHANNELS_IMG, FEATURES_GEN).to(device)
-disc = Discriminator(CHANNELS_IMG, FEATURES_DISC).to(device)
+dataloader = DataLoader(dataset, batch_size=config.BATCH_SIZE, shuffle=True)
+gen = Generator(config.NOISE_DIM, config.CHANNELS_IMG, config.FEATURES_GEN).to(config.DEVICE)
+disc = Discriminator(config.CHANNELS_IMG, config.FEATURES_DISC).to(config.DEVICE)
 initialize_weights(gen)
 initialize_weights(disc)
 
-opt_gen = optim.Adam(gen.parameters(), lr=LEARNING_RATE, betas=(0.5, 0.999))
-opt_disc = optim.Adam(disc.parameters(), lr=LEARNING_RATE, betas=(0.5, 0.999))
+opt_gen = optim.Adam(gen.parameters(), lr=config.LEARNING_RATE, betas=(0.5, 0.999))
+opt_disc = optim.Adam(disc.parameters(), lr=config.LEARNING_RATE, betas=(0.5, 0.999))
 criterion = nn.BCELoss()
 
-fixed_noise = torch.randn(32, NOISE_DIM, 1, 1).to(device)
+fixed_noise = torch.randn(32, config.NOISE_DIM, 1, 1).to(config.DEVICE)
 writer_real = SummaryWriter(f"logs/real")
 writer_fake = SummaryWriter(f"logs/fake")
 step = 0
@@ -50,10 +43,10 @@ step = 0
 gen.train()
 disc.train()
 
-for epoch in range(NUM_EPOCHS):
+for epoch in range(config.NUM_EPOCHS):
     for batch_idx, (real, _) in enumerate(dataloader):
-        real = real.to(device)
-        noise = torch.randn(BATCH_SIZE, NOISE_DIM, 1, 1).to(device)
+        real = real.to(config.DEVICE)
+        noise = torch.randn(config.BATCH_SIZE, config.NOISE_DIM, 1, 1).to(config.DEVICE)
         fake = gen(noise)
 
         disc_real = disc(real).reshape(-1)
@@ -73,7 +66,7 @@ for epoch in range(NUM_EPOCHS):
 
         if batch_idx % 100 == 0:
             print(
-                f"Epoch [{epoch}/{NUM_EPOCHS}] Batch {batch_idx}/{len(dataloader)} \
+                f"Epoch [{epoch}/{config.NUM_EPOCHS}] Batch {batch_idx}/{len(dataloader)} \
                   Loss D: {loss_disc:.4f}, loss G: {loss_gen:.4f}"
             )
 
