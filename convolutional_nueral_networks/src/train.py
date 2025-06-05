@@ -19,7 +19,6 @@ def train(model, train_loader, optimizer, epochs, device):
     Returns:
         None
     """
-    
     criterion = nn.BCEWithLogitsLoss()
     for epoch in range(epochs):
         losses = []
