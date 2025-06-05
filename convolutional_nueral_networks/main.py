@@ -1,7 +1,7 @@
 import torch
 import torch.optim as optim
 from torchvision.datasets import ImageFolder
-from src import CNN, confing, train
+from src import CNN, confing, train, accuracy
 
 
 if __name__ == "__main__":
@@ -15,9 +15,9 @@ if __name__ == "__main__":
     test_count = len_data_set - train_count - valid_count
     # slit the data into train, valid and test set
     train_dataset, valid_dataset, test_dataset = torch.utils.data.random_split(data_set, (train_count, valid_count, test_count))
-    train_dataset_loader = torch.utils.data.DataLoader(train_dataset, batch_size=16, shuffle=True)
-    valid_dataset_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=16, shuffle=True)
-    test_dataset_loader = torch.utils.data.DataLoader(test_dataset, batch_size=16, shuffle=True)
+    train_dataset_loader = torch.utils.data.DataLoader(train_dataset, batch_size=confing.BATCH_SIZE, shuffle=True)
+    valid_dataset_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=confing.BATCH_SIZE, shuffle=True)
+    test_dataset_loader = torch.utils.data.DataLoader(test_dataset, batch_size=confing.BATCH_SIZE, shuffle=True)
 
     # initialize the model
     model = CNN(in_channels=confing.IN_CHANNELS, clases=confing.NUM_CLASSES, kernel_size=confing.KERNEL_SIZE).to(confing.DEVICE)
