@@ -16,7 +16,7 @@ class CNN(nn.Module):
             Function to feed an input forward through the model
 
     """
-    def __init__(self, in_channels, out_channels, kernel_size):
+    def __init__(self, in_channels, classes, kernel_size):
         """Function to initialize the cnn model
         """
         super().__init__()
@@ -26,7 +26,7 @@ class CNN(nn.Module):
         self.conv3 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=kernel_size)
         # got the input for fc1 by passing a sample image
         self.fc1 = nn.Linear(32*28*28, 120)
-        self.fc2 = nn.Linear(120, 1)
+        self.fc2 = nn.Linear(120, classes)
 
     def forward(self, x):
         """Function to feed an input forward through the model
