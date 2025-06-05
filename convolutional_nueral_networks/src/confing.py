@@ -7,7 +7,7 @@ IMG_TRANSFORMATIONS = transforms.Compose([
     transforms.ToTensor(),
    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
-DATA_PATH = './data/'
+DATA_PATH = './data/Agricultural-crops'
 IN_CHANNELS = 3
 NUM_CLASSES = 3
 KERNEL_SIZE = 5
