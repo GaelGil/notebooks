@@ -3,7 +3,6 @@ import torch.optim as optim
 from torchvision.datasets import ImageFolder
 from src import CNN, confing, train, accuracy
 
-
 if __name__ == "__main__":
     # load in the dataset
     data_set = ImageFolder(confing.DATA_PATH, transform=confing.IMG_TRANSFORMATIONS)
@@ -26,3 +25,6 @@ if __name__ == "__main__":
 
     # train the model
     train(model=model, train_loader=train_dataset_loader, optimizer=optimizer, epochs=confing.EPOCHS, device=confing.DEVICE)
+
+    # save model
+    torch.save(confing.MODEL_PATH, model)
