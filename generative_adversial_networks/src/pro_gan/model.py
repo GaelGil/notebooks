@@ -29,16 +29,17 @@ class WSConv2d(nn.Module):
         return self.conv(x * self.scale ) + self.bias.view(1, self.bias.shape[0], 1, 1)
 
 class PixelNorm(nn.Module):
-    """
+    """Class to implement pixelnorm
     """
     def __init__(self):
-        """
+        """Initializes pixelnorm instance
         """
         super(PixelNorm, self).__init__()
         self.epsilon = 1e-8
         
     def forward(self, x):
-        """"""
+        """
+        """
         return x / torch.sqrt(torch.mean(x**2, dim=1, keepdim=True)+ self.epsilon)
 
 class ConvBlock(nn.Module):
@@ -61,10 +62,10 @@ class ConvBlock(nn.Module):
 
 
 class Generator(nn.Module):
-    """
+    """Class to implement a generator model
     """
     def __init__(self, z_dim,  in_channels, img_channels=3):
-        """
+        """Initializes generator model
         """
         super(Generator, self).__init__()
 
@@ -77,9 +78,7 @@ class Generator(nn.Module):
             PixelNorm(),
         )
 
-        self.initial_rgb = WSConv2d(
-            in_channels, img_channels, kernel_size=1, stride=1, padding=0
-            )
+        self.initial_rgb = WSConv2d(in_channels, img_channels, kernel_size=1, stride=1, padding=0)
         
         self.prog_blocks, self.rgb_layers = (
             nn.ModuleList([]),
@@ -95,7 +94,15 @@ class Generator(nn.Module):
             )
 
     def fade_in(self, alpha, upscaled, generated):
-        """
+        """Function to fade in the layers
+
+        We don't append layers to our model. We fade them in by passing them
+        ...
+
+        Args:
+            alpha:
+            upscaled:
+            generated:
         """
         return torch.tanh(alpha * generated + (1-alpha) * upscaled)
 
@@ -116,23 +123,20 @@ class Generator(nn.Module):
         return self.fade_in(alpha, final_upscaled, final_out)
 
 class Discriminator(nn.Module):
-    """
+    """Class to implement a discriminator model
     """
     def __init__(self, in_channels, img_channels=3):
-        """
+        """Initializes discriminator model
         """
         super(Discriminator, self).__init__()
         self.prog_blocks, self.rgb_layers = nn.ModuleList([]), nn.ModuleList([])
         self.leaky = nn.LeakyReLU(0.2)
 
         for i in range(len(factors)-1, 0, -1):
-            """
-            """
             conv_in_c = int(in_channels * factors[i])
             conv_out_c = int(in_channels * factors[i-1])
             self.prog_blocks.append(ConvBlock(conv_in_c, conv_out_c, use_pixelnorm=False))
             self.rgb_layers.append(WSConv2d(img_channels, conv_in_c, kernel_size=1, stride=1, padding=0))
-
 
         self.initial_rgb = WSConv2d(
             img_channels, in_channels, kernel_size=1, stride=1, padding=0
