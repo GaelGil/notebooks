@@ -3,3 +3,4 @@
 **/archive
 **/PetImages
 *.pth
+/env
