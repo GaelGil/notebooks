@@ -9,7 +9,18 @@ factors = [1, 1, 1, 1, 1/2, 1/4, 1/8, 1/16, 1/32]
 
 
 class WSConv2d(nn.Module):
-    """
+    """Class to implement
+
+    Attributes:
+        driver: the browser driver needed for webscraping
+        config: a dictionary that holds info for our webscraper
+
+    Methods:
+        __init__(self, driver, config)
+            Initializes the instance to be ready for scraping
+
+        forward(self, url: str)
+            Function to set the url that we will scrape
     """
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1, gain=2):
         """
@@ -43,7 +54,7 @@ class PixelNorm(nn.Module):
         return x / torch.sqrt(torch.mean(x**2, dim=1, keepdim=True)+ self.epsilon)
 
 class ConvBlock(nn.Module):
-    """
+    """Function to implement a convolution block
     """
     def __init__(self, in_channels, out_channels, use_pixelnorm=True):
         super(ConvBlock, self).__init__()
@@ -54,6 +65,13 @@ class ConvBlock(nn.Module):
         self.use_pn = use_pixelnorm
 
     def forward(self, x):
+        """Function to pass some features through a convblock
+
+        We have our x (features) we pass that through our first convolution followed by
+        a lealy ReLU. Then we pass that through pixel norm if we have it set to true. We
+        then go through another convolution again followed by leaky ReLU and pixel norm
+        if set to true
+        """
         x = self.leaky(self.conv1(x))
         x = self.pn(x) if self.use_pn else x
         x = self.leaky(self.conv2(x))
@@ -63,9 +81,26 @@ class ConvBlock(nn.Module):
 
 class Generator(nn.Module):
     """Class to implement a generator model
+
+    Attributes:
+        driver: the browser driver needed for webscraping
+        config: a dictionary that holds info for our webscraper
+
+    Methods:
+        __init__(self, driver, config)
+            Initializes the instance to be ready for scraping
+
+        fade_in(self, url: str)
+            Function to set the url that we will scrape
+
+        forward(self, url: str)
+            Function to set the url that we will scrape
     """
     def __init__(self, z_dim,  in_channels, img_channels=3):
         """Initializes generator model
+        We set the initial base model. This is pixelnorm
+        followed by a convolution tranpose and leaky ReLU. Then we pass that by
+        
         """
         super(Generator, self).__init__()
 
@@ -107,7 +142,17 @@ class Generator(nn.Module):
         return torch.tanh(alpha * generated + (1-alpha) * upscaled)
 
     def forward(self, x, alpha, steps):
-        """
+        """Function to pass a input through our generator model
+        
+        We first pass our x (input) through our initial convolutional layers.
+        If we are on the first step we simply return our input passed through
+        initial rgb. If we are on a next step we will upscalr the output and
+        ...
+
+        Args:
+            x:
+            alpha:
+            setps:
         """
         out = self.initial(x)
         if steps == 0:
