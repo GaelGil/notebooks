@@ -82,3 +82,27 @@ def generate_examples(gen, steps, truncation=0.7, n=100):
             img = gen(noise, alpha, steps)
             save_image(img*0.5+0.5, f"saved_examples/img_{i}.png")
     gen.train()
+
+
+def get_loader(image_size):
+    transform = transforms.Compose(
+        [
+            transforms.Resize((image_size, image_size)),
+            transforms.ToTensor(),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.Normalize(
+                [0.5 for _ in range(config.CHANNELS_IMG)],
+                [0.5 for _ in range(config.CHANNELS_IMG)],
+            ),
+        ]
+    )
+    batch_size = config.BATCH_SIZES[int(log2(image_size / 4))]
+    dataset = datasets.ImageFolder(root=config.DATASET, transform=transform)
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=config.NUM_WORKERS,
+        pin_memory=True,
+    )
+    return loader, dataset
