@@ -9,6 +9,23 @@ class CNN(nn.Module):
     """
     This class implelemnts a discriminator model in a generative adversarial network
 
+
+    Attributes:
+        conv1:
+            The first convolutional layer
+        pool: 
+            The pooling layer. (gets reused for each layer)
+        conv2:
+            The second convolutional layer
+        conv3:
+            The third convolutional layer
+        fc1:
+            The first fully connected layer
+        fc2:
+            The second fully connected layer
+        fc3:
+            The final fully connected layer
+
     Methods:
         __init__(in_channels, out_channels, kernel_size)
 
@@ -29,7 +46,7 @@ class CNN(nn.Module):
         """
         super().__init__()
         self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=6, kernel_size=kernel_size)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=1)
+        self.pool = nn.MaxPool2d(kernel_size=2)
         self.conv2 = nn.Conv2d(in_channels=6, out_channels=16, kernel_size=kernel_size)
         self.conv3 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=kernel_size)
         self.fc1 = nn.Linear(32*28*28, 500)
