@@ -1,4 +1,4 @@
-"""This class
+"""This class implements a generator in a GAN model in PyTorch.
 
 """
 
@@ -9,6 +9,9 @@ import torch.nn as nn
 class Generator(nn.Module):
     """
     This class implelemnts a Generator model in a generative adversarial network
+
+    Attributes:
+        generator a sequential module that is the generator model
 
     Methods:
         __init__(noise, img_channels, features)
