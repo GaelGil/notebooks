@@ -1,5 +1,4 @@
-"""This class
-
+"""This class implements a discriminator in a GAN model in PyTorch.
 """
 
 import torch
@@ -8,6 +7,9 @@ import torch.nn as nn
 class Discriminator(nn.Module):
     """
     This class implelemnts a discriminator model in a generative adversarial network
+
+    Attributes:
+        discriminator: The discriminator model
 
     Methods:
         __init__(img_channels, features)
@@ -20,6 +22,21 @@ class Discriminator(nn.Module):
 
     """
     def __init__(self, img_channels, features):
+        """This function initializes the discriminator instance
+        
+        This function initializes our model with a convolutiop, followed by leakyReLU, followed
+        by 3 convolution blocks (defined in block()) then a single convolution and a sigmoid function
+
+        Args:
+            img_channels:
+                The number of channels in the image
+
+            features:
+                The number of features after each convolution
+
+        Returns:
+            None
+        """
         super(Discriminator, self).__init__()
         self.discriminator = nn.Sequential(
             nn.Conv2d(in_channels=img_channels, out_channels=features, kernel_size=4, stride=2, padding=1),
@@ -36,7 +53,7 @@ class Discriminator(nn.Module):
         """Function to add a sequential block to our model.
 
         This function adds a sequential block to our model. We add a 2d convolutional layer,
-        Then we perform batchnorn followed by a leaklyReLU.
+        Then we perform batchnorm followed by a leaklyReLU.
 
         Args:
             in_channels: The number of in channles for this block
