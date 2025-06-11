@@ -31,7 +31,6 @@ class CNN(nn.Module):
 
         forward(x)
             Function to feed an input forward through the model
-
     """
     def __init__(self, in_channels, num_classes, kernel_size) -> None:
         """Function to initialize the cnn model
