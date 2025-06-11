@@ -45,9 +45,9 @@ class CNN(nn.Module):
             None
         """
         super().__init__()
-        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=6, kernel_size=kernel_size)
+        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=8, kernel_size=kernel_size)
         self.pool = nn.MaxPool2d(kernel_size=2)
-        self.conv2 = nn.Conv2d(in_channels=6, out_channels=16, kernel_size=kernel_size)
+        self.conv2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=kernel_size)
         self.conv3 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=kernel_size)
         self.fc1 = nn.Linear(32*28*28, 500)
         self.fc2 = nn.Linear(500, 100)
