@@ -32,7 +32,7 @@ class CNN(nn.Module):
         forward(x)
             Function to feed an input forward through the model
     """
-    def __init__(self, in_channels, num_classes, kernel_size) -> None:
+    def __init__(self, in_channels, num_classes, kernel_size, padding=0, stride=1) -> None:
         """Function to initialize the cnn model
 
         Args:
@@ -44,10 +44,10 @@ class CNN(nn.Module):
             None
         """
         super().__init__()
-        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=8, kernel_size=kernel_size)
-        self.pool = nn.MaxPool2d(kernel_size=2)
-        self.conv2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=kernel_size)
-        self.conv3 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=kernel_size)
+        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=8, kernel_size=kernel_size, padding=padding, stride=stride)
+        self.pool = nn.MaxPool2d(kernel_size=kernel_size, stride=stride)
+        self.conv2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=kernel_size, padding=padding, stride=stride)
+        self.conv3 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=kernel_size, padding=padding, stride=stride)
         self.fc1 = nn.Linear(32*28*28, 500)
         self.fc2 = nn.Linear(500, 100)
         self.fc3 = nn.Linear(100, num_classes)
