@@ -1,5 +1,4 @@
 """This class implements a generator in a GAN model in PyTorch.
-
 """
 
 import torch
