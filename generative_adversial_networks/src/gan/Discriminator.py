@@ -45,7 +45,7 @@ class Discriminator(nn.Module):
             self.block(in_channels=features, out_channels=features*2, kernel_size=kernel_size, stride=stride, padding=padding),
             self.block(in_channels=features*2, out_channels=features*4, kernel_size=kernel_size, stride=stride, padding=padding),
             self.block(in_channels=features*4, out_channels=features*8, kernel_size=kernel_size, stride=stride, padding=padding),
-            nn.Conv2d(in_channels=features*8, out_channels=1, kernel_size=kernel_size, stride=stride, padding=padding),
+            nn.Conv2d(in_channels=features*8, out_channels=1, kernel_size=kernel_size, stride=stride, padding=0),
             nn.Sigmoid()
         )
 
