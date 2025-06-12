@@ -21,11 +21,12 @@ class Discriminator(nn.Module):
             Function to feed an input forward through the model
 
     """
-    def __init__(self, img_channels, features):
+    def __init__(self, img_channels, features, kernel_size, stride, padding):
         """This function initializes the discriminator instance
         
-        This function initializes our model with a convolutiop, followed by leakyReLU, followed
-        by 3 convolution blocks (defined in block()) then a single convolution and a sigmoid function
+        This function initializes our model with a convolution, followed by leakyReLU, followed
+        by 3 convolution blocks (defined in block() function) then a single convolution and a
+        sigmoid function
 
         Args:
             img_channels:
@@ -39,12 +40,12 @@ class Discriminator(nn.Module):
         """
         super(Discriminator, self).__init__()
         self.discriminator = nn.Sequential(
-            nn.Conv2d(in_channels=img_channels, out_channels=features, kernel_size=4, stride=2, padding=1),
+            nn.Conv2d(in_channels=img_channels, out_channels=features, kernel_size=kernel_size, stride=stride, padding=padding),
             nn.LeakyReLU(0.2),
-            self.block(in_channels=features, out_channels=features*2, kernel_size=4, stride=2, padding=1),
-            self.block(in_channels=features*2, out_channels=features*4, kernel_size=4, stride=2, padding=1),
-            self.block(in_channels=features*4, out_channels=features*8, kernel_size=4, stride=2, padding=1),
-            nn.Conv2d(in_channels=features*8, out_channels=1, kernel_size=4, stride=2, padding=0),
+            self.block(in_channels=features, out_channels=features*2, kernel_size=kernel_size, stride=stride, padding=padding),
+            self.block(in_channels=features*2, out_channels=features*4, kernel_size=kernel_size, stride=stride, padding=padding),
+            self.block(in_channels=features*4, out_channels=features*8, kernel_size=kernel_size, stride=stride, padding=padding),
+            nn.Conv2d(in_channels=features*8, out_channels=1, kernel_size=kernel_size, stride=stride, padding=padding),
             nn.Sigmoid()
         )
 
@@ -52,7 +53,7 @@ class Discriminator(nn.Module):
     def block(self, in_channels, out_channels, kernel_size, stride, padding):
         """Function to add a sequential block to our model.
 
-        This function adds a sequential block to our model. We add a 2d convolutional layer,
+        This function adds a sequential block to our model. We add a convolutional layer,
         Then we perform batchnorm followed by a leaklyReLU.
 
         Args:
