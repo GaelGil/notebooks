@@ -27,7 +27,7 @@ dataset = datasets.MNIST(
 
 dataloader = DataLoader(dataset, batch_size=config.BATCH_SIZE, shuffle=True)
 gen = Generator(config.NOISE_DIM, config.CHANNELS_IMG, config.FEATURES_GEN).to(config.DEVICE)
-disc = Discriminator(config.CHANNELS_IMG, config.FEATURES_DISC).to(config.DEVICE)
+disc = Discriminator(config.CHANNELS_IMG, config.FEATURES_DISC, config.KERNEL_SIZE, config.STRIDE, config.PADDING).to(config.DEVICE)
 initialize_weights(gen)
 initialize_weights(disc)
 
