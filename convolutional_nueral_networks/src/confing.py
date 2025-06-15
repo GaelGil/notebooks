@@ -7,11 +7,11 @@ IMG_TRANSFORMATIONS = transforms.Compose([
     transforms.ToTensor(),
    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
-DATA_PATH = './data/Agricultural-crops'
+DATA_PATH = './data/PetImages'
 IN_CHANNELS = 3
-NUM_CLASSES = 3
+NUM_CLASSES = 2
 KERNEL_SIZE = 5
 EPOCHS = 100
 LEARNING_RATE = 0.001
 BATCH_SIZE = 16
-MODEL_PATH = './models/'
+MODEL_PATH = './models/model_state_dict.pth'
