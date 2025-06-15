@@ -1,7 +1,9 @@
 import torch
 import torch.optim as optim
 from torchvision.datasets import ImageFolder
-from src import CNN, confing, train, accuracy
+from src import confing
+from src.CNN import CNN
+from src.train import train
 
 if __name__ == "__main__":
     # load in the dataset
@@ -19,7 +21,7 @@ if __name__ == "__main__":
     test_dataset_loader = torch.utils.data.DataLoader(test_dataset, batch_size=confing.BATCH_SIZE, shuffle=True)
 
     # initialize the model
-    model = CNN(in_channels=confing.IN_CHANNELS, clases=confing.NUM_CLASSES, kernel_size=confing.KERNEL_SIZE).to(confing.DEVICE)
+    model = CNN(in_channels=confing.IN_CHANNELS, num_classes=confing.NUM_CLASSES, kernel_size=confing.KERNEL_SIZE).to(confing.DEVICE)
     # set the optimizer
     optimizer = optim.Adam(model.parameters(), lr=confing.LEARNING_RATE)
 
@@ -28,3 +30,5 @@ if __name__ == "__main__":
 
     # save model
     torch.save(confing.MODEL_PATH, model)
+
+    torch.save(model.state_dict(), confing.MODEL_PATH)
