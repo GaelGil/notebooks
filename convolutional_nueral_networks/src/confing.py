@@ -9,7 +9,7 @@ IMG_TRANSFORMATIONS = transforms.Compose([
     ])
 DATA_PATH = './data/PetImages'
 IN_CHANNELS = 3
-NUM_CLASSES = 2
+NUM_CLASSES = 1
 KERNEL_SIZE = 5
 EPOCHS = 100
 LEARNING_RATE = 0.001
