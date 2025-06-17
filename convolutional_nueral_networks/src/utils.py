@@ -54,7 +54,7 @@ def evaluate(loader, model, device):
         loader: The data
         device: The device we will use
     Returns:
-        None
+        accuracy
     """
     correct = 0
     num_samples = 0
