@@ -3,7 +3,8 @@ import torch.optim as optim
 from torchvision.datasets import ImageFolder
 from src import confing
 from src.CNN import CNN
-from src.train import train
+from utils import train, evaluate, check_accuracy
+from src.accuracy import check_accuracy
 
 if __name__ == "__main__":
     # load in the dataset
@@ -29,6 +30,7 @@ if __name__ == "__main__":
     train(model=model, train_loader=train_dataset_loader, optimizer=optimizer, epochs=confing.EPOCHS, device=confing.DEVICE)
 
     # save model
-    torch.save(confing.MODEL_PATH, model)
-
     torch.save(model.state_dict(), confing.MODEL_PATH)
+
+    # get accuracy
+    # check_accuracy(test)
