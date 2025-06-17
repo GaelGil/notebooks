@@ -46,8 +46,8 @@ def train(model, train_loader, optimizer, epochs, device):
 
 
 
-def check_accuracy(loader, model, device):
-    """Function to train our convolutinal neural network.
+def evaluate(loader, model, device):
+    """Function to evaluate our model.
 
     Args:
         model: The model we are trying to train.
@@ -56,7 +56,7 @@ def check_accuracy(loader, model, device):
     Returns:
         None
     """
-    num_correct = 0
+    correct = 0
     num_samples = 0
     model.eval()
 
@@ -65,32 +65,9 @@ def check_accuracy(loader, model, device):
             x = x.to(device=device)
             y = y.to(device=device)
 
-            scores = model(x)
-            _, predictions = scores.max(1)
-            num_correct += (predictions == y).sum()
-            num_samples += predictions.size(0)
-
-    model.train()
-    return num_correct / num_samples
-
-
-
-def evaluate(model, device, val_loader):
-    """Function to evalute the model
-    
-    Args:
-        model: the model we are evalutating
-        device: the device we are using
-        val_loader: the validation set loader
-    """
-    model.eval()
-    correct = 0
-    total = 0
-    with torch.no_grad():
-        for data, target in val_loader:
-            data, target = data.to(device), target.to(device)
-            output = model(data)
+            output = model(x)
             _, predicted = torch.max(output, 1)
-            correct += (predicted == target).sum().item()
-            total += target.size(0)
-    return correct / total
+            correct += (predicted == y).sum().item()
+            num_samples += y.size(0)
+
+    return correct / num_samples
