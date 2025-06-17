@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import torch.optim as optim
 from torchvision.datasets import ImageFolder
 from src import confing
@@ -21,6 +22,22 @@ if __name__ == "__main__":
     valid_dataset_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=confing.BATCH_SIZE, shuffle=True)
     test_dataset_loader = torch.utils.data.DataLoader(test_dataset, batch_size=confing.BATCH_SIZE, shuffle=True)
 
+
+    epochs = [25, 50 ,75, 100, 150]
+    lr_rates = [0.001, 0.01]
+    dropout_rates = [0.25, 0.5]
+
+
+
+    for epoch in epochs:
+        for lr in lr_rates:
+            for dropout in dropout_rates:
+                model = CNN(dropout_rate=dropout).to(confing.DEVICE)
+                optimizer = optim.Adam(model.parameters(), lr=lr)
+                criterion = nn.CrossEntropyLoss()
+
+                train(model=model, train_loader=train_dataset_loader, optimizer=optimizer, epochs=epoch, device=confing.DEVICE)
+
     # initialize the model
     model = CNN(in_channels=confing.IN_CHANNELS, num_classes=confing.NUM_CLASSES, kernel_size=confing.KERNEL_SIZE).to(confing.DEVICE)
     # set the optimizer
@@ -31,6 +48,8 @@ if __name__ == "__main__":
 
     # save model
     torch.save(model.state_dict(), confing.MODEL_PATH)
+
+
 
     # get accuracy
     # check_accuracy(test)
