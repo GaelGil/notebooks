@@ -76,6 +76,13 @@ def check_accuracy(loader, model, device):
 
 
 def evaluate(model, device, val_loader):
+    """Function to evalute the model
+    
+    Args:
+        model: the model we are evalutating
+        device: the device we are using
+        val_loader: the validation set loader
+    """
     model.eval()
     correct = 0
     total = 0
