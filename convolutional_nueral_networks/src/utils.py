@@ -10,6 +10,16 @@ logger = logging.getLogger(__name__)
 
 
 def train(model, train_loader, optimizer, epochs, device):
+    """Function to train our convolutinal neural network.
+
+    Args:
+        model: The model we are trying to train.
+        train_loader: The data for training.
+        epochs: How many iterations of training we are going to do.
+        optimizer: The optimizer for our network
+    Returns:
+        None
+    """
     criterion = nn.BCEWithLogitsLoss()
     for epoch in range(epochs):
         epoch_losses = []
@@ -24,11 +34,10 @@ def train(model, train_loader, optimizer, epochs, device):
             epoch_losses.append(loss.item())
 
             if (i+1) % 10 == 0:  # print every 10 batches
-                print(f"Epoch {epoch+1}/{epochs}, Batch {i+1}/{len(train_loader)}, Loss: {loss.item():.4f}")
+                logger.info(f"Epoch {epoch+1}/{epochs}, Batch {i+1}/{len(train_loader)}, Loss: {loss.item():.4f}")
 
         avg_loss = sum(epoch_losses) / len(epoch_losses)
-        print(f"Epoch {epoch+1} completed. Average Loss: {avg_loss:.4f}")
-
+        logger.info(f"Epoch {epoch+1} completed. Average Loss: {avg_loss:.4f}")
 
 
 
@@ -42,18 +51,19 @@ def evaluate(loader, model, device):
     Returns:
         accuracy
     """
+    model.eval()
     correct = 0
     num_samples = 0
-    model.eval()
 
     with torch.no_grad():
         for x, y in loader:
-            x = x.to(device=device)
-            y = y.to(device=device)
+            x = x.to(device)
+            y = y.to(device)
 
-            output = model(x)
-            _, predicted = torch.max(output, 1)
+            outputs = model(x)
+            _, predicted = torch.max(outputs, dim=1)
             correct += (predicted == y).sum().item()
             num_samples += y.size(0)
 
-    return correct / num_samples
+    accuracy = correct / num_samples
+    return accuracy
