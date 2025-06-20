@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchvision.datasets import ImageFolder
-from . import config
+from src import config
 from src.CNN import CNN
 from src.utils import train, evaluate
 
@@ -17,9 +17,9 @@ if __name__ == "__main__":
     test_count = len_data_set - train_count - valid_count
     # slit the data into train, valid and test set
     train_dataset, valid_dataset, test_dataset = torch.utils.data.random_split(data_set, (train_count, valid_count, test_count))
-    train_dataset_loader = torch.utils.data.DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
-    valid_dataset_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
-    test_dataset_loader = torch.utils.data.DataLoader(test_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
+    train_dataset_loader = torch.utils.data.DataLoader(train_dataset, batch_size=config.BATCH_SIZE, num_workers=config.NUM_WORKERS, shuffle=True, pin_memory=True)
+    valid_dataset_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=config.BATCH_SIZE, num_workers=config.NUM_WORKERS, shuffle=True, pin_memory=True)
+    test_dataset_loader = torch.utils.data.DataLoader(test_dataset, batch_size=config.BATCH_SIZE, num_workers=config.NUM_WORKERS, shuffle=True, pin_memory=True)
 
     # train and evaluate the model and select the best params
     best_accuracy = 0
