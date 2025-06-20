@@ -33,8 +33,8 @@ def train(model, train_loader, optimizer, epochs, device):
             optimizer.step()
             epoch_losses.append(loss.item())
 
-            if (i+1) % 10 == 0:  # print every 10 batches
-                logger.info(f"Epoch {epoch+1}/{epochs}, Batch {i+1}/{len(train_loader)}, Loss: {loss.item():.4f}")
+            # if (i+1) % 10 == 0:  # print every 10 batches
+            #     logger.info(f"Epoch {epoch+1}/{epochs}, Batch {i+1}/{len(train_loader)}, Loss: {loss.item():.4f}")
 
         avg_loss = sum(epoch_losses) / len(epoch_losses)
         logger.info(f"Epoch {epoch+1} completed. Average Loss: {avg_loss:.4f}")
