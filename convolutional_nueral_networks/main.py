@@ -27,7 +27,10 @@ if __name__ == "__main__":
     for epoch in confing.EPOCHS:
         for lr in confing.LR_RATES:
             for dropout in confing.DROPOUT_RATES:
-                model = CNN(dropout_rate=dropout).to(confing.DEVICE)
+                model = CNN(in_channels=confing.IN_CHANNELS,
+                num_classes=confing.NUM_CLASSES,
+                kernel_size=confing.KERNEL_SIZE,
+                dropout_rate=dropout).to(confing.DEVICE)
                 optimizer = optim.Adam(model.parameters(), lr=lr)
                 criterion = nn.CrossEntropyLoss()
                 train(model=model, train_loader=train_dataset_loader, optimizer=optimizer, epochs=epoch, device=confing.DEVICE)
