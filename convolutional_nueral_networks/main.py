@@ -4,7 +4,7 @@ import torch.optim as optim
 from torchvision.datasets import ImageFolder
 from src import confing
 from src.CNN import CNN
-from utils import train, evaluate
+from src.utils import train, evaluate
 
 if __name__ == "__main__":
     # load in the dataset
