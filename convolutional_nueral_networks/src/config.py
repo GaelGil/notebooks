@@ -15,4 +15,5 @@ EPOCHS = [25, 50 ,75, 100]
 LR_RATES= [0.001, 0.01]
 DROPOUT_RATES = [0.25, 0.5]
 BATCH_SIZE = 16
+NUM_WORKERS=4
 MODEL_PATH = './models/model_state_dict.pth'
