@@ -1,13 +1,15 @@
 import torch
 import torch.nn as nn
 import logging
+import os
+import warnings
+from PIL import Image
 
 logging.basicConfig(
     level=logging.INFO,  
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
 
 def train(model, train_loader, optimizer, epochs, device):
     """Function to train our convolutinal neural network.
@@ -41,7 +43,7 @@ def train(model, train_loader, optimizer, epochs, device):
 
 
 
-def evaluate(loader, model, device):
+def evaluate(model, device, loader):
     """Function to evaluate our model.
 
     Args:
