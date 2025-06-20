@@ -10,39 +10,25 @@ logger = logging.getLogger(__name__)
 
 
 def train(model, train_loader, optimizer, epochs, device):
-    """Function to train our convolutinal neural network.
-
-    Args:
-        model: The model we are trying to train.
-        train_loader: The data for training.
-        epochs: How many iterations of training we are going to do.
-        optimizer: The optimizer for our network
-    Returns:
-        None
-    """
     criterion = nn.BCEWithLogitsLoss()
     for epoch in range(epochs):
-        accuracies = []
+        epoch_losses = []
         for i, (inputs, labels) in enumerate(train_loader):
-            # get inputs and labels
             inputs, labels = inputs.to(device), labels.to(device)
-            # turn the labels of the batch from [0, 1] to [[0], [1]]
-            # also makes them floats
             labels = labels.unsqueeze(1).float()
-            # zero the parameter gradients
             optimizer.zero_grad()
-            # forward 
             outputs = model(inputs)
-            # calculate loss
-            accuracy = criterion(outputs, labels)
-            # backward
-            accuracy.backward()
-            # optimize
-            optimizer.step() 
-            # add loss to list of losses
-            accuracies.append(accuracy.item())
-    
-        logger.info(f'Epoch: {epoch} ---- loss: {accuracy.item()}')
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            epoch_losses.append(loss.item())
+
+            if (i+1) % 10 == 0:  # print every 10 batches
+                print(f"Epoch {epoch+1}/{epochs}, Batch {i+1}/{len(train_loader)}, Loss: {loss.item():.4f}")
+
+        avg_loss = sum(epoch_losses) / len(epoch_losses)
+        print(f"Epoch {epoch+1} completed. Average Loss: {avg_loss:.4f}")
+
 
 
 
