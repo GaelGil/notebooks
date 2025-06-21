@@ -31,7 +31,7 @@ def train(model, train_loader, optimizer, epochs, device):
         for inputs, labels in train_loader:
             inputs, labels = inputs.to(device), labels.to(device)
             
-            # Ensure labels are float and have shape [batch_size, 1]
+            # ensure labels are float and have shape [batch_size, 1]
             if labels.dim() == 1:
                 labels = labels.unsqueeze(1)
             labels = labels.float()
