@@ -22,22 +22,31 @@ def train(model, train_loader, optimizer, epochs, device):
     Returns:
         None
     """
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.BCEWithLogitsLoss() # set loss function for training
+    model.train()  # set train mode
+    
     for epoch in range(epochs):
-        epoch_losses = []
-        for i, (inputs, labels) in enumerate(train_loader):
+        epoch_losses = [] # stores loss values for each batch in the current epoch
+        
+        for inputs, labels in train_loader:
             inputs, labels = inputs.to(device), labels.to(device)
-            labels = labels.unsqueeze(1).float()
+            
+            # Ensure labels are float and have shape [batch_size, 1]
+            if labels.dim() == 1:
+                labels = labels.unsqueeze(1)
+            labels = labels.float()
+            
             optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
+            outputs = model(inputs)  # outputs shape: [batch_size, 1], raw logits
+            
+            # loss bc even tho we are doing classification we are given 
+            # a error value/how wrong our model was
+            loss = criterion(outputs, labels) 
             loss.backward()
             optimizer.step()
+            
             epoch_losses.append(loss.item())
-
-            # if (i+1) % 10 == 0:  # print every 10 batches
-            #     logger.info(f"Epoch {epoch+1}/{epochs}, Batch {i+1}/{len(train_loader)}, Loss: {loss.item():.4f}")
-
+        
         avg_loss = sum(epoch_losses) / len(epoch_losses)
         logger.info(f"Epoch {epoch+1} completed. Average Loss: {avg_loss:.4f}")
 
@@ -54,16 +63,24 @@ def evaluate(model, device, loader):
         accuracy
     """
     model.eval()
-    correct = 0
-    num_samples = 0
+    correct = 0 # num correct samples
+    num_samples = 0 # num samples 
 
     with torch.no_grad():
-        for x, y in loader:
+        for x, y in loader: 
             x = x.to(device)
             y = y.to(device)
 
-            outputs = model(x)
-            _, predicted = torch.max(outputs, dim=1)
+            # shape: [batch_size, 1] ie batch size 4: torch.tensor([[0.2],[-1.5],[0.7],[-0.3]])
+            outputs = model(x)  
+             # apply sigmoid to get probabilities
+            probs = torch.sigmoid(outputs) 
+            # if prob is greater 0.5 true else false, .long() turns them inot 0 and 1
+            # squeeze changess ([[0.2],[-1.5],[0.7],[-0.3]]) to [0.2, -1.5, 0.7, -0.3]
+            predicted = (probs > 0.5).long().squeeze(1) 
+
+            # compare predicted with truth, sum the correct number of truth (all ones)
+            # .item makes it a single int instead of torch.tensor([int])
             correct += (predicted == y).sum().item()
             num_samples += y.size(0)
 
