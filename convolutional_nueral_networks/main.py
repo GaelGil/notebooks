@@ -24,21 +24,23 @@ if __name__ == "__main__":
     # train and evaluate the model and select the best params
     best_accuracy = 0
     best_params = {}
-    for lr in config.LR_RATES:
-        for dropout in config.DROPOUT_RATES:
-            model = CNN(in_channels=config.IN_CHANNELS,
-            num_classes=config.NUM_CLASSES,
-            kernel_size=config.KERNEL_SIZE,
-            dropout_rate=dropout).to(config.DEVICE)
-            optimizer = optim.Adam(model.parameters(), lr=lr)
-            criterion = nn.CrossEntropyLoss()
-            train(model=model, train_loader=train_dataset_loader, optimizer=optimizer, epochs=config.EPOCHS, device=config.DEVICE)
-            eval_accuracy = evaluate(model=model, device=config.DEVICE, loader=valid_dataset_loader)
-            # print(f'Epochs: {epoch}, LR {lr}, Dropout: {dropout}, Val Accuracy: {eval_accuracy:.4f}')
-            if eval_accuracy > best_accuracy:
-                best_acc = eval_accuracy
-                best_params = {'epoch': config.EPOCHS, 'lr': lr, 'dropout': dropout}
+    for epoch in config.EPOCHS:
+        for lr in config.LR_RATES:
+            for dropout in config.DROPOUT_RATES:
+                model = CNN(in_channels=config.IN_CHANNELS,
+                num_classes=config.NUM_CLASSES,
+                kernel_size=config.KERNEL_SIZE,
+                dropout_rate=dropout).to(config.DEVICE)
+                optimizer = optim.Adam(model.parameters(), lr=lr)
+                criterion = nn.CrossEntropyLoss()
+                train(model=model, train_loader=train_dataset_loader, optimizer=optimizer, epochs=epoch, device=config.DEVICE)
+                eval_accuracy = evaluate(model=model, device=config.DEVICE, loader=valid_dataset_loader)
+                if eval_accuracy > best_accuracy:
+                    best_acc = eval_accuracy
+                    best_params = {'epoch': epoch, 'lr': lr, 'dropout': dropout}
 
+
+    print(f'Best Params: {best_params}')
 
     # initialize the model
     model = CNN(in_channels=config.IN_CHANNELS,
@@ -58,8 +60,8 @@ if __name__ == "__main__":
 
 
     # evalutate model 
-    evaluate(loader=test_dataset_loader, model=model, device=config.DEVICE)
+    test_accuracy = evaluate(loader=test_dataset_loader, model=model, device=config.DEVICE)
+    print(f'Test Accuracy: {test_accuracy}')
 
     # save model
     torch.save(model.state_dict(), config.MODEL_PATH)
-
