@@ -48,7 +48,7 @@ def train(model, train_loader, optimizer, epochs, device):
             epoch_losses.append(loss.item())
         
         avg_loss = sum(epoch_losses) / len(epoch_losses)
-        logger.info(f"Epoch {epoch+1} completed. Average Loss: {avg_loss:.4f}")
+        logger.info(f"Epoch {epoch+1} out of {epochs} completed. Average Loss: {avg_loss:.4f}")
 
 
 
