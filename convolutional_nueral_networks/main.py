@@ -21,7 +21,7 @@ if __name__ == "__main__":
     valid_dataset_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=config.BATCH_SIZE, num_workers=config.NUM_WORKERS, shuffle=True, pin_memory=True)
     test_dataset_loader = torch.utils.data.DataLoader(test_dataset, batch_size=config.BATCH_SIZE, num_workers=config.NUM_WORKERS, shuffle=True, pin_memory=True)
 
-    # train and evaluate the model and select the best params
+    # # train and evaluate the model and select the best params
     best_accuracy = 0
     best_params = {}
     for epoch in config.EPOCHS:
@@ -32,7 +32,6 @@ if __name__ == "__main__":
                 kernel_size=config.KERNEL_SIZE,
                 dropout_rate=dropout).to(config.DEVICE)
                 optimizer = optim.Adam(model.parameters(), lr=lr)
-                criterion = nn.CrossEntropyLoss()
                 train(model=model, train_loader=train_dataset_loader, optimizer=optimizer, epochs=epoch, device=config.DEVICE)
                 eval_accuracy = evaluate(model=model, device=config.DEVICE, loader=valid_dataset_loader)
                 if eval_accuracy > best_accuracy:
@@ -40,7 +39,7 @@ if __name__ == "__main__":
                     best_params = {'epoch': epoch, 'lr': lr, 'dropout': dropout}
 
 
-    print(f'Best Params: {best_params}')
+    # print(f'Best Params: {best_params}')
 
     # initialize the model
     model = CNN(in_channels=config.IN_CHANNELS,
@@ -49,7 +48,7 @@ if __name__ == "__main__":
                 dropout_rate=best_params['dropout']).to(config.DEVICE)
     
     # set the optimizer
-    optimizer = optim.Adam(model.parameters(), lr=config.best_params['lr'])
+    optimizer = optim.Adam(model.parameters(), lr=best_params['lr'])
 
     # train the model
     train(model=model,
@@ -63,5 +62,6 @@ if __name__ == "__main__":
     test_accuracy = evaluate(loader=test_dataset_loader, model=model, device=config.DEVICE)
     print(f'Test Accuracy: {test_accuracy}')
 
+    
     # save model
     torch.save(model.state_dict(), config.MODEL_PATH)
