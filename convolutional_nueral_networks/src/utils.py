@@ -26,7 +26,7 @@ def train(model, train_loader, optimizer, epochs, device):
     model.train()  # set train mode
     
     for epoch in range(epochs):
-        epoch_losses = [] # stores loss values for each batch in the current epoch
+        # epoch_losses = [] # stores loss values for each batch in the current epoch
         
         for inputs, labels in train_loader:
             inputs, labels = inputs.to(device), labels.to(device)
@@ -45,10 +45,10 @@ def train(model, train_loader, optimizer, epochs, device):
             loss.backward()
             optimizer.step()
             
-            epoch_losses.append(loss.item())
+            # epoch_losses.append(loss.item())
         
-        avg_loss = sum(epoch_losses) / len(epoch_losses)
-        logger.info(f"Epoch {epoch+1} out of {epochs} completed. Average Loss: {avg_loss:.4f}")
+            # avg_loss = sum(epoch_losses) / len(epoch_losses)
+            logger.info(f'Epoch {epoch+1} out of {epochs} completed, Loss at this epoch was: {loss}')
 
 
 
