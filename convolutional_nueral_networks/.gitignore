@@ -2,5 +2,5 @@
 *.zip
 **/archive
 **/PetImages
-*.pth
+*.h5
 /env
