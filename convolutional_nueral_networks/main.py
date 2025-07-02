@@ -34,12 +34,13 @@ if __name__ == "__main__":
                 optimizer = optim.Adam(model.parameters(), lr=lr)
                 train(model=model, train_loader=train_dataset_loader, optimizer=optimizer, epochs=epoch, device=config.DEVICE)
                 eval_accuracy = evaluate(model=model, device=config.DEVICE, loader=valid_dataset_loader)
+                print(f'Validation Accuracy: {eval_accuracy}, Best Accuracy: {best_accuracy}')
                 if eval_accuracy > best_accuracy:
-                    best_acc = eval_accuracy
+                    best_accuracy = eval_accuracy
                     best_params = {'epoch': epoch, 'lr': lr, 'dropout': dropout}
 
 
-    # print(f'Best Params: {best_params}')
+    print(f'Best Params: {best_params}')
 
     # initialize the model
     model = CNN(in_channels=config.IN_CHANNELS,
