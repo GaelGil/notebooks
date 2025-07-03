@@ -1,7 +1,6 @@
 import torch
 from PIL import Image
 import torch
-from torchvision import transforms
 from src.CNN import CNN  # or wherever your CNN class is defined
 import src.config as config  # your config with parameters
 
@@ -18,7 +17,7 @@ model.load_state_dict(torch.load('./models/model_state_dict.pth', map_location=c
 model.eval()
 
 
-dog_img_path = './dog_photo.png'
+dog_img_path = './samples/dog/dog_photo.png'
 cat_img_path = './cat.png'
 dog = Image.open(dog_img_path).convert('RGB')  
 cat = Image.open(cat_img_path).convert('RGB')  
