@@ -1,0 +1,12 @@
+[project]
+name = "amazon-sales"
+version = "0.1.0"
+description = "A data analysis project"
+authors = [{ name = "Your Name" }]
+dependencies = [
+    "jupyterlab",
+    "seaborn",
+    "pandas",
+    "numpy",
+    "scikit-learn"
+]
