@@ -18,6 +18,7 @@ import pro_gan.config as config
 
 torch.backends.cudnn.benchmarks = True
 
+
 def get_loader(image_size):
     transform = transforms.Compose(
         [
@@ -41,15 +42,16 @@ def get_loader(image_size):
     )
     return loader, dataset
 
+
 def train_fn(
-    critic,
-    gen,
-    loader,
-    dataset,
-    step,
+    critic: Discriminator,
+    gen: Generator,
+    loader: DataLoader,
+    dataset: datasets.ImageFolder,
+    step: int,
     alpha,
-    opt_critic,
-    opt_gen,
+    opt_critic: optim.Optimizer,
+    opt_gen: optim.Optimizer,
     tensorboard_step,
     writer,
     scaler_gen,
@@ -70,7 +72,7 @@ def train_fn(
             loss_critic = (
                 -(torch.mean(critic_real) - torch.mean(critic_fake))
                 + config.LAMBDA_GP * gp
-                + (0.001 * torch.mean(critic_real ** 2))
+                + (0.001 * torch.mean(critic_real**2))
             )
 
         opt_critic.zero_grad()
@@ -113,21 +115,36 @@ def train_fn(
     return tensorboard_step, alpha
 
 
-
 def main():
-    gen = Generator(config.Z_DIM, config.IN_CHANNELS, img_channels=config.CHANNELS_IMG).to(config.DEVICE)
-    critic = Discriminator(config.Z_DIM, config.IN_CHANNELS, img_channels=config.CHANNELS_IMG).to(config.DEVICE)
+    gen = Generator(
+        config.Z_DIM, config.IN_CHANNELS, img_channels=config.CHANNELS_IMG
+    ).to(config.DEVICE)
+    critic = Discriminator(
+        config.Z_DIM, config.IN_CHANNELS, img_channels=config.CHANNELS_IMG
+    ).to(config.DEVICE)
 
     opt_gen = optim.Adam(gen.parameters(), lr=config.LEARNING_RATE, betas=(0.0, 0.99))
-    opt_critic = optim.Adam(critic.parameters(), lr=config.LEARNING_RATE, betas=(0.0, 0.99))
+    opt_critic = optim.Adam(
+        critic.parameters(), lr=config.LEARNING_RATE, betas=(0.0, 0.99)
+    )
     scaler_critic = torch.cuda.amp.GradScaler()
     scaler_gen = torch.cuda.amp.GradScaler()
 
     writer = SummaryWriter(f"logs/gan1")
 
     if config.LOAD_MODEL:
-        load_checkpoint(config.CHECKPOINT_GEN, gen, opt_gen, config.LEARNING_RATE,)
-        load_checkpoint(config.CHECKPOINT_CRITIC, critic, opt_critic, config.LEARNING_RATE,)
+        load_checkpoint(
+            config.CHECKPOINT_GEN,
+            gen,
+            opt_gen,
+            config.LEARNING_RATE,
+        )
+        load_checkpoint(
+            config.CHECKPOINT_CRITIC,
+            critic,
+            opt_critic,
+            config.LEARNING_RATE,
+        )
 
     gen.train()
     critic.train()
@@ -135,12 +152,12 @@ def main():
     tensorboard_step = 0
     step = int(log2(config.START_TRAIN_AT_IMG_SIZE / 4))
     for num_epochs in config.PROGRESSIVE_EPOCHS[step:]:
-        alpha = 1e-5  
-        loader, dataset = get_loader(4 * 2 ** step)  
-        print(f"Current image size: {4 * 2 ** step}")
+        alpha = 1e-5
+        loader, dataset = get_loader(4 * 2**step)
+        print(f"Current image size: {4 * 2**step}")
 
         for epoch in range(num_epochs):
-            print(f"Epoch [{epoch+1}/{num_epochs}]")
+            print(f"Epoch [{epoch + 1}/{num_epochs}]")
             tensorboard_step, alpha = train_fn(
                 critic,
                 gen,
@@ -160,7 +177,7 @@ def main():
                 save_checkpoint(gen, opt_gen, filename=config.CHECKPOINT_GEN)
                 save_checkpoint(critic, opt_critic, filename=config.CHECKPOINT_CRITIC)
 
-        step += 1  
+        step += 1
 
 
 if __name__ == "__main__":
