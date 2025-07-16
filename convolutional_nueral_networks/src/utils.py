@@ -140,12 +140,12 @@ def test_sample(model, img_path):
     return prediction, probability
 
 
-model = load_model("./models/model_state_dict.pth")
-test_sample(model=model, img_path="./samples/dog/dog_photo.png")
-test_sample(model=model, img_path="./samples/dog/dog_photo.png")
-test_sample(model=model, img_path="./samples/dog/dog_photo.png")
-test_sample(model=model, img_path="./samples/cat/cat_photo.png")
-test_sample(model=model, img_path="./samples/cat/cat_photo.png")
-test_sample(model=model, img_path="./samples/cat/cat_photo.png")
+# model = load_model("./models/model_state_dict.pth")
+# test_sample(model=model, img_path="./samples/dog/dog_photo.png")
+# test_sample(model=model, img_path="./samples/dog/dog_photo.png")
+# test_sample(model=model, img_path="./samples/dog/dog_photo.png")
+# test_sample(model=model, img_path="./samples/cat/cat_photo.png")
+# test_sample(model=model, img_path="./samples/cat/cat_photo.png")
+# test_sample(model=model, img_path="./samples/cat/cat_photo.png")
 # Best Params: {'epoch': 10, 'lr': 0.001, 'dropout': 0.25}
 # Test Accuracy: 0.7876849260295882
