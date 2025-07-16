@@ -69,6 +69,7 @@ if __name__ == "__main__":
                 if eval_accuracy > best_accuracy:
                     best_accuracy = eval_accuracy
                     best_params = {"epoch": epoch, "lr": lr, "dropout": dropout}
+                    torch.save(model.state_dict(), f'./models/model_{epoch}_{lr}_{dropout}.pt')
 
     print(f"Best Params: {best_params}")
 
@@ -80,23 +81,6 @@ if __name__ == "__main__":
         dropout_rate=best_params["dropout"],
     ).to(config.DEVICE)
 
-    # set the optimizer
-    optimizer = optim.Adam(model.parameters(), lr=best_params["lr"])
-
-    # train the model
-    train(
-        model=model,
-        train_loader=train_dataset_loader,
-        optimizer=optimizer,
-        epochs=best_params["epoch"],
-        device=config.DEVICE,
-    )
-
-    # evalutate model
-    test_accuracy = evaluate(
-        loader=test_dataset_loader, model=model, device=config.DEVICE
-    )
-    print(f"Test Accuracy: {test_accuracy}")
-
-    # save model
-    torch.save(model.state_dict(), config.MODEL_PATH)
+    model.load_state_dict(torch.load(f'./models/model_{best_params["epoch"]}_{best_params["lr"]}_{best_params["dropout"]}.pt'))
+    test_mse = evaluate(model, config.DEVICE, test_dataset_loader)
+    print(f'Test MSE: {test_mse}')
