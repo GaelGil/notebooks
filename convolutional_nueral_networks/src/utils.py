@@ -147,5 +147,6 @@ def test_sample(model, img_path):
 # test_sample(model=model, img_path="./samples/cat/cat_photo.png")
 # test_sample(model=model, img_path="./samples/cat/cat_photo.png")
 # test_sample(model=model, img_path="./samples/cat/cat_photo.png")
-# Best Params: {'epoch': 10, 'lr': 0.001, 'dropout': 0.25}
-# Test Accuracy: 0.7876849260295882
+# Validation Accuracy: 0.8409681936387278, Best Accuracy: 0
+# Best Params: {'epoch': 30, 'lr': 0.0001, 'dropout': 0.25}
+# Test MSE: 0.8380647740903638
