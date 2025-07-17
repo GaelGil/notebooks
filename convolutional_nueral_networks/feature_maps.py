@@ -59,14 +59,20 @@ def show_all_feature_maps(tensor, title, max_cols=8):
 
 
 # Load an image and pass it through the model to get feature maps
-cat_img_path = "./samples/cat/cat_photo.png"
-cat = Image.open(cat_img_path).convert("RGB")
-cat_tensor = transform(cat).unsqueeze(0).to(config.DEVICE)
-_ = model(cat_tensor)  # forward pass to get feature maps
-show_all_feature_maps(feature_maps["pool1"], title="Pool1 Feature Maps")
+# cat_img_path = "./samples/cat/cat_photo.png"
+# cat = Image.open(cat_img_path).convert("RGB")
+# cat_tensor = transform(cat).unsqueeze(0).to(config.DEVICE)
+# _ = model(cat_tensor)  # forward pass to get feature maps
+# show_all_feature_maps(feature_maps["pool1"], title="Pool1 Feature Maps")
 
 dog_img_path = "./samples/dog/dog_photo.png"
 dog = Image.open(dog_img_path).convert("RGB")
 dog_tensor = transform(dog).unsqueeze(0).to(config.DEVICE)
 dog_output = model(dog_tensor)  # raw logits
-show_all_feature_maps(feature_maps["pool3"], title="Pool1 Feature Maps")
+show_all_feature_maps(feature_maps["conv1"], title="Conv1 Feature Maps")
+show_all_feature_maps(feature_maps["pool1"], title="Pool1 Feature Maps")
+show_all_feature_maps(feature_maps["conv2"], title="Conv2 Feature Maps")
+show_all_feature_maps(feature_maps["pool2"], title="Pool2 Feature Maps")
+show_all_feature_maps(feature_maps["conv3"], title="Conv3 Feature Maps")
+show_all_feature_maps(feature_maps["pool3"], title="Pool3 Feature Maps")
+
