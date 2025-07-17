@@ -4,11 +4,11 @@ import torch.nn as nn
 
 def initialize_weights(model):
     """Function to initialize weights
-    
-    Args: 
+
+    Args:
         model: The model whose weights we want to initialize
 
-    Returns: 
+    Returns:
         None
     """
     for m in model.modules():
