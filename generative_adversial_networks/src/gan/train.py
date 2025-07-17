@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision
 import torchvision.datasets as datasets
-import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from Generator import Generator
@@ -11,38 +10,48 @@ from Discriminator import Discriminator
 from init_weights import initialize_weights
 import config as config
 
-transforms = transforms.Compose(
-    [
-        transforms.Resize(config.IMAGE_SIZE),
-        transforms.ToTensor(),
-        transforms.Normalize(
-            [0.5 for _ in range(config.CHANNELS_IMG)], [0.5 for _ in range(config.CHANNELS_IMG)]
-        ),
-    ]
-)
-
+# get dataset
 dataset = datasets.MNIST(
-    root="dataset/", train=True, transform=transforms, download=True
+    root="dataset/", train=True, transform=config.IMG_TRANSFORMATIONS, download=True
 )
 
-dataloader = DataLoader(dataset, batch_size=config.BATCH_SIZE, shuffle=True)
-gen = Generator(config.NOISE_DIM, config.CHANNELS_IMG, config.FEATURES_GEN).to(config.DEVICE)
-disc = Discriminator(config.CHANNELS_IMG, config.FEATURES_DISC, config.KERNEL_SIZE, config.STRIDE, config.PADDING).to(config.DEVICE)
+# load dataset into pytorch
+dataloader = DataLoader(
+    dataset,
+    batch_size=config.BATCH_SIZE,
+    num_workers=config.NUM_WORKERS,
+    pin_memory=config.PIN_MEMORY,
+    shuffle=True,
+)
+# initialize generator and discriminator model
+gen = Generator(config.NOISE_DIM, config.CHANNELS_IMG, config.FEATURES_GEN).to(
+    config.DEVICE
+)
+disc = Discriminator(
+    config.CHANNELS_IMG,
+    config.FEATURES_DISC,
+    config.KERNEL_SIZE,
+    config.STRIDE,
+    config.PADDING,
+).to(config.DEVICE)
+# initialize weights
 initialize_weights(gen)
 initialize_weights(disc)
-
+# set the optimizer
 opt_gen = optim.Adam(gen.parameters(), lr=config.LEARNING_RATE, betas=(0.5, 0.999))
 opt_disc = optim.Adam(disc.parameters(), lr=config.LEARNING_RATE, betas=(0.5, 0.999))
 criterion = nn.BCELoss()
-
+# create some noise
 fixed_noise = torch.randn(32, config.NOISE_DIM, 1, 1).to(config.DEVICE)
-writer_real = SummaryWriter(f"logs/real")
-writer_fake = SummaryWriter(f"logs/fake")
+# sett folders for real and fake samples
+writer_real = SummaryWriter("logs/real")
+writer_fake = SummaryWriter("logs/fake")
 step = 0
 
+# set models to training mode
 gen.train()
 disc.train()
-
+# trai model
 for epoch in range(config.NUM_EPOCHS):
     for batch_idx, (real, _) in enumerate(dataloader):
         real = real.to(config.DEVICE)
