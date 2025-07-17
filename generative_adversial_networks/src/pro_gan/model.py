@@ -151,7 +151,7 @@ class Generator(nn.Module):
         """
         return torch.tanh(alpha * generated + (1 - alpha) * upscaled)
 
-    def forward(self, x, alpha, steps) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, alpha, steps) -> torch.Tensor:
         """Function to pass a input through our generator model
 
         We first pass our x (input) through our initial convolutional layers.
