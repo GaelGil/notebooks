@@ -4,3 +4,4 @@
 *.pth
 **/first_train
 **/models
+requirements.txt
