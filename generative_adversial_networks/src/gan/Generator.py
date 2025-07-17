@@ -22,7 +22,7 @@ class Generator(nn.Module):
 
     """
 
-    def __init__(self, noise, img_channels: int, features: int) -> None:
+    def __init__(self, noise: torch.Tensor, img_channels: int, features: int) -> None:
         """This function initializes the generator instance"""
         super(Generator, self).__init__()
         self.generator = nn.Sequential(
@@ -67,6 +67,6 @@ class Generator(nn.Module):
             nn.ReLU(),
         )
 
-    def forward(self, x) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Function to feed an input forward through the model"""
         return self.generator(x)

@@ -1,6 +1,7 @@
 """This class implements a discriminator in a GAN model in PyTorch."""
 
 import torch.nn as nn
+import torch
 
 
 class Discriminator(nn.Module):
@@ -29,18 +30,18 @@ class Discriminator(nn.Module):
         stride: int,
         padding: int,
     ):
-        """This function initializes the discriminator instance
+        """Initialise discriminator instance
 
         This function initializes our model with a convolution, followed by leakyReLU, followed
         by 3 convolution blocks (defined in block() function) then a single convolution and a
         sigmoid function
 
         Args:
-            img_channels:
-                The number of channels in the image
-
-            features:
-                The number of features after each convolution
+            img_channels: The number of channels in the image
+            features: The number of features
+            kernel_size: size of the kernel
+            stride: The stride size
+            padding: Padding size
 
         Returns:
             None
@@ -86,7 +87,14 @@ class Discriminator(nn.Module):
             nn.Sigmoid(),
         )
 
-    def block(self, in_channels, out_channels, kernel_size, stride, padding):
+    def block(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        stride: int,
+        padding: int,
+    ) -> nn.Sequential:
         """Function to add a sequential block to our model.
 
         This function adds a sequential block to our model. We add a convolutional layer,
@@ -100,7 +108,7 @@ class Discriminator(nn.Module):
             padding: If we are adding padding when performing the convolutions
 
         Returns:
-            None
+            nn.Sequential
         """
         return nn.Sequential(
             nn.Conv2d(
@@ -110,6 +118,6 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Function to feed an input forward through the model"""
         return self.discriminator(x)
