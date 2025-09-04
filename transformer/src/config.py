@@ -11,4 +11,10 @@ class Config(BaseModel):
     MODEL_PATH: str
 
 
-config = Config(DEVICE=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))
+config = Config(
+    DEVICE=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+    DATA_PATH="data",
+    BATCH_SIZE=32,
+    NUM_WORKERS=8,
+    MODEL_PATH="model.pth",
+)
