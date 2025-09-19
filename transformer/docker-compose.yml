@@ -1,0 +1,16 @@
+services:
+  transformer:
+    build: .
+    volumes:
+      - .:/app # mount your whole project into /app
+    ports:
+      - "8888:8888" # for JupyterLab
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    tty: true
+    stdin_open: true
