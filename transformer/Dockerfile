@@ -15,7 +15,7 @@ WORKDIR /app
 
 # Copy project files
 COPY pyproject.toml uv.lock* ./
-COPY src ./src
+COPY . . 
 
 # Install deps using uv (system-wide, reproducible if uv.lock exists)
 RUN uv sync --frozen
