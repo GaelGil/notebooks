@@ -1,0 +1,33 @@
+# Ignore Python cache and bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore virtual environments
+.venv/
+env/
+venv/
+
+# Ignore Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore data or model artifacts if any
+*.log
+*.csv
+*.h5
+*.pt
+*.pth
+*.onnx
+
+# Ignore Git repo
+.git/
+.gitignore
+
+# Ignore Docker and other build artifacts
+Dockerfile
+docker-compose.yml
+
+# Ignore OS/system files
+.DS_Store
+Thumbs.db
