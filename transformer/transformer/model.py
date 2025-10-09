@@ -4,6 +4,14 @@ from flax import nnx
 
 class InputEmbeddings(nnx.Module):
     def __init__(self, d_model: int, vocab_size: int) -> None:
+        """
+        Args:
+            d_model: dimension of the model
+            vocab_size: size of the vocabulary (num tokens)
+
+        Returns:
+            None
+        """
         self.d_model = d_model
         self.vocab_size = vocab_size
         # create embeddings matrix.
@@ -34,11 +42,17 @@ class PositionalEncoding(nnx.Module):
 
 class LayerNorm(nnx.Module):
     def __init__(self, eps: float = 1e-6) -> None:
+        """
+        Args:
+            eps: epsilon for numerical stability
+
+        Returns:
+            None
+        """
         self.eps = eps  # helps avoid division by zero
         self.alpha = nnx.Param(jnp.ones(1))
         self.bias = nnx.Param(jnp.zeros(1))
 
-    # TODO: updated layer norm with biases
     def __call__(self, x):
         # calculate mean and variance of x
         mean = jnp.mean(x, axis=-1, keepdims=True)
@@ -90,7 +104,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         self.dropout = dropout
 
         assert d_model % n_heads == 0, "d_model must be divisible by n_heads"
-        self.dk = d_model // n_heads
+        self.d_k = d_model // n_heads
         self.w_q = nnx.Linear(d_model, d_model)
         self.w_k = nnx.Linear(d_model, d_model)
         self.w_v = nnx.Linear(d_model, d_model)
@@ -107,13 +121,13 @@ class MultiHeadAttentionBlock(nnx.Module):
         key = self.w_k(k)
         value = self.w_v(v)
         query = query.view(
-            query.shape[0], query.shape[1], self.n_heads, self.dk
+            query.shape[0], query.shape[1], self.n_heads, self.d_k
         ).transpose(1, 2)
-        key = key.view(key.shape[0], key.shape[1], self.n_heads, self.dk).transpose(
+        key = key.view(key.shape[0], key.shape[1], self.n_heads, self.d_k).transpose(
             1, 2
         )
         value = value.view(
-            value.shape[0], value.shape[1], self.n_heads, self.dk
+            value.shape[0], value.shape[1], self.n_heads, self.d_k
         ).transpose(1, 2)
 
 
