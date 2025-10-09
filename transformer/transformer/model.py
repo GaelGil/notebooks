@@ -20,7 +20,7 @@ class InputEmbeddings(nnx.Module):
         # These are learned.
         self.embedding = nnx.Embedding(vocab_size, d_model)
 
-    def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
+    def __call__(self, x):
         # Get the embedding for each word in x
         # multiply by the square root of d_model for normalization and stability during training
         return self.embedding(x) * self.d_model**0.5
@@ -116,7 +116,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         # TODO: update scaled dot product attention
         pass
 
-    def __call__(self, q: jnp.ndarray, k: jnp.ndarray, v: jnp.ndarray, mask):
+    def __call__(self, q, k, v, mask):
         # (seq_len, d_model) * (d_model, d_model) -> (seq_len, d_model)
         query = self.w_q(q)
         key = self.w_k(k)
