@@ -49,6 +49,15 @@ class LayerNorm(nnx.Module):
 
 class FeedForwardBlock(nnx.Module):
     def __init__(self, d_model: int, d_ff: int, dropout: float) -> None:
+        """
+        Args:
+            d_model: dimension of the model
+            d_ff: dimension of the feed forward network
+            dropout: dropout probability
+
+        Returns:
+            None
+        """
         self.d_model = d_model
         self.d_ff = d_ff
         self.dropout = dropout
@@ -57,6 +66,7 @@ class FeedForwardBlock(nnx.Module):
         self.linear_2 = nnx.Linear(d_ff, d_model)
 
     def __call__(self, x):
+        # simple feed forward network
         x = nnx.leaky_relu(self.linear_1(x))
         x = self.dropout_1(x)
         x = self.linear_2(x)
@@ -65,6 +75,16 @@ class FeedForwardBlock(nnx.Module):
 
 class MultiHeadAttentionBlock(nnx.Module):
     def __init__(self, d_model: int, n_heads: int, dropout: float) -> None:
+        """
+
+        Args:
+            d_model: dimension of the model
+            n_heads: number of heads
+            dropout: dropout probability
+
+        Returns:
+            None
+        """
         self.d_model = d_model
         self.n_heads = n_heads
         self.dropout = dropout
