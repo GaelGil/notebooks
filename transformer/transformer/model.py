@@ -6,9 +6,14 @@ class InputEmbeddings(nnx.Module):
     def __init__(self, d_model: int, vocab_size: int) -> None:
         self.d_model = d_model
         self.vocab_size = vocab_size
+        # create embeddings matrix.
+        # This is a (vocab_size x d_model) matrix so
+        # that each word is represented by a vector of dimension d_model.
+        # These are learned.
         self.embedding = nnx.Embedding(vocab_size, d_model)
 
     def __call__(self, x):
+        # Get the embedding for each word in x
         return self.embedding(x) * self.d_model**0.5
 
 
@@ -34,7 +39,7 @@ class LayerNorm(nnx.Module):
     def __call__(self, x):
         mean = jnp.mean(x, axis=-1, keepdims=True)
         std = jnp.std(x, axis=-1, keepdims=True)
-        return x - mean / (std + self.eps)
+        return x - mean / (std + self.eps) ** 0.5
 
 
 class FeedForwardBlock(nnx.Module):
