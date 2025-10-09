@@ -68,4 +68,15 @@ class MultiHeadAttentionBlock(nnx.Module):
         self.dropout = nnx.Dropout(dropout)
 
     def __call__(self, q, k, v, mask):
-        pass
+        query = self.w_q(q)
+        key = self.w_k(k)
+        value = self.w_v(v)
+        query = query.view(
+            query.shape[0], query.shape[1], self.n_heads, self.dk
+        ).transpose(1, 2)
+        key = key.view(key.shape[0], key.shape[1], self.n_heads, self.dk).transpose(
+            1, 2
+        )
+        value = value.view(
+            value.shape[0], value.shape[1], self.n_heads, self.dk
+        ).transpose(1, 2)
