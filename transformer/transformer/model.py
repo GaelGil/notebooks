@@ -85,3 +85,42 @@ class MultiHeadAttentionBlock(nnx.Module):
         value = value.view(
             value.shape[0], value.shape[1], self.n_heads, self.dk
         ).transpose(1, 2)
+
+
+class ResidualConnection(nnx.Module):
+    def __init__(self, dropout: float) -> None:
+        self.dropout = nnx.Dropout(dropout)
+        self.layer_norm = LayerNorm()
+
+    def __call__(self, x, sublayer):
+        return x + self.dropout(sublayer(self.layer_norm(x)))
+
+
+class EncoderBlock(nnx.Module):
+    def __init__(
+        self,
+        self_attention: MultiHeadAttentionBlock,
+        feed_forward: FeedForwardBlock,
+        dropout: float,
+    ) -> None:
+        self.self_attention_block = self_attention
+        self.feed_forward_block = feed_forward
+        self.residual_connections: list[nnx.Module] = [
+            ResidualConnection(dropout) for _ in range(2)
+        ]
+
+    def __call__(self, x, mask):
+        # x = self.self_attention_block
+        # TODO: implement __call__ method
+        pass
+
+
+class Encoder(nnx.Module):
+    def __init__(self, layers: list[nnx.Module]) -> None:
+        self.layers = layers
+        self.norm = LayerNorm()
+
+    def __call__(self, x, mask):
+        for layer in self.layers:
+            x = layer(x, mask)
+        return self.norm(x)
