@@ -3,7 +3,7 @@ from flax import nnx
 
 
 class InputEmbeddings(nnx.Module):
-    def __init__(self, d_model, int, vocab_size: int) -> None:
+    def __init__(self, d_model: int, vocab_size: int) -> None:
         self.d_model = d_model
         self.vocab_size = vocab_size
         self.embedding = nnx.Embedding(vocab_size, d_model)
