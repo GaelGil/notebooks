@@ -117,6 +117,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         pass
 
     def __call__(self, q, k, v, mask):
+        # (seq_len, d_model) * (d_model, d_model) = (seq_len, d_model)
         query = self.w_q(q)
         key = self.w_k(k)
         value = self.w_v(v)
