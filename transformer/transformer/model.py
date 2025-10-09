@@ -117,10 +117,17 @@ class MultiHeadAttentionBlock(nnx.Module):
         pass
 
     def __call__(self, q, k, v, mask):
-        # (seq_len, d_model) * (d_model, d_model) = (seq_len, d_model)
+        # (seq_len, d_model) * (d_model, d_model) -> (seq_len, d_model)
         query = self.w_q(q)
         key = self.w_k(k)
         value = self.w_v(v)
+
+        # reshape with view
+        # (seq_len, d_model) -> (seq_len, n_heads, d_k) -> (n_heads, seq_len, d_k)
+        # (3, 512) -> (3, 8, 64) -> (8, 3, 64)
+        # Sequence length where each token is of dimension 512 ->
+        # Sequence length where each token is an array of 8 vectors of dimension 64 ->
+        # Sequence length where each token is an array of 8 vectors of dimension 64
         query = query.view(
             query.shape[0], query.shape[1], self.n_heads, self.d_k
         ).transpose(1, 2)
