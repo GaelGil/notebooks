@@ -12,8 +12,9 @@ class InputEmbeddings(nnx.Module):
         # These are learned.
         self.embedding = nnx.Embedding(vocab_size, d_model)
 
-    def __call__(self, x):
+    def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
         # Get the embedding for each word in x
+        # multiply by the square root of d_model for normalization and stability during training
         return self.embedding(x) * self.d_model**0.5
 
 
@@ -33,13 +34,17 @@ class PositionalEncoding(nnx.Module):
 
 class LayerNorm(nnx.Module):
     def __init__(self, eps: float = 1e-6) -> None:
-        self.eps = eps
+        self.eps = eps  # helps avoid division by zero
+        self.alpha = nnx.Param(jnp.ones(1))
+        self.bias = nnx.Param(jnp.zeros(1))
 
     # TODO: updated layer norm with biases
     def __call__(self, x):
+        # calculate mean and variance of x
         mean = jnp.mean(x, axis=-1, keepdims=True)
         std = jnp.std(x, axis=-1, keepdims=True)
-        return x - mean / (std + self.eps) ** 0.5
+        # all elements in x are normalized by mean and std
+        return (self.alpha * (x - mean) / (std + self.eps) ** 0.5) + self.bias
 
 
 class FeedForwardBlock(nnx.Module):
