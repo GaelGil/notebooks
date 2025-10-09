@@ -67,6 +67,11 @@ class MultiHeadAttentionBlock(nnx.Module):
         self.w_o = nnx.Linear(d_model, d_model)
         self.dropout = nnx.Dropout(dropout)
 
+    @staticmethod
+    def scaled_dot_product_attention(query, key, value, mask=None):
+        # TODO: update scaled dot product attention
+        pass
+
     def __call__(self, q, k, v, mask):
         query = self.w_q(q)
         key = self.w_k(k)
