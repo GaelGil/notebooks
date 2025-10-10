@@ -128,8 +128,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         # (3, 512) -> (3, 8, 64) -> (8, 3, 64)
         # Sequence length n where each token is of dimension 512 ->
         # Sequence length n where each token is an array of 8 vectors of dimension 64 ->
-        # Sequence length n where each token head
-        # TODO: update multihead attention block comments
+        # 8 Heads where each head is an array of 3 vectors of dimension 64
         query = query.view(
             query.shape[0], query.shape[1], self.n_heads, self.d_k
         ).transpose(1, 2)
