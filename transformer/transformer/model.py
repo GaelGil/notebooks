@@ -112,7 +112,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         self.dropout = nnx.Dropout(dropout)
 
     @staticmethod
-    def attention(query, key, value, mask, dropout):
+    def scaled_dot_product_attention(query, key, value, mask, dropout):
         d_k = query.shape[-1]
         attention_scores = jnp.matmul(query, key.transpose(-2, -1)) / jnp.sqrt(d_k)
         if mask is not None:
@@ -132,11 +132,14 @@ class MultiHeadAttentionBlock(nnx.Module):
 
         # reshape using .view
         # (seq_len, d_model) -> (seq_len, n_heads, d_k) -> (n_heads, seq_len, d_k)
-        # (n, 512) -> (n, h, 64) -> (h, n, 64)
+        # where dk = d_model // n_heads
+        # (n, 512) -> (n, h, dk) -> (h, n, dk)
         # (3, 512) -> (3, 8, 64) -> (8, 3, 64)
+        #
         # Sequence length n where each token is of dimension 512 ->
         # Sequence length n where each token is an array of 8 vectors of dimension 64 ->
-        # 8 Heads where each head is an array of 3 vectors of dimension 64
+        # Explaination: The embeddings are split into 8 parts so that each head can focus on different parts of the embeddings
+        # 8 Heads where each head contains a matrix of n vectors of dimension 64
         query = query.view(
             query.shape[0], query.shape[1], self.n_heads, self.d_k
         ).transpose(1, 2)
@@ -147,10 +150,12 @@ class MultiHeadAttentionBlock(nnx.Module):
             value.shape[0], value.shape[1], self.n_heads, self.d_k
         ).transpose(1, 2)
 
-        x, self.attention_scores = MultiHeadAttentionBlock.attention(
+        # apply scaled dot product attention to each head
+        x, self.attention_scores = MultiHeadAttentionBlock.scaled_dot_product_attention(
             query, key, value, self.dropout
         )
 
+        # reshape back to (seq_len, d_model)
         x = x.transpose(1, 2).contiguous().view(x.shape[0], -1, self.d_model)
         x = self.w_o(x)
         return x
@@ -162,19 +167,22 @@ class ResidualConnection(nnx.Module):
         self.layer_norm = LayerNorm()
 
     def __call__(self, x, sublayer):
+        # residual connection
+        # sublayer is either multi head attention block or feed forward block
+        # see paper for more details
         return x + self.dropout(sublayer(self.layer_norm(x)))
 
 
 class EncoderBlock(nnx.Module):
     def __init__(
         self,
-        self_attention: MultiHeadAttentionBlock,
+        multi_head_attention_block: MultiHeadAttentionBlock,
         feed_forward: FeedForwardBlock,
         dropout: float,
     ) -> None:
         """
         Args:
-            self_attention: self attention block
+            multi_head_attention: multi head attention block
             feed_forward: feed forward block
             dropout: dropout probability
 
@@ -182,7 +190,7 @@ class EncoderBlock(nnx.Module):
             None
         """
         # encoder block has one self attention block
-        self.self_attention_block = self_attention
+        self.multi_head_attention_block = multi_head_attention_block
         # and one feed forward block
         self.feed_forward_block = feed_forward
         # Lastly there are two residual connections in the encoder block
