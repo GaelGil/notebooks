@@ -246,3 +246,21 @@ class DecoderBlock(nnx.Module):
 
         x = self.residual_connections[2](x, self.feed_forward_block)
         return x
+
+
+class Decoder(nnx.Module):
+    def __init__(self, blocks: list[nnx.Module]) -> None:
+        """
+        Args:
+            blocks: list of decoder blocks
+
+        Returns:
+            None
+        """
+        self.blocks = blocks
+        self.norm = LayerNorm()
+
+    def __call__(self, x, encoder_output, src_mask, target_mask):
+        for block in self.blocks:
+            x = block(x, encoder_output, src_mask, target_mask)
+        return self.norm(x)
