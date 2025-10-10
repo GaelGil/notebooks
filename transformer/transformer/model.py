@@ -181,21 +181,33 @@ class EncoderBlock(nnx.Module):
         Returns:
             None
         """
+        # encoder block has one self attention block
         self.self_attention_block = self_attention
+        # and one feed forward block
         self.feed_forward_block = feed_forward
+        # Lastly there are two residual connections in the encoder block
         self.residual_connections: list[nnx.Module] = [
             ResidualConnection(dropout) for _ in range(2)
         ]
 
-    def __call__(self, x, mask):
-        # x = self.self_attention_block
-        # TODO: implement __call__ method
-        pass
+    def __call__(self, x, src_mask):
+        x = self.residual_connections[0](
+            x, lambda x: self.self_attention_block(x, x, x, src_mask)
+        )
+        x = self.residual_connections[1](x, self.feed_forward_block)
+        return x
 
 
 class Encoder(nnx.Module):
-    def __init__(self, layers: list[nnx.Module]) -> None:
-        self.layers = layers
+    def __init__(self, blocks: list[nnx.Module]) -> None:
+        """
+        Args:
+            blocks: list of encoder blocks
+
+        Returns:
+            None
+        """
+        self.blocks = blocks
         self.norm = LayerNorm()
 
     def __call__(self, x, mask):
