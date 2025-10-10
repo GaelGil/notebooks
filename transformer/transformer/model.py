@@ -112,7 +112,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         self.dropout = nnx.Dropout(dropout)
 
     @staticmethod
-    def self_attention(query, key, value, mask, dropout):
+    def attention(query, key, value, mask, dropout):
         d_k = query.shape[-1]
         attention_scores = jnp.matmul(query, key.transpose(-2, -1)) / jnp.sqrt(d_k)
         if mask is not None:
@@ -147,7 +147,7 @@ class MultiHeadAttentionBlock(nnx.Module):
             value.shape[0], value.shape[1], self.n_heads, self.d_k
         ).transpose(1, 2)
 
-        x, self.attention_scores = MultiHeadAttentionBlock.self_attention(
+        x, self.attention_scores = MultiHeadAttentionBlock.attention(
             query, key, value, self.dropout
         )
 
@@ -211,6 +211,38 @@ class Encoder(nnx.Module):
         self.norm = LayerNorm()
 
     def __call__(self, x, mask):
-        for layer in self.layers:
-            x = layer(x, mask)
+        for block in self.blocks:
+            x = block(x, mask)
         return self.norm(x)
+
+
+class DecoderBlock(nnx.Module):
+    def __init__(
+        self,
+        self_attention_block: MultiHeadAttentionBlock,
+        cross_attention_block: MultiHeadAttentionBlock,
+        feed_forward_block: FeedForwardBlock,
+        dropout: float,
+    ) -> None:
+        self.self_attention_block = self_attention_block
+        self.cross_attention_block = cross_attention_block
+        self.feed_forward_block = feed_forward_block
+        self.cross_attention_block = cross_attention_block
+        self.residual_connections: list[nnx.Module] = [
+            ResidualConnection(dropout) for _ in range(3)
+        ]
+
+    def __call__(self, x, encoder_output, src_mask, target_mask):
+        x = self.residual_connections[0](
+            x, lambda x: self.self_attention_block(x, x, x, target_mask)
+        )
+
+        x = self.residual_connections[1](
+            x,
+            lambda x: self.cross_attention_block(
+                x, encoder_output, encoder_output, src_mask
+            ),
+        )
+
+        x = self.residual_connections[2](x, self.feed_forward_block)
+        return x
