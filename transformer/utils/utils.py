@@ -1,4 +1,5 @@
-from transformer.model import Transformer, PositionalEncoding, InputEmbeddings, ProjectionLayer, Encoder, Decoder, EncoderBlock, DecoderBlock, MultiHeadAttentionBlock, FeedForwardBlock, ResidualConnection, LayerNorm, PositionalEncoding
+from transformer.model import InputEmbeddings, PositionalEncoding
+
 
 def build_transformer(
     src_vocab_size: int,
@@ -11,7 +12,7 @@ def build_transformer(
     d_ff: int = 2048,
     dropout: float = 0.1,
 ):
-    # create src and target embeddings 
+    # create src and target embeddings
     src_embedding = InputEmbeddings(d_model, src_vocab_size)
     target_embedding = InputEmbeddings(d_model, target_vocab_size)
 
@@ -20,6 +21,4 @@ def build_transformer(
     target_pos = PositionalEncoding(d_model, target_seq_len, dropout)
 
     encoder_blocks = []
-    for _ in range(N):
-
-
+    # for _ in range(N):
