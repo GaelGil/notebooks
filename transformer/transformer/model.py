@@ -264,3 +264,37 @@ class Decoder(nnx.Module):
         for block in self.blocks:
             x = block(x, encoder_output, src_mask, target_mask)
         return self.norm(x)
+
+
+class ProjectionLayer(nnx.Module):
+    """
+    Projection layer to map the output of the decoder to the vocabulary. This gives us the logits
+
+    Args:
+        d_model: dimension of the model
+        vocab_size: size of the vocabulary
+
+    Returns:
+        None"""
+
+    def __init__(self, d_model: int, vocab_size: int) -> None:
+        self.linear = nnx.Linear(d_model, vocab_size)
+
+    def __call__(self, x):
+        # (seq_len, d_model) -> (seq_len, vocab_size)
+        return nnx.log_softmax(self.linear(x))
+
+
+class Transformer(nnx.Module):
+    def __init__(
+        self,
+        encoder: Encoder,
+        decoder: Decoder,
+        src_embedding: InputEmbeddings,
+        target_embedding: InputEmbeddings,
+        src_pos: PositionalEncoding,
+        target_pos: PositionalEncoding,
+        projection_layer: ProjectionLayer,
+    ) -> None:
+        self.encoder = encoder
+        self.decoder = decoder
