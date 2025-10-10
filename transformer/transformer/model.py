@@ -298,3 +298,21 @@ class Transformer(nnx.Module):
     ) -> None:
         self.encoder = encoder
         self.decoder = decoder
+        self.src_embedding = src_embedding
+        self.target_embedding = target_embedding
+        self.src_pos = src_pos
+        self.target_pos = target_pos
+        self.projection_layer = projection_layer
+
+    def encode(self, src, src_mask):
+        src = self.src_embedding(src)
+        src = self.src_pos(src)
+        return self.encoder(src, src_mask)
+
+    def decode(self, encoder_output, src_mask, target, target_mask):
+        target = self.target_embedding(target)
+        target = self.target_pos(target)
+        return self.decoder(target, encoder_output, src_mask, target_mask)
+
+    def projection(self, x):
+        return self.projection_layer(x)
