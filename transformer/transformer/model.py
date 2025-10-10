@@ -194,14 +194,18 @@ class EncoderBlock(nnx.Module):
         # and one feed forward block
         self.feed_forward_block = feed_forward
         # Lastly there are two residual connections in the encoder block
+        # that connect the multi head attention block and the feed forward block
         self.residual_connections: list[nnx.Module] = [
             ResidualConnection(dropout) for _ in range(2)
         ]
 
     def __call__(self, x, src_mask):
+        # as explained in the paper we pass the input embedding into the multi head attention block
+        # and also re
         x = self.residual_connections[0](
-            x, lambda x: self.self_attention_block(x, x, x, src_mask)
+            x, lambda x: self.multi_head_attention_block(x, x, x, src_mask)
         )
+        # then the output is passed into the feed forward block as well as the residual connection
         x = self.residual_connections[1](x, self.feed_forward_block)
         return x
 
