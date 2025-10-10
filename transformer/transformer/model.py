@@ -112,9 +112,17 @@ class MultiHeadAttentionBlock(nnx.Module):
         self.dropout = nnx.Dropout(dropout)
 
     @staticmethod
-    def scaled_dot_product_attention(query, key, value, mask=None):
-        # TODO: update scaled dot product attention
-        pass
+    def self_attention(query, key, value, mask, dropout):
+        d_k = query.shape[-1]
+        attention_scores = jnp.matmul(query, key.transpose(-2, -1)) / jnp.sqrt(d_k)
+        if mask is not None:
+            # TODO: understand mask
+            attention_scores = attention_scores + mask
+        attention_weights = nnx.softmax(attention_scores, axis=-1)
+        if dropout is not None:
+            attention_weights = nnx.dropout(attention_weights, dropout)
+        x = jnp.matmul(attention_weights, value)
+        return x, attention_weights
 
     def __call__(self, q, k, v, mask):
         # (seq_len, d_model) * (d_model, d_model) -> (seq_len, d_model)
@@ -139,6 +147,14 @@ class MultiHeadAttentionBlock(nnx.Module):
             value.shape[0], value.shape[1], self.n_heads, self.d_k
         ).transpose(1, 2)
 
+        x, self.attention_scores = MultiHeadAttentionBlock.self_attention(
+            query, key, value, self.dropout
+        )
+
+        x = x.transpose(1, 2).contiguous().view(x.shape[0], -1, self.d_model)
+        x = self.w_o(x)
+        return x
+
 
 class ResidualConnection(nnx.Module):
     def __init__(self, dropout: float) -> None:
@@ -156,6 +172,15 @@ class EncoderBlock(nnx.Module):
         feed_forward: FeedForwardBlock,
         dropout: float,
     ) -> None:
+        """
+        Args:
+            self_attention: self attention block
+            feed_forward: feed forward block
+            dropout: dropout probability
+
+        Returns:
+            None
+        """
         self.self_attention_block = self_attention
         self.feed_forward_block = feed_forward
         self.residual_connections: list[nnx.Module] = [
