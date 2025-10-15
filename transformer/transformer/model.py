@@ -200,8 +200,7 @@ class EncoderBlock(nnx.Module):
         ]
 
     def __call__(self, x, src_mask):
-        # as explained in the paper we pass the input embedding into the multi head attention block
-        # and also re
+        # as explained in the paper we pass the input embedding into the residual connection which contains the multi head attention block and the add and layer norm
         x = self.residual_connections[0](
             x, lambda x: self.multi_head_attention_block(x, x, x, src_mask)
         )
