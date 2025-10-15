@@ -2,6 +2,16 @@ import jax.numpy as jnp
 from flax import nnx
 
 
+class Patches(nnx.Module):
+    def __init__(self, patch_size: int, d_model: int) -> None:
+        self.patch_size = patch_size
+        self.d_model = d_model
+
+    def __call__(self, x):
+        # TODO: implement patches
+        return x
+
+
 class InputEmbeddings(nnx.Module):
     def __init__(self, d_model: int, vocab_size: int) -> None:
         """
@@ -18,7 +28,7 @@ class InputEmbeddings(nnx.Module):
         # This is a (vocab_size x d_model) matrix so
         # that each word is represented by a vector of dimension d_model.
         # These are learned.
-        self.embedding = nnx.Embedding(vocab_size, d_model)
+        self.embedding = nnx.Embed(num_embeddings=vocab_size, features=d_model)
 
     def __call__(self, x):
         # Get the embedding for each word in x
