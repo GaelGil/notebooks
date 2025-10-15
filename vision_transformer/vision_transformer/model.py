@@ -4,11 +4,28 @@ from flax import nnx
 
 class Patches(nnx.Module):
     def __init__(self, patch_size: int, d_model: int) -> None:
+        """
+        Args:
+            patch_size: size of the patch
+
+
+        Returns:
+            None
+        """
         self.patch_size = patch_size
-        self.d_model = d_model
 
     def __call__(self, x):
+        """
+        reshpe image into patches
+
+        Args:
+            x: image
+
+        Returns:
+            None
+        """
         # TODO: implement patches
+
         return x
 
 
