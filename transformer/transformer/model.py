@@ -18,7 +18,7 @@ class InputEmbeddings(nnx.Module):
         # This is a (vocab_size x d_model) matrix so
         # that each word is represented by a vector of dimension d_model.
         # These are learned.
-        self.embedding = nnx.Embedding(vocab_size, d_model)
+        self.embedding = nnx.Embed(num_embeddings=vocab_size, num_features=d_model)
 
     def __call__(self, x):
         # Get the embedding for each word in x
