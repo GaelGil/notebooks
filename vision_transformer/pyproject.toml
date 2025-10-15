@@ -1,14 +1,17 @@
 [project]
-name = "vision-transformer"
+name = "transformer-project"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
+
 dependencies = [
-    "jupyterlab>=4.4.6",
-    "matplotlib>=3.10.5",
+    "jupyterlab>=4.4.5",
     "numpy>=2.3.2",
-    "pandas>=2.3.2",
+    "pandas>=2.3.1",
     "pydantic>=2.11.7",
     "seaborn>=0.13.2",
+    "jax[cuda12]>=0.4.35",
+    "flax>=0.8.4",
+    "optax>=0.2.3",
 ]
