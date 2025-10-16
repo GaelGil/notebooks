@@ -2,17 +2,32 @@ import jax.numpy as jnp
 from flax import nnx
 
 
-class Patches(nnx.Module):
-    def __init__(self, patch_size: int, d_model: int) -> None:
+class PatchEmbedding(nnx.Module):
+    def __init__(
+        self, img_size: int, patch_size: int, in_channels: int, d_model: int
+    ) -> None:
         """
         Args:
+            img_size: size of the image
             patch_size: size of the patch
+            d_model: dimension of the model
 
 
         Returns:
             None
         """
+        self.img_size = img_size
         self.patch_size = patch_size
+        self.in_channels = in_channels
+        self.d_model = d_model
+        self.num_patches = (img_size // patch_size) ** 2
+
+        self.projection = nnx.Conv(
+            in_features=in_channels,
+            features=d_model,
+            kernel_size=patch_size,
+            strides=patch_size,
+        )
 
     def __call__(self, x):
         """
@@ -24,35 +39,10 @@ class Patches(nnx.Module):
         Returns:
             None
         """
-        # TODO: implement patches
+        x = self.projection(x)
+        x = x.flatten(2).transpose(0, 2, 1)
 
         return x
-
-
-class InputEmbeddings(nnx.Module):
-    def __init__(self, d_model: int, vocab_size: int) -> None:
-        """
-        Args:
-            d_model: dimension of the model
-            vocab_size: size of the vocabulary (num tokens)
-
-        Returns:
-            None
-        """
-        self.d_model = d_model
-        self.vocab_size = vocab_size
-        # create embeddings matrix.
-        # This is a (vocab_size x d_model) matrix so
-        # that each word is represented by a vector of dimension d_model.
-        # These are learned.
-
-        self.embedding = nnx.Linear(in_features=vocab_size, features=d_model)
-        # self.embedding = nnx.Embed(num_embeddings=vocab_size, features=d_model)
-
-    def __call__(self, x):
-        # Get the embedding for each word in x
-        # multiply by the square root of d_model for normalization and stability during training
-        return self.embedding(x) * self.d_model**0.5
 
 
 class PositionalEncoding(nnx.Module):
@@ -279,7 +269,7 @@ class Transformer(nnx.Module):
     def __init__(
         self,
         encoder: Encoder,
-        src_embedding: InputEmbeddings,
+        src_embedding: PatchEmbedding,
         src_pos: PositionalEncoding,
         projection_layer: ProjectionLayer,
     ) -> None:
