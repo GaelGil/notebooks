@@ -22,6 +22,8 @@ class PatchEmbedding(nnx.Module):
         self.d_model = d_model
         self.num_patches = (img_size // patch_size) ** 2
 
+        # project the image into patches of size patch_size
+        # each conv/patch will learn a representation of the image
         self.projection = nnx.Conv(
             in_features=in_channels,
             features=d_model,
@@ -31,7 +33,7 @@ class PatchEmbedding(nnx.Module):
 
     def __call__(self, x):
         """
-        reshpe image into patches
+        Projects the image into patches
 
         Args:
             x: image
@@ -265,7 +267,7 @@ class ProjectionLayer(nnx.Module):
         return nnx.log_softmax(self.linear(x))
 
 
-class Transformer(nnx.Module):
+class VisionTransformer(nnx.Module):
     def __init__(
         self,
         encoder: Encoder,
