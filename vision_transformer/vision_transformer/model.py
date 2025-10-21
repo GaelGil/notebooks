@@ -3,6 +3,10 @@ from flax import nnx
 
 
 class PatchEmbedding(nnx.Module):
+    """
+    Projects the image into patches
+    """
+
     def __init__(
         self, img_size: int, patch_size: int, in_channels: int, d_model: int
     ) -> None:
@@ -48,6 +52,10 @@ class PatchEmbedding(nnx.Module):
 
 
 class PositionalEncoding(nnx.Module):
+    """
+    Adds positional encoding to the input
+    """
+
     def __init__(self, d_model: int, seq_len: int, dropout: float) -> None:
         self.d_model = d_model
         self.seq_len = seq_len
@@ -62,6 +70,8 @@ class PositionalEncoding(nnx.Module):
 
 
 class LayerNorm(nnx.Module):
+    """Layer Normalization"""
+
     def __init__(self, eps: float = 1e-6) -> None:
         """
         Args:
@@ -109,6 +119,10 @@ class FeedForwardBlock(nnx.Module):
 
 
 class MultiHeadAttentionBlock(nnx.Module):
+    """
+    Multi Head Attention Block
+    """
+
     def __init__(self, d_model: int, n_heads: int, dropout: float) -> None:
         """
 
@@ -146,6 +160,17 @@ class MultiHeadAttentionBlock(nnx.Module):
         return x, attention_weights
 
     def __call__(self, q, k, v, mask):
+        """
+
+        Args:
+            q: query
+            k: key
+            v: value
+            mask: mask
+
+        Returns:
+            None
+        """
         # (seq_len, d_model) * (d_model, d_model) -> (seq_len, d_model)
         query: jnp.ndarray = self.w_q(q)
         key: jnp.ndarray = self.w_k(k)
