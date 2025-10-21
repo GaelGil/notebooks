@@ -26,7 +26,7 @@ class PatchEmbedding(nnx.Module):
         # each conv/patch will learn a representation of the image
         self.projection = nnx.Conv(
             in_features=in_channels,
-            features=d_model,
+            out_features=d_model,
             kernel_size=patch_size,
             strides=patch_size,
         )
@@ -147,9 +147,9 @@ class MultiHeadAttentionBlock(nnx.Module):
 
     def __call__(self, q, k, v, mask):
         # (seq_len, d_model) * (d_model, d_model) -> (seq_len, d_model)
-        query = self.w_q(q)
-        key = self.w_k(k)
-        value = self.w_v(v)
+        query: jnp.ndarray = self.w_q(q)
+        key: jnp.ndarray = self.w_k(k)
+        value: jnp.ndarray = self.w_v(v)
 
         # reshape using .view
         # (seq_len, d_model) -> (seq_len, n_heads, d_k) -> (n_heads, seq_len, d_k)
@@ -221,7 +221,8 @@ class EncoderBlock(nnx.Module):
         ]
 
     def __call__(self, x, src_mask):
-        # as explained in the paper we pass the input embedding into the residual connection which contains the multi head attention block and the add and layer norm
+        # as explained in the paper we pass the input embedding into the residual
+        # connection which contains the multi head attention block and the add and layer norm
         x = self.residual_connections[0](
             x, lambda x: self.multi_head_attention_block(x, x, x, src_mask)
         )
