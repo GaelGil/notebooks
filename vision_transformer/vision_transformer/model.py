@@ -92,7 +92,7 @@ class LayerNorm(nnx.Module):
         return (self.alpha * (x - mean) / (std + self.eps) ** 0.5) + self.bias
 
 
-class FeedForwardBlock(nnx.Module):
+class MultiLayerPerceptron(nnx.Module):
     def __init__(self, d_model: int, d_ff: int, dropout: float) -> None:
         """
         Args:
@@ -112,7 +112,7 @@ class FeedForwardBlock(nnx.Module):
 
     def __call__(self, x):
         # simple feed forward network
-        x = nnx.leaky_relu(self.linear_1(x))
+        x = nnx.gelu(self.linear_1(x))
         x = self.dropout_1(x)
         x = self.linear_2(x)
         return x
@@ -223,7 +223,7 @@ class EncoderBlock(nnx.Module):
     def __init__(
         self,
         multi_head_attention_block: MultiHeadAttentionBlock,
-        feed_forward: FeedForwardBlock,
+        feed_forward: MultiLayerPerceptron,
         dropout: float,
     ) -> None:
         """
@@ -297,16 +297,16 @@ class VisionTransformer(nnx.Module):
     def __init__(
         self,
         encoder: Encoder,
-        src_embedding: PatchEmbedding,
-        src_pos: PositionalEncoding,
+        patch_embedding: PatchEmbedding,
+        positional_encoding: PositionalEncoding,
         projection_layer: ProjectionLayer,
     ) -> None:
         self.encoder = encoder
-        self.src_embedding = src_embedding
-        self.src_pos = src_pos
+        self.patch_embedding = patch_embedding
+        self.positional_encoding = positional_encoding
         self.projection_layer = projection_layer
 
     def encode(self, src, src_mask):
-        src = self.src_embedding(src)
-        src = self.src_pos(src)
+        src = self.patch_embedding(src)
+        src = self.positional_encoding(src)
         return self.encoder(src, src_mask)
