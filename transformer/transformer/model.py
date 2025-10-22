@@ -227,36 +227,43 @@ class Encoder(nnx.Module):
 class DecoderBlock(nnx.Module):
     def __init__(
         self,
-        multi_attention_block: MultiHeadAttentionBlock,
+        masked_multi_head_attention_block: MultiHeadAttentionBlock,
         cross_attention_block: MultiHeadAttentionBlock,
         feed_forward_block: FeedForwardBlock,
         dropout: float,
     ) -> None:
-        self.multi_attention_block = multi_attention_block
+        self.masked_multi_head_attention_block = masked_multi_head_attention_block
         self.cross_attention_block = cross_attention_block
         self.feed_forward_block = feed_forward_block
-        # self.residual_connections: list[nnx.Module] = [
-        #     ResidualConnection(dropout) for _ in range(3)
-        # ]
-
+        self.dropout = nnx.Dropout(dropout)
         self.norm1 = LayerNorm()
         self.norm2 = LayerNorm()
         self.norm3 = LayerNorm()
 
     def __call__(self, x, encoder_output, src_mask, target_mask):
-        x = self.residual_connections[0](
-            x, lambda x: self.self_attention_block(x, x, x, target_mask)
+        # masked multi head attention block output
+        masked_multi_head_attention_output = self.masked_multi_head_attention_block(
+            q=x, k=x, v=x, mask=target_mask
         )
 
-        x = self.residual_connections[1](
-            x,
-            lambda x: self.cross_attention_block(
-                x, encoder_output, encoder_output, src_mask
-            ),
+        # add and norm the masked multi head attention
+        x = self.dropout(self.norm1(masked_multi_head_attention_output + x))
+
+        # cross attention
+        cross_attention_output = self.cross_attention_block(
+            q=x, k=encoder_output, v=encoder_output, mask=src_mask
         )
 
-        x = self.residual_connections[2](x, self.feed_forward_block)
-        return x
+        # add and norm the cross attention
+        x = self.dropout(self.norm2(cross_attention_output + x))
+
+        # feed forward
+        feed_forward_output = self.feed_forward_block(x)
+
+        # final add and norm
+        output = self.dropout(self.norm3(feed_forward_output + x))
+
+        return output
 
 
 class Decoder(nnx.Module):
