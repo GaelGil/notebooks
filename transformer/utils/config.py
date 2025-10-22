@@ -19,15 +19,15 @@ class Config(BaseModel):
 
 
 config = Config(
-    DEVICE="",
+    DEVICE="DEVICE",
     DATA_PATH="data",
     BATCH_SIZE=32,
     NUM_WORKERS=8,
     MODEL_PATH="model.pth",
-    SRC_VOCAB_SIZE=...,
-    TARGET_VOCAB_SIZE=...,
-    SRC_SEQ_LEN=...,
-    TARGET_SEQ_LEN=...,
+    SRC_VOCAB_SIZE=100,
+    TARGET_VOCAB_SIZE=100,
+    SRC_SEQ_LEN=100,
+    TARGET_SEQ_LEN=100,
     D_MODEL=512,
     N=6,
     H=8,
