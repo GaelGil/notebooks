@@ -31,7 +31,7 @@ def build_transformer(
     src_pos = PositionalEncoding(d_model, src_seq_len, dropout)
     target_pos = PositionalEncoding(d_model, target_seq_len, dropout)
 
-    # create the encoder
+    # create the encoder with n encoding blocks
     encoder_blocks = []
     for _ in range(N):
         encoder_multi_head_attention_block = MultiHeadAttentionBlock(
@@ -48,7 +48,7 @@ def build_transformer(
 
     encoder = Encoder(blocks=encoder_blocks)
 
-    # create the decoder
+    # create the decoder with n decoding blocks
     decoder_blocks = []
     for _ in range(N):
         decoder_masked_multi_head_attention_block = MultiHeadAttentionBlock(
