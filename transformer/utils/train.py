@@ -3,6 +3,7 @@ from utils.utils import build_transformer
 
 
 def train():
+    print(config)
     model = build_transformer(
         src_vocab_size=config.SRC_VOCAB_SIZE,
         target_vocab_size=config.TARGET_VOCAB_SIZE,
@@ -11,7 +12,7 @@ def train():
         d_model=config.D_MODEL,
         N=config.N,
         h=config.H,
-        dff=config.D_FF,
+        d_ff=config.D_FF,
         dropout=config.DROPOUT,
     )
     return model

@@ -1,5 +1,8 @@
+from utils.train import train
+
+
 def main():
-    print("Hello from transformer-project!")
+    train()
 
 
 if __name__ == "__main__":

@@ -18,7 +18,9 @@ class InputEmbeddings(nnx.Module):
         # This is a (vocab_size x d_model) matrix so
         # that each word is represented by a vector of dimension d_model.
         # These are learned.
-        self.embedding = nnx.Embed(num_embeddings=vocab_size, num_features=d_model)
+        self.embedding = nnx.Embed(
+            num_embeddings=vocab_size, features=d_model, rngs=nnx.Rngs(0)
+        )
 
     def __call__(self, x):
         # Get the embedding for each word in x
@@ -137,7 +139,6 @@ class MultiHeadAttentionBlock(nnx.Module):
         """
         self.d_model = d_model
         self.n_heads = n_heads
-        self.dropout = dropout
 
         assert d_model % n_heads == 0, "d_model must be divisible by n_heads"
         self.d_k = d_model // n_heads
@@ -145,7 +146,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         self.w_k = nnx.Linear(d_model, d_model, rngs=nnx.Rngs(0))
         self.w_v = nnx.Linear(d_model, d_model, rngs=nnx.Rngs(0))
         self.w_o = nnx.Linear(d_model, d_model, rngs=nnx.Rngs(0))
-        self.dropout = nnx.Dropout(dropout)
+        self.dropout = nnx.Dropout(rate=dropout)
 
     @staticmethod
     def scaled_dot_product_attention(
