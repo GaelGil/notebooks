@@ -1,3 +1,5 @@
+from flax import nnx
+
 from transformer.model import (
     Decoder,
     DecoderBlock,
@@ -32,7 +34,7 @@ def build_transformer(
     target_pos = PositionalEncoding(d_model, target_seq_len, dropout)
 
     # create the encoder with n encoding blocks
-    encoder_blocks = []
+    encoder_blocks: nnx.List[EncoderBlock] = nnx.List()
     for _ in range(N):
         encoder_multi_head_attention_block = MultiHeadAttentionBlock(
             d_model=d_model, n_heads=h, dropout=dropout
@@ -49,7 +51,7 @@ def build_transformer(
     encoder = Encoder(blocks=encoder_blocks)
 
     # create the decoder with n decoding blocks
-    decoder_blocks = []
+    decoder_blocks: nnx.List[DecoderBlock] = nnx.List()
     for _ in range(N):
         decoder_masked_multi_head_attention_block = MultiHeadAttentionBlock(
             d_model=d_model, n_heads=h, dropout=dropout
