@@ -62,7 +62,7 @@ def build_transformer(
             d_model=d_model, d_ff=d_ff, dropout=dropout
         )
         decoder_block = DecoderBlock(
-            multi_attention_block=decoder_masked_multi_head_attention_block,
+            masked_multi_head_attention_block=decoder_masked_multi_head_attention_block,
             cross_attention_block=decoder_cross_attention_block,
             feed_forward_block=decoder_feed_forward_block,
         )
