@@ -1,4 +1,15 @@
-from transformer.model import InputEmbeddings, PositionalEncoding
+from transformer.model import (
+    Decoder,
+    DecoderBlock,
+    Encoder,
+    EncoderBlock,
+    FeedForwardBlock,
+    InputEmbeddings,
+    MultiHeadAttentionBlock,
+    PositionalEncoding,
+    ProjectionLayer,
+    Transformer,
+)
 
 
 def build_transformer(
@@ -11,7 +22,7 @@ def build_transformer(
     h: int = 8,
     d_ff: int = 2048,
     dropout: float = 0.1,
-):
+) -> Transformer:
     # create src and target embeddings
     src_embedding = InputEmbeddings(d_model, src_vocab_size)
     target_embedding = InputEmbeddings(d_model, target_vocab_size)
@@ -20,5 +31,56 @@ def build_transformer(
     src_pos = PositionalEncoding(d_model, src_seq_len, dropout)
     target_pos = PositionalEncoding(d_model, target_seq_len, dropout)
 
+    # create the encoder
     encoder_blocks = []
-    # for _ in range(N):
+    for _ in range(N):
+        encoder_multi_head_attention_block = MultiHeadAttentionBlock(
+            d_model=d_model, n_heads=h, dropout=dropout
+        )
+        encoder_feed_forward_block = FeedForwardBlock(
+            d_model=d_model, d_ff=d_ff, dropout=dropout
+        )
+        encoder_block = EncoderBlock(
+            multi_head_attention_block=encoder_multi_head_attention_block,
+            feed_forward=encoder_feed_forward_block,
+        )
+        encoder_blocks.append(encoder_block)
+
+    encoder = Encoder(blocks=encoder_blocks)
+
+    # create the decoder
+    decoder_blocks = []
+    for _ in range(N):
+        decoder_masked_multi_head_attention_block = MultiHeadAttentionBlock(
+            d_model=d_model, n_heads=h, dropout=dropout
+        )
+        decoder_cross_attention_block = MultiHeadAttentionBlock(
+            d_model=d_model, n_heads=h, dropout=dropout
+        )
+
+        decoder_feed_forward_block = FeedForwardBlock(
+            d_model=d_model, d_ff=d_ff, dropout=dropout
+        )
+        decoder_block = DecoderBlock(
+            multi_attention_block=decoder_masked_multi_head_attention_block,
+            cross_attention_block=decoder_cross_attention_block,
+            feed_forward_block=decoder_feed_forward_block,
+        )
+        decoder_blocks.append(decoder_block)
+
+    decoder = Decoder(decoder_blocks)
+
+    # create the projection layer
+    projection = ProjectionLayer(d_model=d_model, vocab_size=target_vocab_size)
+
+    # put everything together
+    transformer = Transformer(
+        encoder=encoder,
+        decoder=decoder,
+        src_embedding=src_embedding,
+        target_embedding=target_embedding,
+        src_pos=src_pos,
+        target_pos=target_pos,
+        projection_layer=projection,
+    )
+    return transformer
