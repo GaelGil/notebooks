@@ -57,6 +57,7 @@ class LayerNorm(nnx.Module):
         # calculate mean and variance of x
         mean = jnp.mean(x, axis=-1, keepdims=True)
         std = jnp.std(x, axis=-1, keepdims=True)
+        # TODO: understand how layernorm is applied
         # all elements in x are normalized by mean and std
         return (self.alpha * (x - mean) / (std + self.eps) ** 0.5) + self.bias
 
@@ -81,6 +82,7 @@ class FeedForwardBlock(nnx.Module):
 
     def __call__(self, x):
         # simple feed forward network
+        # (seq_len, d_model) --> (dff, d_model) --> (seq_len, d_model)
         x = nnx.leaky_relu(self.linear_1(x))
         x = self.dropout_1(x)
         x = self.linear_2(x)
