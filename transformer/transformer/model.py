@@ -36,7 +36,7 @@ class PositionalEncoding(nnx.Module):
         """
         self.d_model = d_model
         self.seq_len = seq_len
-        self.dropout = nnx.Dropout(dropout)
+        self.dropout = nnx.Dropout(rate=dropout)
 
         # create positon vector
         # for example, if seq_len = 5, then position = [0, 1, 2, 3, 4]
@@ -106,21 +106,24 @@ class FeedForwardBlock(nnx.Module):
         """
         self.d_model = d_model
         self.d_ff = d_ff
-        self.dropout = dropout
-        self.linear_1 = nnx.Linear(d_model, d_ff)
-        self.dropout_1 = nnx.Dropout(dropout)
-        self.linear_2 = nnx.Linear(d_ff, d_model)
+        self.linear_1 = nnx.Linear(d_model, d_ff, rngs=nnx.Rngs(0))
+        self.dropout = nnx.Dropout(rate=dropout)
+        self.linear_2 = nnx.Linear(d_ff, d_model, rngs=nnx.Rngs(0))
 
     def __call__(self, x):
         # simple feed forward network
         # (seq_len, d_model) --> (dff, d_model) --> (seq_len, d_model)
         x = nnx.leaky_relu(self.linear_1(x))
-        x = self.dropout_1(x)
+        x = self.dropout(x)
         x = self.linear_2(x)
         return x
 
 
 class MultiHeadAttentionBlock(nnx.Module):
+    """
+    Multi Head Attention Block
+    """
+
     def __init__(self, d_model: int, n_heads: int, dropout: float) -> None:
         """
 
@@ -138,30 +141,49 @@ class MultiHeadAttentionBlock(nnx.Module):
 
         assert d_model % n_heads == 0, "d_model must be divisible by n_heads"
         self.d_k = d_model // n_heads
-        self.w_q = nnx.Linear(d_model, d_model)
-        self.w_k = nnx.Linear(d_model, d_model)
-        self.w_v = nnx.Linear(d_model, d_model)
-        self.w_o = nnx.Linear(d_model, d_model)
+        self.w_q = nnx.Linear(d_model, d_model, rngs=nnx.Rngs(0))
+        self.w_k = nnx.Linear(d_model, d_model, rngs=nnx.Rngs(0))
+        self.w_v = nnx.Linear(d_model, d_model, rngs=nnx.Rngs(0))
+        self.w_o = nnx.Linear(d_model, d_model, rngs=nnx.Rngs(0))
         self.dropout = nnx.Dropout(dropout)
 
     @staticmethod
-    def scaled_dot_product_attention(query, key, value, mask, dropout):
-        d_k = query.shape[-1]
+    def scaled_dot_product_attention(
+        query: jnp.ndarray,
+        key: jnp.ndarray,
+        value: jnp.ndarray,
+        mask,
+        dropout: nnx.Dropout,
+    ) -> jnp.ndarray:
+        d_k = query.shape[-1]  # get dimension of last axis
+        # (Q * K^T)/sqrt(d_k)
         attention_scores = jnp.matmul(query, key.transpose(-2, -1)) / jnp.sqrt(d_k)
-        if mask is not None:
-            # TODO: understand mask
-            attention_scores = attention_scores + mask
-        attention_weights = nnx.softmax(attention_scores, axis=-1)
-        if dropout is not None:
-            attention_weights = nnx.dropout(attention_weights, dropout)
-        x = jnp.matmul(attention_weights, value)
-        return x, attention_weights
+        if mask:
+            attention_scores = jnp.where(mask == 0, -1e10, attention_scores)
+        # softmax(Q * K^T/sqrt(d_k))
+        attention_scores = nnx.softmax(attention_scores, axis=-1)
+        if dropout:
+            attention_scores = dropout(attention_scores, dropout)
+        # (Q * K^T)/sqrt(d_k) * V
+        x = jnp.matmul(attention_scores, value)
+        return x
 
-    def __call__(self, q, k, v, mask):
+    def __call__(self, q: jnp.ndarray, k: jnp.ndarray, v: jnp.ndarray, mask):
+        """
+
+        Args:
+            q: query
+            k: key
+            v: value
+            mask: mask
+
+        Returns:
+            None
+        """
         # (seq_len, d_model) * (d_model, d_model) -> (seq_len, d_model)
-        query = self.w_q(q)
-        key = self.w_k(k)
-        value = self.w_v(v)
+        query: jnp.ndarray = self.w_q(q)
+        key: jnp.ndarray = self.w_k(k)
+        value: jnp.ndarray = self.w_v(v)
 
         # reshape using .view
         # (seq_len, d_model) -> (seq_len, n_heads, d_k) -> (n_heads, seq_len, d_k)
@@ -171,8 +193,10 @@ class MultiHeadAttentionBlock(nnx.Module):
         #
         # Sequence length n where each token is of dimension 512 ->
         # Sequence length n where each token is an array of 8 vectors of dimension 64 ->
-        # Explaination: The embeddings are split into 8 parts so that each head can focus on different parts of the embeddings
+        # Explaination: In a sequence the embeddings are split into 8 parts so that each head can focus on different parts of the embeddings
         # 8 Heads where each head contains a matrix of n vectors of dimension 64
+        # keep the batch dimension the same and the sequence length the same
+        # split the embeddings into 8 heads
         query = query.view(
             query.shape[0], query.shape[1], self.n_heads, self.d_k
         ).transpose(1, 2)
@@ -184,7 +208,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         ).transpose(1, 2)
 
         # apply scaled dot product attention to each head
-        x, self.attention_scores = MultiHeadAttentionBlock.scaled_dot_product_attention(
+        x = MultiHeadAttentionBlock.scaled_dot_product_attention(
             query, key, value, self.dropout
         )
 
@@ -215,7 +239,7 @@ class EncoderBlock(nnx.Module):
         # and one feed forward block
         self.feed_forward_block = feed_forward
         # norms and drop out for the residual connections
-        self.dropout = nnx.Dropout(dropout)
+        self.dropout = nnx.Dropout(rate=dropout)
         self.norm1 = LayerNorm()
         self.norm2 = LayerNorm()
 
@@ -238,7 +262,7 @@ class EncoderBlock(nnx.Module):
 
 
 class Encoder(nnx.Module):
-    def __init__(self, blocks: list[nnx.Module]) -> None:
+    def __init__(self, blocks: nnx.List[EncoderBlock]) -> None:
         """
         Args:
             blocks: list of encoder blocks
@@ -246,7 +270,7 @@ class Encoder(nnx.Module):
         Returns:
             None
         """
-        self.blocks = blocks
+        self.blocks = nnx.List(blocks)
         self.norm = LayerNorm()
 
     def __call__(self, x, mask):
