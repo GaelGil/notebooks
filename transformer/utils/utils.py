@@ -45,6 +45,7 @@ def build_transformer(
         encoder_block = EncoderBlock(
             multi_head_attention_block=encoder_multi_head_attention_block,
             feed_forward=encoder_feed_forward_block,
+            dropout=dropout,
         )
         encoder_blocks.append(encoder_block)
 
@@ -67,6 +68,7 @@ def build_transformer(
             masked_multi_head_attention_block=decoder_masked_multi_head_attention_block,
             cross_attention_block=decoder_cross_attention_block,
             feed_forward_block=decoder_feed_forward_block,
+            dropout=dropout,
         )
         decoder_blocks.append(decoder_block)
 
