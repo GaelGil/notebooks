@@ -33,6 +33,7 @@ class PatchEmbedding(nnx.Module):
             out_features=d_model,
             kernel_size=patch_size,
             strides=patch_size,
+            rngs=nnx.Rngs(0),
         )
 
     def __call__(self, x: jnp.ndarray):
@@ -61,7 +62,7 @@ class PositionalEncoding(nnx.Module):
         """
         self.d_model = d_model
         self.seq_len = seq_len
-        self.dropout = nnx.Dropout(dropout)
+        self.dropout = nnx.Dropout(rate=dropout)
 
         # create positon vector
         # for example, if seq_len = 5, then position = [0, 1, 2, 3, 4]
@@ -131,15 +132,15 @@ class MultiLayerPerceptron(nnx.Module):
         """
         self.d_model = d_model
         self.d_ff = d_ff
-        self.dropout = dropout
-        self.linear_1 = nnx.Linear(d_model, d_ff)
-        self.dropout_1 = nnx.Dropout(dropout)
-        self.linear_2 = nnx.Linear(d_ff, d_model)
+        # self.dropout = dropout
+        self.linear_1 = nnx.Linear(d_model, d_ff, rngs=nnx.Rngs(0))
+        self.dropout = nnx.Dropout(rate=dropout)
+        self.linear_2 = nnx.Linear(d_ff, d_model, rngs=nnx.Rngs(0))
 
     def __call__(self, x):
         # simple feed forward network
         x = nnx.gelu(self.linear_1(x))
-        x = self.dropout_1(x)
+        x = self.dropout(x)
         x = self.linear_2(x)
         return x
 
@@ -162,15 +163,15 @@ class MultiHeadAttentionBlock(nnx.Module):
         """
         self.d_model = d_model
         self.n_heads = n_heads
-        self.dropout = dropout
+        # self.dropout = dropout
 
         assert d_model % n_heads == 0, "d_model must be divisible by n_heads"
         self.d_k = d_model // n_heads
-        self.w_q = nnx.Linear(d_model, d_model)
-        self.w_k = nnx.Linear(d_model, d_model)
-        self.w_v = nnx.Linear(d_model, d_model)
-        self.w_o = nnx.Linear(d_model, d_model)
-        self.dropout = nnx.Dropout(dropout)
+        self.w_q = nnx.Linear(d_model, d_model, rngs=nnx.Rngs(0))
+        self.w_k = nnx.Linear(d_model, d_model, rngs=nnx.Rngs(0))
+        self.w_v = nnx.Linear(d_model, d_model, rngs=nnx.Rngs(0))
+        self.w_o = nnx.Linear(d_model, d_model, rngs=nnx.Rngs(0))
+        self.dropout = nnx.Dropout(rate=dropout)
 
     @staticmethod
     def scaled_dot_product_attention(
@@ -189,6 +190,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         attention_scores = nnx.softmax(attention_scores, axis=-1)
         if dropout:
             attention_scores = dropout(attention_scores, dropout)
+        # (Q * K^T)/sqrt(d_k) * V
         x = jnp.matmul(attention_scores, value)
         return x
 
@@ -264,12 +266,9 @@ class EncoderBlock(nnx.Module):
         self.feed_forward_block = feed_forward
         # Lastly there are two residual connections in the encoder block
         # that connect the multi head attention block and the feed forward block
-        self.dropout = dropout
+        self.dropout = nnx.Dropout(rate=dropout)
         self.norm1 = LayerNorm()
         self.norm2 = LayerNorm()
-        # self.residual_connections: list[nnx.Module] = [
-        #     ResidualConnection(dropout) for _ in range(2)
-        # ]
 
     def __call__(self, x, src_mask):
         multi_head_attention_output = self.multi_head_attention_block(x, x, x, src_mask)
@@ -284,7 +283,7 @@ class EncoderBlock(nnx.Module):
 
 
 class Encoder(nnx.Module):
-    def __init__(self, blocks: list[nnx.Module]) -> None:
+    def __init__(self, blocks: nnx.List[EncoderBlock]) -> None:
         """
         Args:
             blocks: list of encoder blocks
@@ -292,7 +291,7 @@ class Encoder(nnx.Module):
         Returns:
             None
         """
-        self.blocks = blocks
+        self.blocks = nnx.List(blocks)
         self.norm = LayerNorm()
 
     def __call__(self, x, mask):
