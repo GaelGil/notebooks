@@ -52,26 +52,48 @@ class PatchEmbedding(nnx.Module):
 
 
 class PositionalEncoding(nnx.Module):
-    """
-    Adds positional encoding to the input
-    """
-
-    def __init__(self, d_model: int, seq_len: int, dropout: float) -> None:
+    def __init__(self, d_model: int, seq_len: int, dropout: float = 0.1):
+        """
+        Args:
+            d_model: embedding dimension
+            seq_len: maximum input sequence length
+            dropout: dropout rate (used during training)
+        """
         self.d_model = d_model
         self.seq_len = seq_len
-        self.dropout = dropout
-        # TODO: updated positional encoding
-        self.pe = jnp.zeros((seq_len, d_model))
-        self.pos = jnp.arange(0, seq_len)[:, jnp.newaxis]
-        self.scale = jnp.ones((seq_len, 1))
+        self.dropout = nnx.Dropout(dropout)
 
-    def __call__(self, x):
-        return x
+        # create positon vector
+        # for example, if seq_len = 5, then position = [0, 1, 2, 3, 4]
+        position = jnp.arange(seq_len)[:, None]  # (seq_len, 1)
+
+        # create a vector of size d_model/2
+        div_term = jnp.exp(jnp.arange(0, d_model, 2) * (-jnp.log(10000.0) / d_model))
+
+        # create a matrix of size (seq_len, d_model) which is
+        # the same as embeddings and fill with zeros
+        pe = jnp.zeros((seq_len, d_model))
+
+        # apply sin and cos to even and odd indices in pe
+        pe = pe.at[:, 0::2].set(jnp.sin(position * div_term))
+        pe = pe.at[:, 1::2].set(jnp.cos(position * div_term))
+
+        # Register as constant buffer (not learned)
+        self.pe = pe[None, :, :]  # shape (1, seq_len, d_model)
+
+    def __call__(self, x, *, training: bool):
+        """
+        Args:
+            x: input tensor of shape (batch_size, seq_len, d_model)
+            training: whether in training mode for dropout
+        """
+        seq_len = x.shape[1]
+
+        x = x + self.pe[:, :seq_len, :]
+        return self.dropout(x, deterministic=not training)
 
 
 class LayerNorm(nnx.Module):
-    """Layer Normalization"""
-
     def __init__(self, eps: float = 1e-6) -> None:
         """
         Args:
@@ -85,8 +107,12 @@ class LayerNorm(nnx.Module):
         self.bias = nnx.Param(jnp.zeros(1))
 
     def __call__(self, x):
-        # calculate mean and variance of x
+        # compute mean and std for each feature of d_model
+        # (batch, seq_len, d_model)
+        # axis=-1 means along the last dimension which is d_model
+        # (batch_size, seq_len, 1) this holds mean of each feature
         mean = jnp.mean(x, axis=-1, keepdims=True)
+        # (batch_size, seq_len, 1) holds std of each feature
         std = jnp.std(x, axis=-1, keepdims=True)
         # all elements in x are normalized by mean and std
         return (self.alpha * (x - mean) / (std + self.eps) ** 0.5) + self.bias
