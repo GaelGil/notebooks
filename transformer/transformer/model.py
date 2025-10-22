@@ -322,7 +322,7 @@ class DecoderBlock(nnx.Module):
 
 
 class Decoder(nnx.Module):
-    def __init__(self, blocks: list[nnx.Module]) -> None:
+    def __init__(self, blocks: nnx.List[DecoderBlock]) -> None:
         """
         Args:
             blocks: list of decoder blocks
@@ -330,7 +330,7 @@ class Decoder(nnx.Module):
         Returns:
             None
         """
-        self.blocks = blocks
+        self.blocks = nnx.List(blocks)
         self.norm = LayerNorm()
 
     def __call__(self, x, encoder_output, src_mask, target_mask):
@@ -351,7 +351,7 @@ class ProjectionLayer(nnx.Module):
         None"""
 
     def __init__(self, d_model: int, vocab_size: int) -> None:
-        self.linear = nnx.Linear(d_model, vocab_size)
+        self.linear = nnx.Linear(d_model, vocab_size, rngs=nnx.Rngs(0))
 
     def __call__(self, x):
         # (seq_len, d_model) --> (seq_len, vocab_size)
