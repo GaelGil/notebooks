@@ -232,15 +232,14 @@ class Encoder(nnx.Module):
 class DecoderBlock(nnx.Module):
     def __init__(
         self,
-        self_attention_block: MultiHeadAttentionBlock,
+        multi_attention_block: MultiHeadAttentionBlock,
         cross_attention_block: MultiHeadAttentionBlock,
         feed_forward_block: FeedForwardBlock,
         dropout: float,
     ) -> None:
-        self.self_attention_block = self_attention_block
+        self.multi_attention_block = multi_attention_block
         self.cross_attention_block = cross_attention_block
         self.feed_forward_block = feed_forward_block
-        self.cross_attention_block = cross_attention_block
         self.residual_connections: list[nnx.Module] = [
             ResidualConnection(dropout) for _ in range(3)
         ]
@@ -294,7 +293,7 @@ class ProjectionLayer(nnx.Module):
         self.linear = nnx.Linear(d_model, vocab_size)
 
     def __call__(self, x):
-        # (seq_len, d_model) -> (seq_len, vocab_size)
+        # (seq_len, d_model) --> (seq_len, vocab_size)
         return nnx.log_softmax(self.linear(x))
 
 
