@@ -1,3 +1,5 @@
+from flax import nnx
+
 from vision_transformer.model import (
     Encoder,
     EncoderBlock,
@@ -35,7 +37,7 @@ def build_vision_transformer(
     # create the position encodings
     patch_pos = PositionalEncoding(d_model, src_seq_len, dropout)
 
-    encoder_blocks = []
+    encoder_blocks: nnx.List[EncoderBlock] = []
     for _ in range(N):
         multi_head_attention_block = MultiHeadAttentionBlock(
             d_model=d_model, n_heads=h, dropout=dropout
@@ -55,14 +57,14 @@ def build_vision_transformer(
 
     # create the model
     model = VisionTransformer(
-        patch_embeddings=patch_embeddings,
-        patch_pos=patch_pos,
         encoder=encoder,
-        src_vocab_size=src_vocab_size,
-        target_vocab_size=target_vocab_size,
-        src_seq_len=src_seq_len,
-        target_seq_len=target_seq_len,
-        d_model=d_model,
+        patch_embedding=patch_embeddings,
+        positional_encoding=patch_pos,
+        projection_layer=nnx.Linear(
+            in_features=target_vocab_size,
+            out_features=target_vocab_size,
+            rngs=nnx.Rngs(0),
+        ),
     )
 
     return model
