@@ -26,12 +26,14 @@ def build_transformer(
     dropout: float = 0.1,
 ) -> Transformer:
     # create src and target embeddings
-    src_embedding = InputEmbeddings(d_model, src_vocab_size)
-    target_embedding = InputEmbeddings(d_model, target_vocab_size)
+    src_embedding = InputEmbeddings(d_model=d_model, vocab_size=src_vocab_size)
+    target_embedding = InputEmbeddings(d_model=d_model, vocab_size=target_vocab_size)
 
     # create the position encodings
-    src_pos = PositionalEncoding(d_model, src_seq_len, dropout)
-    target_pos = PositionalEncoding(d_model, target_seq_len, dropout)
+    src_pos = PositionalEncoding(d_model=d_model, seq_len=src_seq_len, dropout=dropout)
+    target_pos = PositionalEncoding(
+        d_model=d_model, seq_len=target_seq_len, dropout=dropout
+    )
 
     # create the encoder with n encoding blocks
     encoder_blocks: nnx.List[EncoderBlock] = nnx.List()
