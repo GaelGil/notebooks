@@ -37,7 +37,7 @@ def build_vision_transformer(
     # create the position encodings
     patch_pos = PositionalEncoding(d_model, src_seq_len, dropout)
 
-    encoder_blocks: nnx.List[EncoderBlock] = []
+    encoder_blocks: nnx.List[EncoderBlock] = nnx.List()
     for _ in range(N):
         multi_head_attention_block = MultiHeadAttentionBlock(
             d_model=d_model, n_heads=h, dropout=dropout
