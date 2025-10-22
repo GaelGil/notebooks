@@ -16,9 +16,8 @@ def build_vision_transformer(
     target_vocab_size: int,
     src_seq_len: int,
     target_seq_len: int,
-    patch_size: int,
+    patch_size: int = 16,
     in_channels: int = 3,
-    num_patches: int = 16,
     img_size: int = 32,
     d_model: int = 512,
     N: int = 6,
@@ -35,7 +34,9 @@ def build_vision_transformer(
     )
 
     # create the position encodings
-    patch_pos = PositionalEncoding(d_model, src_seq_len, dropout)
+    patch_pos = PositionalEncoding(
+        d_model=d_model, seq_len=src_seq_len, dropout=dropout
+    )
 
     encoder_blocks: nnx.List[EncoderBlock] = nnx.List()
     for _ in range(N):
