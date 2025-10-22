@@ -1,4 +1,3 @@
-import torch
 from pydantic import BaseModel
 
 
@@ -20,7 +19,7 @@ class Config(BaseModel):
 
 
 config = Config(
-    DEVICE=torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+    DEVICE="",
     DATA_PATH="data",
     BATCH_SIZE=32,
     NUM_WORKERS=8,
