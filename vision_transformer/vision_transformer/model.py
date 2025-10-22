@@ -35,7 +35,7 @@ class PatchEmbedding(nnx.Module):
             strides=patch_size,
         )
 
-    def __call__(self, x):
+    def __call__(self, x: jnp.ndarray):
         """
         Projects the image into patches
 
@@ -173,19 +173,26 @@ class MultiHeadAttentionBlock(nnx.Module):
         self.dropout = nnx.Dropout(dropout)
 
     @staticmethod
-    def scaled_dot_product_attention(query, key, value, mask, dropout):
-        d_k = query.shape[-1]
+    def scaled_dot_product_attention(
+        query: jnp.ndarray,
+        key: jnp.ndarray,
+        value: jnp.ndarray,
+        mask,
+        dropout: nnx.Dropout,
+    ) -> jnp.ndarray:
+        d_k = query.shape[-1]  # get dimension of last axis
+        # (Q * K^T)/sqrt(d_k)
         attention_scores = jnp.matmul(query, key.transpose(-2, -1)) / jnp.sqrt(d_k)
-        if mask is not None:
-            # TODO: understand mask
-            attention_scores = attention_scores + mask
-        attention_weights = nnx.softmax(attention_scores, axis=-1)
-        if dropout is not None:
-            attention_weights = nnx.dropout(attention_weights, dropout)
-        x = jnp.matmul(attention_weights, value)
-        return x, attention_weights
+        if mask:
+            attention_scores = jnp.where(mask == 0, -1e10, attention_scores)
+        # softmax(Q * K^T/sqrt(d_k))
+        attention_scores = nnx.softmax(attention_scores, axis=-1)
+        if dropout:
+            attention_scores = dropout(attention_scores, dropout)
+        x = jnp.matmul(attention_scores, value)
+        return x
 
-    def __call__(self, q, k, v, mask):
+    def __call__(self, q: jnp.ndarray, k: jnp.ndarray, v: jnp.ndarray, mask):
         """
 
         Args:
@@ -210,8 +217,10 @@ class MultiHeadAttentionBlock(nnx.Module):
         #
         # Sequence length n where each token is of dimension 512 ->
         # Sequence length n where each token is an array of 8 vectors of dimension 64 ->
-        # Explaination: The embeddings are split into 8 parts so that each head can focus on different parts of the embeddings
+        # Explaination: In a sequence the embeddings are split into 8 parts so that each head can focus on different parts of the embeddings
         # 8 Heads where each head contains a matrix of n vectors of dimension 64
+        # keep the batch dimension the same and the sequence length the same
+        # split the embeddings into 8 heads
         query = query.view(
             query.shape[0], query.shape[1], self.n_heads, self.d_k
         ).transpose(1, 2)
@@ -223,7 +232,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         ).transpose(1, 2)
 
         # apply scaled dot product attention to each head
-        x, self.attention_scores = MultiHeadAttentionBlock.scaled_dot_product_attention(
+        x = MultiHeadAttentionBlock.scaled_dot_product_attention(
             query, key, value, self.dropout
         )
 
