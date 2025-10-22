@@ -4,6 +4,7 @@ from vision_transformer.model import VisionTransformer
 
 
 def train():
+    print(config)
     model: VisionTransformer = build_vision_transformer(
         src_vocab_size=config.SRC_VOCAB_SIZE,
         target_vocab_size=config.TARGET_VOCAB_SIZE,
