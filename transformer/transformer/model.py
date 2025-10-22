@@ -45,10 +45,11 @@ class PositionalEncoding(nnx.Module):
         # create a vector of size d_model/2
         div_term = jnp.exp(jnp.arange(0, d_model, 2) * (-jnp.log(10000.0) / d_model))
 
-        # create a matrix of size (seq_len, d_model)
+        # create a matrix of size (seq_len, d_model) which is
+        # the same as embeddings and fill with zeros
         pe = jnp.zeros((seq_len, d_model))
 
-        # apply sin and cos to even and odd indices
+        # apply sin and cos to even and odd indices in pe
         pe = pe.at[:, 0::2].set(jnp.sin(position * div_term))
         pe = pe.at[:, 1::2].set(jnp.cos(position * div_term))
 
@@ -81,10 +82,13 @@ class LayerNorm(nnx.Module):
         self.bias = nnx.Param(jnp.zeros(1))
 
     def __call__(self, x):
-        # calculate mean and variance of x
+        # compute mean and std for each feature of d_model
+        # (batch, seq_len, d_model)
+        # axis=-1 means along the last dimension which is d_model
+        # (batch_size, seq_len, 1) this holds mean of each feature
         mean = jnp.mean(x, axis=-1, keepdims=True)
+        # (batch_size, seq_len, 1) holds std of each feature
         std = jnp.std(x, axis=-1, keepdims=True)
-        # TODO: understand how layernorm is applied
         # all elements in x are normalized by mean and std
         return (self.alpha * (x - mean) / (std + self.eps) ** 0.5) + self.bias
 
