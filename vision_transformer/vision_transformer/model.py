@@ -207,18 +207,6 @@ class MultiHeadAttentionBlock(nnx.Module):
         return x
 
 
-class ResidualConnection(nnx.Module):
-    def __init__(self, dropout: float) -> None:
-        self.dropout = nnx.Dropout(dropout)
-        self.layer_norm = LayerNorm()
-
-    def __call__(self, x, sublayer):
-        # residual connection
-        # sublayer is either multi head attention block or feed forward block
-        # see paper for more details
-        return x + self.dropout(sublayer(self.layer_norm(x)))
-
-
 class EncoderBlock(nnx.Module):
     def __init__(
         self,
@@ -241,19 +229,23 @@ class EncoderBlock(nnx.Module):
         self.feed_forward_block = feed_forward
         # Lastly there are two residual connections in the encoder block
         # that connect the multi head attention block and the feed forward block
-        self.residual_connections: list[nnx.Module] = [
-            ResidualConnection(dropout) for _ in range(2)
-        ]
+        self.dropout = dropout
+        self.norm1 = LayerNorm()
+        self.norm2 = LayerNorm()
+        # self.residual_connections: list[nnx.Module] = [
+        #     ResidualConnection(dropout) for _ in range(2)
+        # ]
 
     def __call__(self, x, src_mask):
-        # as explained in the paper we pass the input embedding into the residual
-        # connection which contains the multi head attention block and the add and layer norm
-        x = self.residual_connections[0](
-            x, lambda x: self.multi_head_attention_block(x, x, x, src_mask)
-        )
-        # then the output is passed into the feed forward block as well as the residual connection
-        x = self.residual_connections[1](x, self.feed_forward_block)
-        return x
+        multi_head_attention_output = self.multi_head_attention_block(x, x, x, src_mask)
+
+        x = self.dropout(self.norm1(multi_head_attention_output + x))
+
+        feed_forward_output = self.feed_forward_block(x)
+
+        output = self.dropout(self.norm2(feed_forward_output + x))
+
+        return output
 
 
 class Encoder(nnx.Module):
