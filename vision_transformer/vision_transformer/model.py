@@ -306,13 +306,13 @@ class ProjectionLayer(nnx.Module):
 
     Args:
         d_model: dimension of the model
-        vocab_size: size of the vocabulary
+        num_classes: the number of classes in our dataset
 
     Returns:
         None"""
 
-    def __init__(self, d_model: int, vocab_size: int) -> None:
-        self.linear = nnx.Linear(d_model, vocab_size)
+    def __init__(self, d_model: int, num_classes: int) -> None:
+        self.linear = nnx.Linear(d_model, num_classes, rngs=nnx.Rngs(0))
 
     def __call__(self, x):
         # (seq_len, d_model) -> (seq_len, vocab_size)

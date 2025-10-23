@@ -7,6 +7,7 @@ class Config(BaseModel):
     BATCH_SIZE: int
     NUM_WORKERS: int
     MODEL_PATH: str
+    NUM_CLASSES: int
     SRC_VOCAB_SIZE: int
     TARGET_VOCAB_SIZE: int
     SRC_SEQ_LEN: int
@@ -26,6 +27,7 @@ config = Config(
     BATCH_SIZE=32,
     NUM_WORKERS=8,
     MODEL_PATH="model.pth",
+    NUM_CLASSES=100,
     SRC_VOCAB_SIZE=100,
     TARGET_VOCAB_SIZE=100,
     SRC_SEQ_LEN=100,
