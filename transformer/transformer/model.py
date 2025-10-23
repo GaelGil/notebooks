@@ -42,6 +42,7 @@ class PositionalEncoding(nnx.Module):
 
         # create positon vector
         # for example, if seq_len = 5, then position = [0, 1, 2, 3, 4]
+        # in our case we create a vector of size seq_len
         position = jnp.arange(seq_len)[:, None]  # (seq_len, 1)
 
         # create a vector of size d_model/2
@@ -51,7 +52,7 @@ class PositionalEncoding(nnx.Module):
         # the same as embeddings and fill with zeros
         pe = jnp.zeros((seq_len, d_model))
 
-        # apply sin and cos to even and odd indices in pe
+        # apply sin and cos to even and odd indices in pe matrix
         pe = pe.at[:, 0::2].set(jnp.sin(position * div_term))
         pe = pe.at[:, 1::2].set(jnp.cos(position * div_term))
 
@@ -382,6 +383,23 @@ class Transformer(nnx.Module):
         seq_len: int,
         vocab_size: int,
     ) -> None:
+        """
+        Initialize the Transformer model
+
+        Args:
+            d_model: The model dimension
+            N: number of encoder and decoder blocks
+            n_heads: number of heads
+            d_ff: The feed forward dimension
+            dropout: The dropout probability
+            seq_len: The sequence length
+            vocab_size: The vocab size
+
+        Return:
+
+            None
+
+        """
         self.input_embeddings = InputEmbeddings(d_model=d_model, vocab_size=vocab_size)
         self.positional_encoding = PositionalEncoding(
             d_model=d_model, seq_len=seq_len, dropout=dropout
