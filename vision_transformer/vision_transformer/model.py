@@ -53,27 +53,25 @@ class PatchEmbedding(nnx.Module):
 
 
 class PositionalEncoding(nnx.Module):
-    def __init__(self, d_model: int, seq_len: int, dropout: float = 0.1):
+    def __init__(self, d_model: int, num_patches: int, dropout: float = 0.1):
         """
         Args:
             d_model: embedding dimension
             seq_len: maximum input sequence length
             dropout: dropout rate (used during training)
         """
-        self.d_model = d_model
-        self.seq_len = seq_len
         self.dropout = nnx.Dropout(rate=dropout)
 
         # create positon vector
         # for example, if seq_len = 5, then position = [0, 1, 2, 3, 4]
-        position = jnp.arange(seq_len)[:, None]  # (seq_len, 1)
+        position = jnp.arange(num_patches)[:, None]  # (seq_len, 1)
 
         # create a vector of size d_model/2
         div_term = jnp.exp(jnp.arange(0, d_model, 2) * (-jnp.log(10000.0) / d_model))
 
         # create a matrix of size (seq_len, d_model) which is
         # the same as embeddings and fill with zeros
-        pe = jnp.zeros((seq_len, d_model))
+        pe = jnp.zeros((num_patches, d_model))
 
         # apply sin and cos to even and odd indices in pe
         pe = pe.at[:, 0::2].set(jnp.sin(position * div_term))
@@ -82,7 +80,7 @@ class PositionalEncoding(nnx.Module):
         # Register as constant buffer (not learned)
         self.pe = pe[None, :, :]  # shape (1, seq_len, d_model)
 
-    def __call__(self, x, *, training: bool):
+    def __call__(self, x: jnp.ndarray, training: bool):
         """
         Args:
             x: input tensor of shape (batch_size, seq_len, d_model)
@@ -137,7 +135,7 @@ class MultiLayerPerceptron(nnx.Module):
         self.dropout = nnx.Dropout(rate=dropout)
         self.linear_2 = nnx.Linear(d_ff, d_model, rngs=nnx.Rngs(0))
 
-    def __call__(self, x):
+    def __call__(self, x: jnp.ndarray):
         # simple feed forward network
         x = nnx.gelu(self.linear_1(x))
         x = self.dropout(x)
@@ -248,7 +246,7 @@ class EncoderBlock(nnx.Module):
     def __init__(
         self,
         multi_head_attention_block: MultiHeadAttentionBlock,
-        feed_forward: MultiLayerPerceptron,
+        multi_layer_perceptron_block: MultiLayerPerceptron,
         dropout: float,
     ) -> None:
         """
@@ -263,7 +261,7 @@ class EncoderBlock(nnx.Module):
         # encoder block has one self attention block
         self.multi_head_attention_block = multi_head_attention_block
         # and one feed forward block
-        self.feed_forward_block = feed_forward
+        self.multi_layer_perceptron_block = multi_layer_perceptron_block
         # Lastly there are two residual connections in the encoder block
         # that connect the multi head attention block and the feed forward block
         self.dropout = nnx.Dropout(rate=dropout)
@@ -275,9 +273,9 @@ class EncoderBlock(nnx.Module):
 
         x = self.dropout(self.norm1(multi_head_attention_output + x))
 
-        feed_forward_output = self.feed_forward_block(x)
+        multi_layer_perceptron_output = self.multi_layer_perceptron_block(x)
 
-        output = self.dropout(self.norm2(feed_forward_output + x))
+        output = self.dropout(self.norm2(multi_layer_perceptron_output + x))
 
         return output
 
@@ -295,6 +293,16 @@ class Encoder(nnx.Module):
         self.norm = LayerNorm()
 
     def __call__(self, x, mask):
+        """
+        Goes through all the encoder blocks
+
+        Args:
+            x: input
+            mask: mask
+
+        Returns:
+            None
+        """
         for block in self.blocks:
             x = block(x, mask)
         return self.norm(x)
