@@ -405,14 +405,21 @@ class Transformer(nnx.Module):
         self.projection = ProjectionLayer(d_model=d_model, vocab_size=vocab_size)
 
     def __call__(self, src, src_mask, target, target_mask):
+        # get the embeddings for the src
         src_embeddings = self.input_embeddings(x=src)
+        # apply positional encoding to the src embeddings
         src_pos = self.positional_encoding(x=src_embeddings)
 
+        # get the embeddings for the target
         target_embeddings = self.input_embeddings(x=target)
+        # apply positonal encoding to the target embeddings
         target_pos = self.positional_encoding(x=target_embeddings)
 
+        # pass the input embeddings with positinal encoding through the encoder
         encoder_output = self.encoder(x=src_pos, mask=src_mask)
 
+        # pass the target input embeddings with positional encoding
+        # and the encoder output through the decoder
         decoder_output = self.decoder(
             x=target_pos,
             encoder_output=encoder_output,
@@ -420,6 +427,7 @@ class Transformer(nnx.Module):
             target_mask=target_mask,
         )
 
+        # project the decoder output into vocab size and get outputs
         output = self.projection(decoder_output)
 
         return output
