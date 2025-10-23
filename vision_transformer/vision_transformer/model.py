@@ -236,8 +236,9 @@ class MultiHeadAttentionBlock(nnx.Module):
 class EncoderBlock(nnx.Module):
     def __init__(
         self,
-        multi_head_attention_block: MultiHeadAttentionBlock,
-        multi_layer_perceptron_block: MultiLayerPerceptron,
+        d_model: int,
+        n_heads: int,
+        d_ff: int,
         dropout: float,
     ) -> None:
         """
@@ -250,9 +251,13 @@ class EncoderBlock(nnx.Module):
             None
         """
         # encoder block has one self attention block
-        self.multi_head_attention_block = multi_head_attention_block
+        self.multi_head_attention_block = MultiHeadAttentionBlock(
+            d_model=d_model, n_heads=n_heads, dropout=dropout
+        )
         # and one feed forward block
-        self.multi_layer_perceptron_block = multi_layer_perceptron_block
+        self.multi_layer_perceptron_block = MultiLayerPerceptron(
+            d_model=d_model, d_ff=d_ff, dropout=dropout
+        )
         # Lastly there are two residual connections in the encoder block
         # that connect the multi head attention block and the feed forward block
         self.dropout = nnx.Dropout(rate=dropout)
@@ -369,12 +374,9 @@ class VisionTransformer(nnx.Module):
         for _ in range(N):
             self.encoder_blocks.append(
                 EncoderBlock(
-                    multi_head_attention_block=MultiHeadAttentionBlock(
-                        d_model=d_model, n_heads=n_heads, dropout=dropout
-                    ),
-                    multi_layer_perceptron_block=MultiLayerPerceptron(
-                        d_model=d_model, d_ff=d_ff, dropout=dropout
-                    ),
+                    d_model=d_model,
+                    n_heads=n_heads,
+                    d_ff=d_ff,
                     dropout=dropout,
                 )
             )
