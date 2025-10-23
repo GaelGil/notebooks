@@ -7,15 +7,14 @@ from vision_transformer.model import (
     MultiLayerPerceptron,
     PatchEmbedding,
     PositionalEncoding,
+    ProjectionLayer,
     VisionTransformer,
 )
 
 
 def build_vision_transformer(
-    src_vocab_size: int,
-    target_vocab_size: int,
     src_seq_len: int,
-    target_seq_len: int,
+    num_classes: int = 100,
     patch_size: int = 16,
     in_channels: int = 3,
     img_size: int = 32,
@@ -56,16 +55,15 @@ def build_vision_transformer(
 
     encoder = Encoder(encoder_blocks)
 
+    # create the projection layer
+    projection_layer = ProjectionLayer(d_model=d_model, num_classes=num_classes)
+
     # create the model
     model = VisionTransformer(
         encoder=encoder,
         patch_embedding=patch_embeddings,
         positional_encoding=patch_pos,
-        projection_layer=nnx.Linear(
-            in_features=target_vocab_size,
-            out_features=target_vocab_size,
-            rngs=nnx.Rngs(0),
-        ),
+        projection_layer=projection_layer,
     )
 
     return model
