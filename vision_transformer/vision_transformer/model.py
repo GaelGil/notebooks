@@ -303,14 +303,18 @@ class ProjectionLayer(nnx.Module):
     """
     Projection layer to map the output of the decoder to the vocabulary. This gives us the logits
 
-    Args:
-        d_model: dimension of the model
-        num_classes: the number of classes in our dataset
 
-    Returns:
-        None"""
+    """
 
     def __init__(self, d_model: int, num_classes: int) -> None:
+        """
+        Args:
+            d_model: dimension of the model
+            num_classes: the number of classes in our dataset
+
+        Returns:
+            None
+        """
         self.linear = nnx.Linear(d_model, num_classes, rngs=nnx.Rngs(0))
 
     def __call__(self, x):
@@ -328,8 +332,23 @@ class VisionTransformer(nnx.Module):
         patch_size: int,
         in_channels: int,
         d_model: int,
+        d_ff: int,
         num_classes: int,
     ) -> None:
+        """
+        Args:
+            N: number of encoder blocks
+            n_heads: number of heads
+            dropout: dropout probability
+            img_size: image size
+            patch_size: patch size
+            in_channels: number of channels
+            d_model: dimension of the model
+            num_classes: the number of classes in our dataset
+
+        Returns:
+            None
+        """
         self.encoder_blocks = nnx.List()
 
         self.patch_embedding = PatchEmbedding(
@@ -354,7 +373,7 @@ class VisionTransformer(nnx.Module):
                         d_model=d_model, n_heads=n_heads, dropout=dropout
                     ),
                     multi_layer_perceptron_block=MultiLayerPerceptron(
-                        d_model=d_model, d_ff=2048, dropout=dropout
+                        d_model=d_model, d_ff=d_ff, dropout=dropout
                     ),
                     dropout=0.1,
                 )
@@ -367,8 +386,3 @@ class VisionTransformer(nnx.Module):
         x = self.encoder(x, src_mask)
         x = self.projection_layer(x)
         return x
-
-    def encode(self, src, src_mask):
-        src = self.patch_embedding(src)
-        src = self.positional_encoding(src)
-        return self.encoder(src, src_mask)

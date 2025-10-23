@@ -13,5 +13,6 @@ def train():
         dropout=config.DROPOUT,
         img_size=config.IMG_SIZE,
         in_channels=config.IN_CHANNELS,
+        d_ff=config.D_FF,
     )
     return model
