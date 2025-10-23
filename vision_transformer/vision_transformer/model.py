@@ -321,15 +321,52 @@ class ProjectionLayer(nnx.Module):
 class VisionTransformer(nnx.Module):
     def __init__(
         self,
-        encoder: Encoder,
-        patch_embedding: PatchEmbedding,
-        positional_encoding: PositionalEncoding,
-        projection_layer: ProjectionLayer,
+        N: int,
+        n_heads: int,
+        dropout: float,
+        img_size: int,
+        patch_size: int,
+        in_channels: int,
+        d_model: int,
+        num_classes: int,
     ) -> None:
-        self.encoder = encoder
-        self.patch_embedding = patch_embedding
-        self.positional_encoding = positional_encoding
-        self.projection_layer = projection_layer
+        self.encoder_blocks = nnx.List()
+
+        self.patch_embedding = PatchEmbedding(
+            img_size=img_size,
+            patch_size=patch_size,
+            in_channels=in_channels,
+            d_model=d_model,
+        )
+        self.positional_encoding = PositionalEncoding(
+            d_model=d_model,
+            num_patches=(img_size // patch_size) ** 2,
+            dropout=dropout,
+        )
+        self.projection_layer = ProjectionLayer(
+            d_model=d_model, num_classes=num_classes
+        )
+
+        for _ in range(N):
+            self.encoder_blocks.append(
+                EncoderBlock(
+                    multi_head_attention_block=MultiHeadAttentionBlock(
+                        d_model=d_model, n_heads=n_heads, dropout=dropout
+                    ),
+                    multi_layer_perceptron_block=MultiLayerPerceptron(
+                        d_model=d_model, d_ff=2048, dropout=dropout
+                    ),
+                    dropout=0.1,
+                )
+            )
+        self.encoder = nnx.List(self.encoder_blocks)
+
+    def __call__(self, x, src_mask):
+        x = self.patch_embedding(x)
+        x = self.positional_encoding(x)
+        x = self.encoder(x, src_mask)
+        x = self.projection_layer(x)
+        return x
 
     def encode(self, src, src_mask):
         src = self.patch_embedding(src)

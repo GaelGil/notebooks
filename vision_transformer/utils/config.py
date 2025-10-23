@@ -16,6 +16,7 @@ class Config(BaseModel):
     DROPOUT: float
     IMG_SIZE: int
     PATCH_SIZE: int
+    IN_CHANNELS: int
 
 
 config = Config(
@@ -33,4 +34,5 @@ config = Config(
     PATCH_SIZE=16,
     IMG_SIZE=32,
     NUM_PATCHES=(32 // 16) ** 2,
+    IN_CHANNELS=3,
 )
