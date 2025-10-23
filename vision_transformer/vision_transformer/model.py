@@ -380,7 +380,7 @@ class VisionTransformer(nnx.Module):
                     dropout=dropout,
                 )
             )
-        self.encoder = nnx.List(self.encoder_blocks)
+        self.encoder = Encoder(nnx.List(self.encoder_blocks))
 
     def __call__(self, x, src_mask):
         x = self.patch_embedding(x)
