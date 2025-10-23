@@ -375,7 +375,7 @@ class VisionTransformer(nnx.Module):
                     multi_layer_perceptron_block=MultiLayerPerceptron(
                         d_model=d_model, d_ff=d_ff, dropout=dropout
                     ),
-                    dropout=0.1,
+                    dropout=dropout,
                 )
             )
         self.encoder = nnx.List(self.encoder_blocks)
