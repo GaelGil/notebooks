@@ -222,8 +222,9 @@ class MultiHeadAttentionBlock(nnx.Module):
 class EncoderBlock(nnx.Module):
     def __init__(
         self,
-        multi_head_attention_block: MultiHeadAttentionBlock,
-        feed_forward: FeedForwardBlock,
+        d_model: int,
+        n_heads: int,
+        d_ff: int,
         dropout: float,
     ) -> None:
         """
@@ -236,9 +237,13 @@ class EncoderBlock(nnx.Module):
             None
         """
         # encoder block has one self attention block
-        self.multi_head_attention_block = multi_head_attention_block
+        self.multi_head_attention_block = MultiHeadAttentionBlock(
+            d_model=d_model, n_heads=n_heads, dropout=dropout
+        )
         # and one feed forward block
-        self.feed_forward_block = feed_forward
+        self.feed_forward_block = FeedForwardBlock(
+            d_model=d_model, d_ff=d_ff, dropout=dropout
+        )
         # norms and drop out for the residual connections
         self.dropout = nnx.Dropout(rate=dropout)
         self.norm1 = LayerNorm()
@@ -283,14 +288,20 @@ class Encoder(nnx.Module):
 class DecoderBlock(nnx.Module):
     def __init__(
         self,
-        masked_multi_head_attention_block: MultiHeadAttentionBlock,
-        cross_attention_block: MultiHeadAttentionBlock,
-        feed_forward_block: FeedForwardBlock,
+        d_model: int,
+        n_heads: int,
+        d_ff: int,
         dropout: float,
     ) -> None:
-        self.masked_multi_head_attention_block = masked_multi_head_attention_block
-        self.cross_attention_block = cross_attention_block
-        self.feed_forward_block = feed_forward_block
+        self.masked_multi_head_attention_block = MultiHeadAttentionBlock(
+            d_model=d_model, n_heads=n_heads, dropout=dropout
+        )
+        self.cross_attention_block = MultiHeadAttentionBlock(
+            d_model=d_model, n_heads=n_heads, dropout=dropout
+        )
+        self.feed_forward_block = FeedForwardBlock(
+            d_model=d_model, d_ff=d_ff, dropout=dropout
+        )
         self.dropout = nnx.Dropout(dropout)
         self.norm1 = LayerNorm()
         self.norm2 = LayerNorm()
@@ -349,7 +360,8 @@ class ProjectionLayer(nnx.Module):
         vocab_size: size of the vocabulary
 
     Returns:
-        None"""
+        None
+    """
 
     def __init__(self, d_model: int, vocab_size: int) -> None:
         self.linear = nnx.Linear(d_model, vocab_size, rngs=nnx.Rngs(0))
@@ -362,31 +374,52 @@ class ProjectionLayer(nnx.Module):
 class Transformer(nnx.Module):
     def __init__(
         self,
-        encoder: Encoder,
-        decoder: Decoder,
-        src_embedding: InputEmbeddings,
-        target_embedding: InputEmbeddings,
-        src_pos: PositionalEncoding,
-        target_pos: PositionalEncoding,
-        projection_layer: ProjectionLayer,
+        d_model: int,
+        N: int,
+        n_heads: int,
+        d_ff: int,
+        dropout: float,
+        seq_len: int,
+        vocab_size: int,
     ) -> None:
-        self.encoder = encoder
-        self.decoder = decoder
-        self.src_embedding = src_embedding
-        self.target_embedding = target_embedding
-        self.src_pos = src_pos
-        self.target_pos = target_pos
-        self.projection_layer = projection_layer
+        self.input_embeddings = InputEmbeddings(d_model=d_model, vocab_size=vocab_size)
+        self.positional_encoding = PositionalEncoding(
+            d_model=d_model, seq_len=seq_len, dropout=dropout
+        )
+        encoder_blocks = nnx.List()
+        decoder_blocks = nnx.List()
+        for _ in range(N):
+            encoder_blocks.append(
+                EncoderBlock(
+                    d_model=d_model, n_heads=n_heads, d_ff=d_ff, dropout=dropout
+                )
+            )
+            decoder_blocks.append(
+                DecoderBlock(
+                    d_model=d_model, n_heads=n_heads, d_ff=d_ff, dropout=dropout
+                )
+            )
 
-    def encode(self, src, src_mask):
-        src = self.src_embedding(src)
-        src = self.src_pos(src)
-        return self.encoder(src, src_mask)
+        self.encoder = Encoder(encoder_blocks)
+        self.decoder = Decoder(decoder_blocks)
+        self.projection = ProjectionLayer(d_model=d_model, vocab_size=vocab_size)
 
-    def decode(self, encoder_output, src_mask, target, target_mask):
-        target = self.target_embedding(target)
-        target = self.target_pos(target)
-        return self.decoder(target, encoder_output, src_mask, target_mask)
+    def __call__(self, src, src_mask, target, target_mask):
+        src_embeddings = self.input_embeddings(x=src)
+        src_pos = self.positional_encoding(x=src_embeddings)
 
-    def projection(self, x):
-        return self.projection_layer(x)
+        target_embeddings = self.input_embeddings(x=target)
+        target_pos = self.positional_encoding(x=target_embeddings)
+
+        encoder_output = self.encoder(x=src_pos, mask=src_mask)
+
+        decoder_output = self.decoder(
+            x=target_pos,
+            encoder_output=encoder_output,
+            src_mask=src_mask,
+            target_mask=target_mask,
+        )
+
+        output = self.projection(decoder_output)
+
+        return output
