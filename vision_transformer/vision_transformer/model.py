@@ -62,23 +62,8 @@ class PositionalEncoding(nnx.Module):
         """
         self.dropout = nnx.Dropout(rate=dropout)
 
-        # create positon vector
-        # for example, if seq_len = 5, then position = [0, 1, 2, 3, 4]
-        position = jnp.arange(num_patches)[:, None]  # (seq_len, 1)
-
-        # create a vector of size d_model/2
-        div_term = jnp.exp(jnp.arange(0, d_model, 2) * (-jnp.log(10000.0) / d_model))
-
-        # create a matrix of size (seq_len, d_model) which is
-        # the same as embeddings and fill with zeros
-        pe = jnp.zeros((num_patches, d_model))
-
-        # apply sin and cos to even and odd indices in pe
-        pe = pe.at[:, 0::2].set(jnp.sin(position * div_term))
-        pe = pe.at[:, 1::2].set(jnp.cos(position * div_term))
-
-        # Register as constant buffer (not learned)
-        self.pe = pe[None, :, :]  # shape (1, seq_len, d_model)
+        self.cls_token = nnx.Param(jnp.zeros((1, 1, d_model)))
+        self.pe = nnx.Param(jnp.zeros((1, num_patches + 1, d_model)), rngs=nnx.Rngs(0))
 
     def __call__(self, x: jnp.ndarray, training: bool):
         """
@@ -86,9 +71,15 @@ class PositionalEncoding(nnx.Module):
             x: input tensor of shape (batch_size, seq_len, d_model)
             training: whether in training mode for dropout
         """
-        seq_len = x.shape[1]
+        B = x.shape[0]
 
-        x = x + self.pe[:, :seq_len, :]
+        # prepend cls token
+        cls = jnp.tile(self.cls_token.value, (B, 1, 1))  # (B, 1, D)
+        x = jnp.concatenate([cls, x], axis=1)  # (B, N+1, D)
+
+        # add positional encoding
+        x = x + self.pe.value
+
         return self.dropout(x, deterministic=not training)
 
 
