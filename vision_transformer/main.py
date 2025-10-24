@@ -1,20 +1,37 @@
+from logging import getLogger
+
+import jax
 import optax
 from flax import nnx
 
 from utils.config import config
 from utils.ImageDataset import ImageDataset
-from utils.train import train
+from utils.train_eval import train
 from vision_transformer.model import VisionTransformer
+
+logger = getLogger(__name__)
 
 
 def main():
+    # set the device
+    device = jax.devices("gpu")[0]
+    logger.info(f"Using device: {device}")
+
+    # initialize the dataset
+    logger.info(f"Loading Dataset from: {config.DATA_PATH}")
     dataset = ImageDataset(dataset_path=config.DATA_PATH, transformations=None)
+    logger.info(f"Dataset length: {dataset.get_datset_length()}")
+
+    logger.info("Splitting the dataset into train, val and test sets")
+    # split the dataset
     train_loader, val_loader, test_loader = dataset.split_data(
         train_split=config.TRAIN_SPLIT,
         val_split=config.VAL_SPLIT,
         batch_size=config.BATCH_SIZE,
         num_workers=config.NUM_WORKERS,
     )
+    # initialize the model
+    logger.info("Initializing the model and optimizer")
     model: VisionTransformer = VisionTransformer(
         num_classes=config.NUM_CLASSES,
         patch_size=config.PATCH_SIZE,
@@ -26,9 +43,18 @@ def main():
         in_channels=config.IN_CHANNELS,
         d_ff=config.D_FF,
     )
+    # initliaze the optimizer
     optimizer = nnx.Optimizer(model=model, opt=optax.adam(learning_rate=1e-3))
+    # train the model
 
-    train(model=model, loader=train_loader, optimizer=optimizer, epochs=config.EPOCHS)
+    logger.info("Training the model")
+    train(
+        model=model,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        optimizer=optimizer,
+        epochs=config.EPOCHS,
+    )
 
 
 if __name__ == "__main__":

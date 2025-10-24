@@ -8,6 +8,7 @@ from vision_transformer.model import VisionTransformer
 def train(
     model: VisionTransformer,
     train_loader: DataLoader,
+    val_loader: DataLoader,
     optimizer: nnx.Optimizer,
     num_epochs: int,
 ):
@@ -36,14 +37,9 @@ def train_step(model: VisionTransformer, optimizer: nnx.Optimizer, batch):
 
     def loss_fn(model):
         logits = model(batch[0])
-        # documentation says "This function can be used for binary or multiclass classificatio"
-        # additionally "If you’re passing in per-class target probabilities or one-hot labels,
-        #  please ensure your logits are also multiclass."
-        loss = optax.sigmoid_binary_cross_entropy(logits=logits, labels=batch[1]).mean
+        loss = optax.softmax_cross_entropy(logits=logits, labels=batch[1]).mean()
         return loss
 
     grad_fn = nnx.value_and_grad(loss_fn)
     loss, grads = grad_fn(model)
     optimizer.update(grads)
-
-    return loss
