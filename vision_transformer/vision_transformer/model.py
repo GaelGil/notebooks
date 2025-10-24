@@ -62,7 +62,9 @@ class PositionalEncoding(nnx.Module):
         """
         self.dropout = nnx.Dropout(rate=dropout)
 
+        # create cls token with shape (1, 1, d_model)
         self.cls_token = nnx.Param(jnp.zeros((1, 1, d_model)))
+        # create positional encoding with shape (1, num_patches + 1, d_model)
         self.pe = nnx.Param(jnp.zeros((1, num_patches + 1, d_model)), rngs=nnx.Rngs(0))
 
     def __call__(self, x: jnp.ndarray, training: bool):
@@ -71,13 +73,15 @@ class PositionalEncoding(nnx.Module):
             x: input tensor of shape (batch_size, seq_len, d_model)
             training: whether in training mode for dropout
         """
+        # get batch size
         B = x.shape[0]
 
-        # prepend cls token
-        cls = jnp.tile(self.cls_token.value, (B, 1, 1))  # (B, 1, D)
-        x = jnp.concatenate([cls, x], axis=1)  # (B, N+1, D)
+        # duplicate cls token B times so each batch has its own cls token
+        cls = jnp.tile(self.cls_token.value, (B, 1, 1))
+        # concatenate cls token to sequence (batch_size, seq_len + 1, d_model)
+        x = jnp.concatenate([cls, x], axis=1)
 
-        # add positional encoding
+        # add positional encoding (batch_size, seq_len + 1, d_model)
         x = x + self.pe.value
 
         return self.dropout(x, deterministic=not training)
