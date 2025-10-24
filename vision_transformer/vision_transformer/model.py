@@ -65,7 +65,7 @@ class PositionalEncoding(nnx.Module):
         # create cls token with shape (1, 1, d_model)
         self.cls_token = nnx.Param(jnp.zeros((1, 1, d_model)))
         # create positional encoding with shape (1, num_patches + 1, d_model)
-        self.pe = nnx.Param(jnp.zeros((1, num_patches + 1, d_model)), rngs=nnx.Rngs(0))
+        self.pe = nnx.Param(jnp.zeros((1, num_patches + 1, d_model)))
 
     def __call__(self, x: jnp.ndarray, training: bool):
         """
