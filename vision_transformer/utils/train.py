@@ -1,3 +1,4 @@
+import optax
 from flax import nnx
 from torch.utils.data import DataLoader
 
@@ -12,7 +13,37 @@ def train(
 ):
     model.train()
     for epoch in range(num_epochs):
-        for inputs, labels in train_loader:
-            continue
+        for batch in train_loader:
+            train_step(model=model, optimizer=optimizer, batch=batch)
 
     return model
+
+
+@nnx.jit
+def train_step(model: VisionTransformer, optimizer: nnx.Optimizer, batch):
+    """
+    Training step as implemented in
+    "https://cloud.google.com/blog/products/ai-machine-learning/guide-to-jax-for-pytorch-developers"
+
+    Args:
+        model: model
+        optimizer: optimizer
+        batch: batch
+
+    Returns:
+        None
+    """
+
+    def loss_fn(model):
+        logits = model(batch[0])
+        # documentation says "This function can be used for binary or multiclass classificatio"
+        # additionally "If you’re passing in per-class target probabilities or one-hot labels,
+        #  please ensure your logits are also multiclass."
+        loss = optax.sigmoid_binary_cross_entropy(logits=logits, labels=batch[1]).mean
+        return loss
+
+    grad_fn = nnx.value_and_grad(loss_fn)
+    loss, grads = grad_fn(model)
+    optimizer.update(grads)
+
+    return loss
