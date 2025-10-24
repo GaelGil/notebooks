@@ -19,6 +19,7 @@ class Config(BaseModel):
     IN_CHANNELS: int
     TRAIN_SPLIT: float
     VAL_SPLIT: float
+    EPOCHS: int
 
 
 config = Config(
@@ -39,4 +40,5 @@ config = Config(
     IN_CHANNELS=3,
     TRAIN_SPLIT=0.8,
     VAL_SPLIT=0.1,
+    EPOCHS=10,
 )
