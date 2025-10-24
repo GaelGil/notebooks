@@ -17,11 +17,13 @@ class Config(BaseModel):
     IMG_SIZE: int
     PATCH_SIZE: int
     IN_CHANNELS: int
+    TRAIN_SPLIT: float
+    VAL_SPLIT: float
 
 
 config = Config(
     DEVICE="DEVICE",
-    DATA_PATH="data",
+    DATA_PATH="./data",
     BATCH_SIZE=32,
     NUM_WORKERS=8,
     MODEL_PATH="model.pth",
@@ -35,4 +37,6 @@ config = Config(
     IMG_SIZE=32,
     NUM_PATCHES=(32 // 16) ** 2,
     IN_CHANNELS=3,
+    TRAIN_SPLIT=0.8,
+    VAL_SPLIT=0.1,
 )
