@@ -1,5 +1,7 @@
 import torch
-from torch.utils.data import DataLoader
+from jax.numpy import jnp
+from jax.tree_util import tree_map
+from torch.utils.data import DataLoader, default_collate
 from torchvision.datasets import ImageFolder
 
 
@@ -17,6 +19,9 @@ class ImageDataset:
     def get_item(self):
         pass
 
+    def numpy_collate(self, batch):
+        return tree_map(jnp.array, default_collate(batch))
+
     def split_data(
         self, train_split: float, val_split: float, batch_size: int, num_workers: int
     ):
@@ -32,6 +37,7 @@ class ImageDataset:
             num_workers=num_workers,
             shuffle=True,
             pin_memory=True,
+            collate_fn=self.numpy_collate,
         )
         self.val_loader = DataLoader(
             valid_dataset,
@@ -39,6 +45,7 @@ class ImageDataset:
             num_workers=num_workers,
             shuffle=True,
             pin_memory=True,
+            collate_fn=self.numpy_collate,
         )
         self.test_loader = DataLoader(
             test_dataset,
@@ -46,6 +53,7 @@ class ImageDataset:
             num_workers=num_workers,
             shuffle=True,
             pin_memory=True,
+            collate_fn=self.numpy_collate,
         )
 
     def get_data_loaders(self):
