@@ -1,0 +1,52 @@
+import torch
+from torch.utils.data import DataLoader
+from torchvision.datasets import ImageFolder
+
+
+class ImageDataset:
+    def __init__(self, dataset_path: str, transformations) -> None:
+        self.dataset = ImageFolder(root=dataset_path, transform=transformations)
+        self.dataset_len: int
+        self.train_loader: DataLoader
+        self.test_loader: DataLoader
+        self.val_loader: DataLoader
+
+    def get_datset_length(self):
+        return self.dataset_len
+
+    def get_item(self):
+        pass
+
+    def split_data(
+        self, train_split: float, val_split: float, batch_size: int, num_workers: int
+    ):
+        train_count = int(train_split * self.dataset_len)
+        val_count = int(val_split * self.dataset_len)
+        test_count = self.dataset_len - train_count - val_count
+        train_dataset, valid_dataset, test_dataset = torch.utils.data.random_split(
+            self.dataset, (train_count, val_count, test_count)
+        )
+        self.train_loader = DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            shuffle=True,
+            pin_memory=True,
+        )
+        self.val_loader = DataLoader(
+            valid_dataset,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            shuffle=True,
+            pin_memory=True,
+        )
+        self.test_loader = DataLoader(
+            test_dataset,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            shuffle=True,
+            pin_memory=True,
+        )
+
+    def get_data_loaders(self):
+        return self.train_loader, self.val_loader, self.test_loader
