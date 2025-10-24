@@ -381,7 +381,8 @@ class Transformer(nnx.Module):
         d_ff: int,
         dropout: float,
         seq_len: int,
-        vocab_size: int,
+        src_vocab_size: int,
+        target_vocab_size: int,
     ) -> None:
         """
         Initialize the Transformer model
@@ -400,10 +401,20 @@ class Transformer(nnx.Module):
             None
 
         """
-        self.input_embeddings = InputEmbeddings(d_model=d_model, vocab_size=vocab_size)
-        self.positional_encoding = PositionalEncoding(
+        self.src_embeddings = InputEmbeddings(
+            d_model=d_model, vocab_size=src_vocab_size
+        )
+        self.src_pe = PositionalEncoding(
             d_model=d_model, seq_len=seq_len, dropout=dropout
         )
+
+        self.target_embeddings = InputEmbeddings(
+            d_model=d_model, vocab_size=target_vocab_size
+        )
+        self.target_pe = PositionalEncoding(
+            d_model=d_model, seq_len=seq_len, dropout=dropout
+        )
+
         encoder_blocks = nnx.List()
         decoder_blocks = nnx.List()
         for _ in range(N):
@@ -420,18 +431,18 @@ class Transformer(nnx.Module):
 
         self.encoder = Encoder(encoder_blocks)
         self.decoder = Decoder(decoder_blocks)
-        self.projection = ProjectionLayer(d_model=d_model, vocab_size=vocab_size)
+        self.projection = ProjectionLayer(d_model=d_model, vocab_size=target_vocab_size)
 
     def __call__(self, src, src_mask, target, target_mask):
         # get the embeddings for the src
-        src_embeddings = self.input_embeddings(x=src)
+        src_embeddings = self.src_embeddings(x=src)
         # apply positional encoding to the src embeddings
-        src_pos = self.positional_encoding(x=src_embeddings)
+        src_pos = self.src_pe(x=src_embeddings)
 
         # get the embeddings for the target
-        target_embeddings = self.input_embeddings(x=target)
+        target_embeddings = self.target_embeddings(x=target)
         # apply positonal encoding to the target embeddings
-        target_pos = self.positional_encoding(x=target_embeddings)
+        target_pos = self.src_pe(x=target_embeddings)
 
         # pass the input embeddings with positinal encoding through the encoder
         encoder_output = self.encoder(x=src_pos, mask=src_mask)
