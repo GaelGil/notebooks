@@ -1,3 +1,6 @@
+import optax
+from flax import nnx
+
 from transformer.model import Transformer
 from utils.config import config
 
@@ -13,4 +16,4 @@ def train():
         src_vocab_size=config.SRC_VOCAB_SIZE,
         target_vocab_size=config.TARGET_VOCAB_SIZE,
     )
-    return model
+    optimizer = nnx.Optimizer(optax.adam(learning_rate=config.LR), model=model)
