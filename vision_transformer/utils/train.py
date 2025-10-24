@@ -1,18 +1,18 @@
-from utils.config import config
+from flax import nnx
+from torch.utils.data import DataLoader
+
 from vision_transformer.model import VisionTransformer
 
 
-def train():
-    print(config)
-    model: VisionTransformer = VisionTransformer(
-        num_classes=config.NUM_CLASSES,
-        patch_size=config.PATCH_SIZE,
-        d_model=config.D_MODEL,
-        N=config.N,
-        n_heads=config.H,
-        dropout=config.DROPOUT,
-        img_size=config.IMG_SIZE,
-        in_channels=config.IN_CHANNELS,
-        d_ff=config.D_FF,
-    )
+def train(
+    model: VisionTransformer,
+    train_loader: DataLoader,
+    optimizer: nnx.Optimizer,
+    num_epochs: int,
+):
+    model.train()
+    for epoch in range(num_epochs):
+        for inputs, labels in train_loader:
+            continue
+
     return model
