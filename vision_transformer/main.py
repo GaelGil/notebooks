@@ -3,6 +3,7 @@ from logging import getLogger
 import jax
 import optax
 from flax import nnx
+from flax.training import train_state
 
 from utils.config import config
 from utils.ImageDataset import ImageDataset
@@ -48,8 +49,12 @@ def main():
     # train the model
 
     logger.info("Training the model")
+    state = train_state.TrainState.create(
+        apply_fn=model.apply, params=model.params, tx=optimizer
+    )
     train(
         model=model,
+        state=state,
         train_loader=train_loader,
         val_loader=val_loader,
         optimizer=optimizer,
