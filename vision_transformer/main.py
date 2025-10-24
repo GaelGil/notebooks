@@ -2,7 +2,6 @@ from logging import getLogger
 
 import jax
 import optax
-from flax import nnx
 from flax.training import train_state
 
 from utils.config import config
@@ -45,10 +44,14 @@ def main():
         d_ff=config.D_FF,
     )
     # initliaze the optimizer
-    optimizer = nnx.Optimizer(model=model, opt=optax.adam(learning_rate=1e-3))
-    # train the model
+    optimizer = optax.adam(learning_rate=config.LR)
 
+    # train the model
     logger.info("Training the model")
+    # define the train state
+    # apply_fn tells jax how to run a forward pass
+    # params are the parameters of the model
+    # tx is the optimizer used to update the parameters
     state = train_state.TrainState.create(
         apply_fn=model.apply, params=model.params, tx=optimizer
     )

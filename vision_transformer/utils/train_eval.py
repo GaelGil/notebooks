@@ -1,3 +1,9 @@
+"""
+This training and evaluation file is based on the implementation from
+"https://cloud.google.com/blog/products/ai-machine-learning/guide-to-jax-for-pytorch-developers"
+"""
+
+import jax
 import jax.numpy as jnp
 import optax
 from flax import nnx
@@ -13,7 +19,6 @@ def train(
     state: train_state.TrainState,
     train_loader: DataLoader,
     val_loader: DataLoader,
-    optimizer: nnx.Optimizer,
     num_epochs: int,
 ):
     # loop over the dataset for num_epochs
@@ -26,9 +31,7 @@ def train(
         for batch in train_loader:
             # train on batch
 
-            state, loss = (
-                train_step(model=model, state=state, optimizer=optimizer, batch=batch),
-            )
+            state, loss = (train_step(model=model, state=state, batch=batch),)
 
         # after each epoch, evaluate on train and val set
         progress_bar.set_postfix(
@@ -40,14 +43,14 @@ def train(
 
 @nnx.jit
 def train_step(
-    model: VisionTransformer,
     state: train_state.TrainState,
-    optimizer: nnx.Optimizer,
     batch,
 ):
     """
-    Training step as implemented in
-    "https://cloud.google.com/blog/products/ai-machine-learning/guide-to-jax-for-pytorch-developers"
+    handle a single training step
+    get loss
+    get gradients
+    update parameters
 
     Args:
         model: model
@@ -59,16 +62,22 @@ def train_step(
     """
 
     # define loss function
-    def loss_fn(model):
-        #
-        logits = model(batch[0])
+    def loss_fn(params):
+        """
+        Compute the loss function for a single batch
+        """
+        # pass batch through the model in training state
+        logits = state.apply_fn(params, batch[0], training=True)
         # calculate mean loss for the batch
-        loss = optax.softmax_cross_entropy(logits=logits, labels=batch[1]).mean()
+        loss = optax.softmax_cross_entropy(
+            logits=logits.squeeze(), labels=batch[1]
+        ).mean()
         return loss
 
-    grad_fn = nnx.value_and_grad(loss_fn)
-    loss, grads = grad_fn(model)
-    # update the parameters
+    # compute loss and gradients
+    grad_fn = jax.value_and_grad(loss_fn)
+    loss, grads = grad_fn(state.params)
+    # update the the training state with the new gradients
     state = state.apply_gradients(grads=grads)
     return state, loss
 
@@ -91,8 +100,11 @@ def eval(model: VisionTransformer, val_loader: DataLoader):
 
 
 @nnx.jit
-def eval_step(model: VisionTransformer, batch):
-    logits = model(batch[0])
+def eval_step(batch, state: train_state.TrainState):
+    # pass batch through the model in training state
+    logits = state.apply_fn(state.params, batch[0], training=False)
     logits = logits.squeeze()
+    # get predictions from logits
     preditcions = jnp.round(nnx.softmax(logits))
+    # return number of correct predictions
     return preditcions == batch[1]

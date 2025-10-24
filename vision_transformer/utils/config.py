@@ -20,6 +20,7 @@ class Config(BaseModel):
     TRAIN_SPLIT: float
     VAL_SPLIT: float
     EPOCHS: int
+    LR: float
 
 
 config = Config(
@@ -41,4 +42,5 @@ config = Config(
     TRAIN_SPLIT=0.8,
     VAL_SPLIT=0.1,
     EPOCHS=10,
+    LR=0.001,
 )
