@@ -16,9 +16,6 @@ class ImageDataset:
     def get_datset_length(self):
         return self.dataset_len
 
-    def get_item(self):
-        pass
-
     def numpy_collate(self, batch):
         return tree_map(jnp.array, default_collate(batch))
 
