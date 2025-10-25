@@ -21,6 +21,7 @@ class Config(BaseModel):
     VAL_SPLIT: float
     EPOCHS: int
     LR: float
+    CHECKPOINT_PATH: str
 
 
 config = Config(
@@ -43,4 +44,5 @@ config = Config(
     VAL_SPLIT=0.1,
     EPOCHS=10,
     LR=0.001,
+    CHECKPOINT_PATH="./checkpoints",
 )
