@@ -2,6 +2,7 @@ from logging import getLogger
 
 import jax
 import optax
+import orbax.checkpoint as ocp
 from flax.training import train_state
 
 from utils.config import config
@@ -55,6 +56,8 @@ def main():
     state = train_state.TrainState.create(
         apply_fn=model.apply, params=model.params, tx=optimizer
     )
+    # create checkpoint manager
+    checkpointer = ocp.StandardCheckpointer()
     train(
         model=model,
         state=state,
@@ -62,6 +65,8 @@ def main():
         val_loader=val_loader,
         optimizer=optimizer,
         epochs=config.EPOCHS,
+        checkpoint=checkpointer,
+        checkpoint_path=config.CHECKPOINT_PATH,
     )
 
 

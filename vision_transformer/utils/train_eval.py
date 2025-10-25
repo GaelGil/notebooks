@@ -6,6 +6,7 @@ This training and evaluation file is based on the implementation from
 import jax
 import jax.numpy as jnp
 import optax
+import orbax.checkpoint as ocp
 from flax import nnx
 from flax.training import train_state
 from torch.utils.data import DataLoader
@@ -20,6 +21,8 @@ def train(
     train_loader: DataLoader,
     val_loader: DataLoader,
     num_epochs: int,
+    checkpoint: ocp.StandardCheckpointer,
+    checkpoint_path: str,
 ):
     # loop over the dataset for num_epochs
     for epoch in range(num_epochs):
@@ -38,6 +41,8 @@ def train(
             train_accuracy=eval(model=model, val_loader=train_loader),
             eval_accuracy=eval(model=model, val_loader=val_loader),
         )
+        checkpoint.save(directory=checkpoint_path / "state", state=state)
+
     return state
 
 
