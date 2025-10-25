@@ -41,6 +41,7 @@ def train(
             train_accuracy=eval(model=model, val_loader=train_loader),
             eval_accuracy=eval(model=model, val_loader=val_loader),
         )
+        # save the state after each epoch
         checkpoint.save(directory=checkpoint_path / "state", state=state)
 
     return state
