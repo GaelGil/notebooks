@@ -82,15 +82,14 @@ def train_step(
     return state, loss
 
 
-def eval(model: VisionTransformer, val_loader: DataLoader):
+def eval(state: train_state.TrainState, val_loader: DataLoader):
     # set model to eval mode
-    model.eval()
     total = 0
     num_correct = 0
     # loop over the dataset
     for batch in val_loader:
         # evaluate on batch
-        res = eval_step(model, batch)
+        res = eval_step(state=state, batch=batch)
         # get total number of examples
         total += res.shape[0]
         # get number of correct predictions (will be boolean so we can sum)
@@ -100,7 +99,7 @@ def eval(model: VisionTransformer, val_loader: DataLoader):
 
 
 @nnx.jit
-def eval_step(batch, state: train_state.TrainState):
+def eval_step(state: train_state.TrainState, batch):
     # pass batch through the model in training state
     logits = state.apply_fn(state.params, batch[0], training=False)
     logits = logits.squeeze()
