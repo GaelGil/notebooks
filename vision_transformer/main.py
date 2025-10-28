@@ -56,18 +56,17 @@ def main():
     state = train_state.TrainState.create(
         apply_fn=model.apply, params=model.params, tx=optimizer
     )
-    # create checkpoint
-    checkpointer = ocp.StandardCheckpointer()
 
     # checkpoint options
     checkpoint_options = ocp.CheckpointManagerOptions(
-        max_to_keep=config.MAX_TO_KEEP, save_interval_steps=2
+        max_to_keep=config.MAX_TO_KEEP,
+        save_interval_steps=config.SAVE_INTERVAL,
+        enable_async_checkpointing=config.ASYNC_CHECKPOINTING,
     )
     # checkpoint manager
     manager = ocp.CheckpointManager(
         directory=config.CHECKPOINT_PATH,
         options=checkpoint_options,
-        handler_registry=checkpointer,
     )
 
     # restore from latest checkpoint if exists
@@ -85,6 +84,7 @@ def main():
         optimizer=optimizer,
         epochs=config.EPOCHS,
         manager=manager,
+        logger=logger,
     )
 
 
