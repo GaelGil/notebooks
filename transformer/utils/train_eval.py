@@ -21,8 +21,7 @@ def train(
     train_loader: DataLoader,
     val_loader: DataLoader,
     num_epochs: int,
-    checkpoint: ocp.StandardCheckpointer,
-    checkpoint_path: str,
+    manager: ocp.CheckpointManager,
 ):
     # loop over the dataset for num_epochs
     for epoch in range(num_epochs):
@@ -42,7 +41,7 @@ def train(
             eval_accuracy=eval(model=model, val_loader=val_loader),
         )
         # save the state after each epoch
-        checkpoint.save(directory=checkpoint_path / "state", state=state)
+        manager.save(step=epoch, args=ocp.args.StandardSave(state))
 
     return state
 

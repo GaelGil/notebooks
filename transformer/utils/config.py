@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class Config(BaseModel):
     BATCH_SIZE: int
-    NUM_EPOCHS: int
+    EPOCHS: int
     LR: float
     SEQ_LEN: int
     D_MODEL: int
@@ -22,11 +22,13 @@ class Config(BaseModel):
     DROPOUT: float
     DEVICE: str
     DATA_PATH: str
+    MAX_TO_KEEP: int
+    CHECKPOINT_PATH: str
 
 
 config = Config(
     BATCH_SIZE=32,
-    NUM_EPOCHS=10,
+    EPOCHS=10,
     LR=10e-4,
     SEQ_LEN=350,
     D_MODEL=512,
@@ -45,4 +47,6 @@ config = Config(
     DROPOUT=0.1,
     DEVICE="CUDA",
     DATA_PATH="./data",
+    MAX_TO_KEEP=5,
+    CHECKPOINT_PATH="./checkpoints",
 )

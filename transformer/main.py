@@ -56,8 +56,26 @@ def main():
     state = train_state.TrainState.create(
         apply_fn=model.apply, params=model.params, tx=optimizer
     )
-    # create checkpoint manager
+    # create checkpoint
     checkpointer = ocp.StandardCheckpointer()
+
+    # checkpoint options
+    checkpoint_options = ocp.CheckpointManagerOptions(
+        max_to_keep=config.MAX_TO_KEEP, save_interval_steps=2
+    )
+    # checkpoint manager
+    manager = ocp.CheckpointManager(
+        directory=config.CHECKPOINT_PATH,
+        options=checkpoint_options,
+        handler_registry=checkpointer,
+    )
+
+    # restore from latest checkpoint if exists
+    if manager.latest_step():
+        logger.info("Restoring from latest checkpoint")
+        manager.restore(manager.latest_step())
+    else:
+        logger.info("No checkpoint found, training from scratch")
     train(
         model=model,
         state=state,
@@ -65,8 +83,7 @@ def main():
         val_loader=val_loader,
         optimizer=optimizer,
         epochs=config.EPOCHS,
-        checkpoint=checkpointer,
-        checkpoint_path=config.CHECKPOINT_PATH,
+        manager=manager,
     )
 
 
