@@ -14,4 +14,5 @@ dependencies = [
     "jax[cuda12]>=0.4.35",
     "flax>=0.8.4",
     "optax>=0.2.3",
+    "tqdm>=4.67.1",
 ]
