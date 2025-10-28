@@ -22,26 +22,26 @@ def train(
     state: train_state.TrainState,
     train_loader: DataLoader,
     val_loader: DataLoader,
-    num_epochs: int,
+    epochs: int,
     manager: ocp.CheckpointManager,
     logger,
 ):
     # loop over the dataset for num_epochs
-    for epoch in range(num_epochs):
+    for epoch in range(epochs):
         # create a tqdm progress bar
         progress_bar = tqdm(
-            train_loader, desc=f"Epoch {epoch + 1}/{num_epochs}", leave=False
+            train_loader, desc=f"Epoch {epoch + 1}/{epochs}", leave=False
         )
         # iterate through each batch in the dataset
         for batch in train_loader:
             # train on batch
 
-            state, _ = train_step(model=model, state=state, batch=batch)
+            state, _ = train_step(state=state, batch=batch)
 
         # after each epoch, evaluate on train and val set
         progress_bar.set_postfix(
-            train_accuracy=eval(model=model, val_loader=train_loader),
-            eval_accuracy=eval(model=model, val_loader=val_loader),
+            train_accuracy=eval(val_loader=train_loader),
+            eval_accuracy=eval(val_loader=val_loader),
         )
         logger.info(f"Saving checkpoint at epoch {epoch}")
 
@@ -72,7 +72,6 @@ def train_step(
 
     Args:
         model: model
-        optimizer: optimizer
         batch: batch
 
     Returns:
@@ -84,8 +83,10 @@ def train_step(
         """
         Compute the loss function for a single batch
         """
+        print("params type:", type(params))
+        print("batch[0] type:", type(batch[0]))
         # pass batch through the model in training state
-        logits = state.apply_fn(params, batch[0], training=True)
+        logits = state.apply_fn(params, batch[0])
         # calculate mean loss for the batch
         loss = optax.softmax_cross_entropy(
             logits=logits.squeeze(), labels=batch[1]

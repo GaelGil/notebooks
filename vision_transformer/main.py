@@ -4,6 +4,7 @@ import jax
 import optax
 import orbax.checkpoint as ocp
 from flax.training import train_state
+from flax import nnx
 
 from utils.config import config, IMG_TRANSFORMATIONS
 from utils.ImageDataset import ImageDataset
@@ -56,7 +57,7 @@ def main():
     # params are the parameters of the model
     # tx is the optimizer used to update the parameters
     state = train_state.TrainState.create(
-        apply_fn=model.apply, params=model.params, tx=optimizer
+        apply_fn=model.__call__, params=nnx.state(model, nnx.Param), tx=optimizer
     )
 
     # checkpoint options
@@ -84,7 +85,6 @@ def main():
         state=state,
         train_loader=train_loader,
         val_loader=val_loader,
-        optimizer=optimizer,
         epochs=config.EPOCHS,
         manager=manager,
         logger=logger,
