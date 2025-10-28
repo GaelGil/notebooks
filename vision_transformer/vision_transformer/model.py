@@ -174,6 +174,18 @@ class MultiHeadAttentionBlock(nnx.Module):
         mask,
         dropout: nnx.Dropout,
     ) -> jnp.ndarray:
+        """
+        For each head, compute  softmax(Q * K^T/sqrt(d_k)) * V
+        Args:
+            query: query
+            key: key
+            value: value
+            mask: mask
+            dropout: dropout
+
+        Returns:
+            None
+        """
         d_k = query.shape[-1]  # get dimension of last axis
         # (Q * K^T)/sqrt(d_k)
         attention_scores = jnp.matmul(query, key.transpose(-2, -1)) / jnp.sqrt(d_k)
@@ -183,7 +195,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         attention_scores = nnx.softmax(attention_scores, axis=-1)
         if dropout:
             attention_scores = dropout(attention_scores, dropout)
-        # (Q * K^T)/sqrt(d_k) * V
+        # softmax((Q * K^T)/sqrt(d_k)) * V
         x = jnp.matmul(attention_scores, value)
         return x
 
