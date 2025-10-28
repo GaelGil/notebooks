@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pydantic import BaseModel
 
 
@@ -21,7 +23,8 @@ class Config(BaseModel):
     VAL_SPLIT: float
     EPOCHS: int
     LR: float
-    CHECKPOINT_PATH: str
+    CHECKPOINT_PATH: Path
+    FINAL_SAVE_PATH: Path
     MAX_TO_KEEP: int
     SAVE_INTERVAL: int
     ASYNC_CHECKPOINTING: bool
@@ -35,7 +38,7 @@ config = Config(
     MODEL_PATH="model.pth",
     NUM_CLASSES=100,
     D_MODEL=512,
-    N=6,
+    N=3,
     H=8,
     D_FF=2048,
     DROPOUT=0.1,
@@ -47,7 +50,8 @@ config = Config(
     VAL_SPLIT=0.1,
     EPOCHS=10,
     LR=0.001,
-    CHECKPOINT_PATH="./checkpoints",
+    CHECKPOINT_PATH=Path("./checkpoints"),
+    FINAL_SAVE_PATH=Path("./checkpoints/final"),
     MAX_TO_KEEP=5,
     SAVE_INTERVAL=1,
     ASYNC_CHECKPOINTING=True,
