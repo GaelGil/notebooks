@@ -3,6 +3,8 @@ This training and evaluation file is based on the implementation from
 "https://cloud.google.com/blog/products/ai-machine-learning/guide-to-jax-for-pytorch-developers"
 """
 
+from typing import Any
+
 import jax
 import jax.numpy as jnp
 import optax
@@ -22,6 +24,7 @@ def train(
     val_loader: DataLoader,
     num_epochs: int,
     manager: ocp.CheckpointManager,
+    logger,
 ):
     # loop over the dataset for num_epochs
     for epoch in range(num_epochs):
@@ -33,15 +36,25 @@ def train(
         for batch in train_loader:
             # train on batch
 
-            state, loss = (train_step(model=model, state=state, batch=batch),)
+            state, _ = (train_step(model=model, state=state, batch=batch),)
 
         # after each epoch, evaluate on train and val set
         progress_bar.set_postfix(
             train_accuracy=eval(model=model, val_loader=train_loader),
             eval_accuracy=eval(model=model, val_loader=val_loader),
         )
+        logger.info(f"Saving checkpoint at epoch {epoch}")
+
         # save the state after each epoch
-        manager.save(step=epoch, args=ocp.args.StandardSave(state))
+        manager.save(
+            step=epoch,
+            args=ocp.args.Composite(
+                state=ocp.args.StandardSave(state),
+            ),
+        )
+
+    logger.info("Training complete, waiting until all checkpoints are saved")
+    manager.wait_until_finished()
 
     return state
 
@@ -50,7 +63,7 @@ def train(
 def train_step(
     state: train_state.TrainState,
     batch,
-):
+) -> tuple[train_state.TrainState, Any]:
     """
     handle a single training step
     get loss
@@ -63,7 +76,7 @@ def train_step(
         batch: batch
 
     Returns:
-        None
+        train_state.TrainState and loss
     """
 
     # define loss function
@@ -87,7 +100,7 @@ def train_step(
     return state, loss
 
 
-def eval(state: train_state.TrainState, val_loader: DataLoader):
+def eval(state: train_state.TrainState, val_loader: DataLoader) -> float:
     # set model to eval mode
     total = 0
     num_correct = 0
