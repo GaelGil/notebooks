@@ -36,7 +36,7 @@ def train(
         for batch in train_loader:
             # train on batch
 
-            state, _ = (train_step(model=model, state=state, batch=batch),)
+            state, _ = train_step(model=model, state=state, batch=batch)
 
         # after each epoch, evaluate on train and val set
         progress_bar.set_postfix(

@@ -47,8 +47,6 @@ def main():
     # initliaze the optimizer
     optimizer = optax.adam(learning_rate=config.LR)
 
-    # train the model
-    logger.info("Training the model")
     # define the train state
     # apply_fn tells jax how to run a forward pass
     # params are the parameters of the model
@@ -75,7 +73,8 @@ def main():
         manager.restore(manager.latest_step())
     else:
         logger.info("No checkpoint found, training from scratch")
-
+    # train the model
+    logger.info("Training the model")
     train(
         model=model,
         state=state,
@@ -86,6 +85,11 @@ def main():
         manager=manager,
         logger=logger,
     )
+
+    logger.info("Saving the final model")
+    params = jax.device_get(state.params)
+    checkpointer = ocp.Checkpointer(ocp.StandardCheckpointHandler())
+    checkpointer.save(config.FINAL_SAVE_PATH, args=ocp.args.StandardSave(params))
 
 
 if __name__ == "__main__":
