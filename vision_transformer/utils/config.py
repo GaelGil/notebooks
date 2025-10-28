@@ -23,6 +23,8 @@ class Config(BaseModel):
     LR: float
     CHECKPOINT_PATH: str
     MAX_TO_KEEP: int
+    SAVE_INTERVAL: int
+    ASYNC_CHECKPOINTING: bool
 
 
 config = Config(
@@ -47,4 +49,6 @@ config = Config(
     LR=0.001,
     CHECKPOINT_PATH="./checkpoints",
     MAX_TO_KEEP=5,
+    SAVE_INTERVAL=1,
+    ASYNC_CHECKPOINTING=True,
 )
