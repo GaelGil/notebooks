@@ -1,8 +1,73 @@
-from utils.train import train
+from logging import getLogger
+
+import jax
+import optax
+import orbax.checkpoint as ocp
+from flax.training import train_state
+
+from transformer.model import Transformer
+from utils.config import config
+from utils.LangDataset import LangDataset
+from utils.train_eval import train
+
+logger = getLogger(__name__)
 
 
 def main():
-    train()
+    # set the device
+    device = jax.devices("gpu")[0]
+    logger.info(f"Using device: {device}")
+
+    # initialize the dataset
+    logger.info(f"Loading Dataset from: {config.DATA_PATH}")
+    dataset = LangDataset(dataset_path=config.DATA_PATH, transformations=None)
+    logger.info(f"Dataset length: {dataset.get_datset_length()}")
+
+    logger.info("Splitting the dataset into train, val and test sets")
+    # split the dataset
+    train_loader, val_loader, test_loader = dataset.split_data(
+        train_split=config.TRAIN_SPLIT,
+        val_split=config.VAL_SPLIT,
+        batch_size=config.BATCH_SIZE,
+        num_workers=config.NUM_WORKERS,
+    )
+    # initialize the model
+    logger.info("Initializing the model and optimizer")
+    model: Transformer = Transformer(
+        num_classes=config.NUM_CLASSES,
+        patch_size=config.PATCH_SIZE,
+        d_model=config.D_MODEL,
+        N=config.N,
+        n_heads=config.H,
+        dropout=config.DROPOUT,
+        img_size=config.IMG_SIZE,
+        in_channels=config.IN_CHANNELS,
+        d_ff=config.D_FF,
+    )
+    # initliaze the optimizer
+    optimizer = optax.adam(learning_rate=config.LR)
+
+    # train the model
+    logger.info("Training the model")
+    # define the train state
+    # apply_fn tells jax how to run a forward pass
+    # params are the parameters of the model
+    # tx is the optimizer used to update the parameters
+    state = train_state.TrainState.create(
+        apply_fn=model.apply, params=model.params, tx=optimizer
+    )
+    # create checkpoint manager
+    checkpointer = ocp.StandardCheckpointer()
+    train(
+        model=model,
+        state=state,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        optimizer=optimizer,
+        epochs=config.EPOCHS,
+        checkpoint=checkpointer,
+        checkpoint_path=config.CHECKPOINT_PATH,
+    )
 
 
 if __name__ == "__main__":
