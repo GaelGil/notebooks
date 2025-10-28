@@ -22,6 +22,7 @@ class Config(BaseModel):
     EPOCHS: int
     LR: float
     CHECKPOINT_PATH: str
+    MAX_TO_KEEP: int
 
 
 config = Config(
@@ -45,4 +46,5 @@ config = Config(
     EPOCHS=10,
     LR=0.001,
     CHECKPOINT_PATH="./checkpoints",
+    MAX_TO_KEEP=5,
 )
