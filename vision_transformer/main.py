@@ -10,6 +10,7 @@ from utils.config import config, IMG_TRANSFORMATIONS
 from utils.ImageDataset import ImageDataset
 from utils.train_eval import train
 from vision_transformer.model import VisionTransformer
+from utils.initialize_model import initialize_model
 
 logger = getLogger(__name__)
 
@@ -38,17 +39,8 @@ def main():
     train_loader, val_loader, test_loader = dataset.get_data_loaders()
     # initialize the model
     logger.info("Initializing the model and optimizer")
-    model: VisionTransformer = VisionTransformer(
-        num_classes=config.NUM_CLASSES,
-        patch_size=config.PATCH_SIZE,
-        d_model=config.D_MODEL,
-        N=config.N,
-        n_heads=config.H,
-        dropout=config.DROPOUT,
-        img_size=config.IMG_SIZE,
-        in_channels=config.IN_CHANNELS,
-        d_ff=config.D_FF,
-    )
+    model, params = initialize_model(config)
+
     # initliaze the optimizer
     optimizer = optax.adam(learning_rate=config.LR)
 
@@ -57,7 +49,7 @@ def main():
     # params are the parameters of the model
     # tx is the optimizer used to update the parameters
     state = train_state.TrainState.create(
-        apply_fn=model.__call__, params=nnx.state(model, nnx.Param), tx=optimizer
+        apply_fn=model.__call__, params=params, tx=optimizer
     )
 
     # checkpoint options
