@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from pydantic import BaseModel
+from torchvision import transforms
 
 
 class Config(BaseModel):
@@ -28,6 +29,7 @@ class Config(BaseModel):
     MAX_TO_KEEP: int
     SAVE_INTERVAL: int
     ASYNC_CHECKPOINTING: bool
+    SPLITS_PATH: Path
 
 
 config = Config(
@@ -43,8 +45,8 @@ config = Config(
     D_FF=2048,
     DROPOUT=0.1,
     PATCH_SIZE=16,
-    IMG_SIZE=32,
-    NUM_PATCHES=(32 // 16) ** 2,
+    IMG_SIZE=127,
+    NUM_PATCHES=(127 // 16) ** 2,  # 412 patches or seq length of 412
     IN_CHANNELS=3,
     TRAIN_SPLIT=0.8,
     VAL_SPLIT=0.1,
@@ -55,4 +57,17 @@ config = Config(
     MAX_TO_KEEP=5,
     SAVE_INTERVAL=1,
     ASYNC_CHECKPOINTING=True,
+    SPLITS_PATH=Path("./data/splits"),
+)
+
+
+IMG_TRANSFORMATIONS = transforms.Compose(
+    [
+        transforms.Resize((config.IMG_SIZE, config.IMG_SIZE)),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(15),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+    ]
 )

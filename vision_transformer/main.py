@@ -5,7 +5,7 @@ import optax
 import orbax.checkpoint as ocp
 from flax.training import train_state
 
-from utils.config import config
+from utils.config import config, IMG_TRANSFORMATIONS
 from utils.ImageDataset import ImageDataset
 from utils.train_eval import train
 from vision_transformer.model import VisionTransformer
@@ -20,17 +20,21 @@ def main():
 
     # initialize the dataset
     logger.info(f"Loading Dataset from: {config.DATA_PATH}")
-    dataset = ImageDataset(dataset_path=config.DATA_PATH, transformations=None)
+    dataset = ImageDataset(
+        dataset_path=config.DATA_PATH, transformations=IMG_TRANSFORMATIONS
+    )
     logger.info(f"Dataset length: {dataset.get_datset_length()}")
 
     logger.info("Splitting the dataset into train, val and test sets")
     # split the dataset
-    train_loader, val_loader, test_loader = dataset.split_data(
+    dataset.split_data(
         train_split=config.TRAIN_SPLIT,
         val_split=config.VAL_SPLIT,
         batch_size=config.BATCH_SIZE,
         num_workers=config.NUM_WORKERS,
+        save_splits_path=config.SPLITS_PATH,
     )
+    train_loader, val_loader, test_loader = dataset.get_data_loaders()
     # initialize the model
     logger.info("Initializing the model and optimizer")
     model: VisionTransformer = VisionTransformer(
