@@ -1,6 +1,5 @@
 import jax.numpy as jnp
 from flax import linen as nn
-import jax
 
 
 class PatchEmbedding(nn.Module):
@@ -63,9 +62,15 @@ class PositionalEncoding(nn.Module):
         self.dropout = nn.Dropout(rate=dropout)
 
         # create cls token with shape (1, 1, d_model)
-        self.cls_token = nn.Variable(jnp.zeros((1, 1, d_model)))
+        self.cls_token = nn.Variable(
+            "cls_token", nn.initializers.zeros, (1, 1, d_model)
+        )
         # create positional encoding with shape (1, num_patches + 1, d_model)
-        self.pe = nn.Variable(jnp.zeros((1, num_patches + 1, d_model)))
+        self.pe = nn.Variable(
+            "positional_encoding",
+            nn.initializers.zeros,
+            (1, num_patches + 1, d_model),
+        )
 
     def __call__(self, x: jnp.ndarray, training: bool):
         """
@@ -97,8 +102,8 @@ class LayerNorm(nn.Module):
             None
         """
         self.eps = eps  # helps avoid division by zero
-        self.alpha = nn.Variable(jnp.ones(1))
-        self.bias = nn.Variable(jnp.zeros(1))
+        self.alpha = nn.Variable("alpha", nn.initializers.ones, (1))
+        self.bias = nn.Variable("bias", nn.initializers.zeros, (1))
 
     def __call__(self, x):
         # compute mean and std for each feature of d_model
@@ -126,9 +131,9 @@ class MultiLayerPerceptron(nn.Module):
         self.d_model = d_model
         self.d_ff = d_ff
         # self.dropout = dropout
-        self.linear_1 = nn.Dense(d_model, d_ff, rngs=jax.random.PRNGKey(0))
+        self.linear_1 = nn.Dense(features=d_ff)
         self.dropout = nn.Dropout(rate=dropout)
-        self.linear_2 = nn.Dense(d_ff, d_model, rngs=jax.random.PRNGKey(0))
+        self.linear_2 = nn.Dense(features=d_model)
 
     def __call__(self, x: jnp.ndarray):
         # simple feed forward network
@@ -160,10 +165,10 @@ class MultiHeadAttentionBlock(nn.Module):
 
         assert d_model % n_heads == 0, "d_model must be divisible by n_heads"
         self.d_k = d_model // n_heads
-        self.w_q = nn.Dense(d_model, d_model, rngs=jax.random.PRNGKey(0))
-        self.w_k = nn.Dense(d_model, d_model, rngs=jax.random.PRNGKey(0))
-        self.w_v = nn.Dense(d_model, d_model, rngs=jax.random.PRNGKey(0))
-        self.w_o = nn.Dense(d_model, d_model, rngs=jax.random.PRNGKey(0))
+        self.w_q = nn.Dense(features=d_model)
+        self.w_k = nn.Dense(features=d_model)
+        self.w_v = nn.Dense(features=d_model)
+        self.w_o = nn.Dense(features=d_model)
         self.dropout = nn.Dropout(rate=dropout)
 
     @staticmethod
@@ -327,7 +332,7 @@ class ProjectionLayer(nn.Module):
 
     """
 
-    def __init__(self, d_model: int, num_classes: int) -> None:
+    def __init__(self, num_classes: int) -> None:
         """
         Args:
             d_model: dimension of the model
@@ -336,7 +341,7 @@ class ProjectionLayer(nn.Module):
         Returns:
             None
         """
-        self.linear = nn.Dense(d_model, num_classes, rngs=jax.random.PRNGKey(0))
+        self.linear = nn.Dense(features=num_classes)
 
     def __call__(self, x):
         # (seq_len, d_model) -> (seq_len, vocab_size)
@@ -387,15 +392,6 @@ class VisionTransformer(nn.Module):
             d_model=d_model, num_classes=num_classes
         )
 
-        # for _ in range(N):
-        #     self.encoder_blocks.append(
-        #         EncoderBlock(
-        #             d_model=d_model,
-        #             n_heads=n_heads,
-        #             d_ff=d_ff,
-        #             dropout=dropout,
-        #         )
-        #     )
         self.encoder = Encoder(
             nn.Sequential(
                 layers=[

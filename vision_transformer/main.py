@@ -5,11 +5,10 @@ import optax
 import orbax.checkpoint as ocp
 from flax.training import train_state
 
-from utils.config import config, IMG_TRANSFORMATIONS
+from utils.config import IMG_TRANSFORMATIONS, config
 from utils.ImageDataset import ImageDataset
-from utils.train_eval import train
-from vision_transformer.model import VisionTransformer
 from utils.initialize_model import initialize_model
+from utils.train_eval import train
 
 logger = getLogger(__name__)
 
