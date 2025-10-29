@@ -1,5 +1,6 @@
 import jax.numpy as jnp
 from flax import linen as nn
+import jax
 
 
 class PatchEmbedding(nn.Module):
@@ -29,12 +30,11 @@ class PatchEmbedding(nn.Module):
         # project the image into patches of size patch_size
         # each conv/patch will learn a representation of the image
         self.projection = nn.Conv(
-            in_features=in_channels,
-            out_features=d_model,
+            features=in_channels,
             kernel_size=patch_size,
             strides=patch_size,
-            rngs=nn.Rngs(0),
         )
+        # where did d_model go
 
     def __call__(self, x: jnp.ndarray):
         """
@@ -126,9 +126,9 @@ class MultiLayerPerceptron(nn.Module):
         self.d_model = d_model
         self.d_ff = d_ff
         # self.dropout = dropout
-        self.linear_1 = nn.Dense(d_model, d_ff, rngs=nn.Rngs(0))
+        self.linear_1 = nn.Dense(d_model, d_ff, rngs=jax.random.PRNGKey(0))
         self.dropout = nn.Dropout(rate=dropout)
-        self.linear_2 = nn.Dense(d_ff, d_model, rngs=nn.Rngs(0))
+        self.linear_2 = nn.Dense(d_ff, d_model, rngs=jax.random.PRNGKey(0))
 
     def __call__(self, x: jnp.ndarray):
         # simple feed forward network
@@ -160,10 +160,10 @@ class MultiHeadAttentionBlock(nn.Module):
 
         assert d_model % n_heads == 0, "d_model must be divisible by n_heads"
         self.d_k = d_model // n_heads
-        self.w_q = nn.Dense(d_model, d_model, rngs=nn.Rngs(0))
-        self.w_k = nn.Dense(d_model, d_model, rngs=nn.Rngs(0))
-        self.w_v = nn.Dense(d_model, d_model, rngs=nn.Rngs(0))
-        self.w_o = nn.Dense(d_model, d_model, rngs=nn.Rngs(0))
+        self.w_q = nn.Dense(d_model, d_model, rngs=jax.random.PRNGKey(0))
+        self.w_k = nn.Dense(d_model, d_model, rngs=jax.random.PRNGKey(0))
+        self.w_v = nn.Dense(d_model, d_model, rngs=jax.random.PRNGKey(0))
+        self.w_o = nn.Dense(d_model, d_model, rngs=jax.random.PRNGKey(0))
         self.dropout = nn.Dropout(rate=dropout)
 
     @staticmethod
@@ -293,7 +293,7 @@ class EncoderBlock(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, blocks: nn.Sequential[EncoderBlock]) -> None:
+    def __init__(self, blocks) -> None:
         """
         Args:
             blocks: list of encoder blocks
@@ -301,7 +301,7 @@ class Encoder(nn.Module):
         Returns:
             None
         """
-        self.blocks = nn.Sequential(blocks)
+        self.blocks: nn.Sequential = blocks
         self.norm = LayerNorm()
 
     def __call__(self, x, mask):
@@ -336,7 +336,7 @@ class ProjectionLayer(nn.Module):
         Returns:
             None
         """
-        self.linear = nn.Dense(d_model, num_classes, rngs=nn.Rngs(0))
+        self.linear = nn.Dense(d_model, num_classes, rngs=jax.random.PRNGKey(0))
 
     def __call__(self, x):
         # (seq_len, d_model) -> (seq_len, vocab_size)
@@ -370,7 +370,7 @@ class VisionTransformer(nn.Module):
         Returns:
             None
         """
-        self.encoder_blocks = nn.Sequential()
+        # self.encoder_blocks = nn.Sequential()
 
         self.patch_embedding = PatchEmbedding(
             img_size=img_size,
@@ -387,16 +387,25 @@ class VisionTransformer(nn.Module):
             d_model=d_model, num_classes=num_classes
         )
 
-        for _ in range(N):
-            self.encoder_blocks.append(
-                EncoderBlock(
-                    d_model=d_model,
-                    n_heads=n_heads,
-                    d_ff=d_ff,
-                    dropout=dropout,
-                )
+        # for _ in range(N):
+        #     self.encoder_blocks.append(
+        #         EncoderBlock(
+        #             d_model=d_model,
+        #             n_heads=n_heads,
+        #             d_ff=d_ff,
+        #             dropout=dropout,
+        #         )
+        #     )
+        self.encoder = Encoder(
+            nn.Sequential(
+                layers=[
+                    EncoderBlock(
+                        d_model=d_model, n_heads=n_heads, d_ff=d_ff, dropout=dropout
+                    )
+                    for _ in range(N)
+                ]
             )
-        self.encoder = Encoder(self.encoder_blocks)
+        )
 
     def __call__(self, x, src_mask):
         x = self.patch_embedding(x)
