@@ -41,11 +41,11 @@ def main():
     # train the model
     logger.info("Training the model")
     # define the train state
-    # apply_fn tells jax how to run a forward pass
+    # apply_fn tells flax how to run a forward pass
     # params are the parameters of the model
     # tx is the optimizer used to update the parameters
     state = train_state.TrainState.create(
-        apply_fn=model.apply, params=model.params, tx=optimizer
+        apply_fn=model.apply, params=params, tx=optimizer
     )
     # create checkpoint
     checkpointer = ocp.StandardCheckpointer()
