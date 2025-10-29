@@ -4,8 +4,8 @@ import jax
 import optax
 import orbax.checkpoint as ocp
 from flax.training import train_state
+from utils.initialize_model import initialize_model
 
-from transformer.model import Transformer
 from utils.config import config
 from utils.LangDataset import LangDataset
 from utils.train_eval import train
@@ -33,17 +33,8 @@ def main():
     )
     # initialize the model
     logger.info("Initializing the model and optimizer")
-    model: Transformer = Transformer(
-        num_classes=config.NUM_CLASSES,
-        patch_size=config.PATCH_SIZE,
-        d_model=config.D_MODEL,
-        N=config.N,
-        n_heads=config.H,
-        dropout=config.DROPOUT,
-        img_size=config.IMG_SIZE,
-        in_channels=config.IN_CHANNELS,
-        d_ff=config.D_FF,
-    )
+    model, params = initialize_model(config)
+
     # initliaze the optimizer
     optimizer = optax.adam(learning_rate=config.LR)
 
