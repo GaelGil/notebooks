@@ -1,3 +1,6 @@
+import jax
+import jax.numpy as jnp
+
 from transformer.model import Transformer
 from utils.config import Config
 
@@ -14,4 +17,41 @@ def initialize_model(config: Config):
         in_channels=config.IN_CHANNELS,
         d_ff=config.D_FF,
     )
+
+    rng: jax.random.PRNGKey = jax.random.PRNGKey(0)
+
+    dummy_src_input = jnp.zeros(
+        (
+            config.BATCH_SIZE,
+            config.SRC_VOCAB_SIZE,
+            config.SEQ_LEN,
+            config.D_MODEL,
+        ),
+        dtype=jnp.int32,
+    )
+    dummy_src_mask = jnp.zeros((config.BATCH_SIZE, config.SEQ_LEN), dtype=jnp.float32)
+
+    dummy_target_input = jnp.zeros(
+        (
+            config.BATCH_SIZE,
+            config.TARGET_VOCAB_SIZE,
+            config.SEQ_LEN,
+            config.D_MODEL,
+        ),
+        dtype=jnp.int32,
+    )
+    dummy_target_mask = jnp.zeros(
+        (config.BATCH_SIZE, config.SEQ_LEN), dtype=jnp.float32
+    )
+
+    # Initialize with dummy inputs
+    variables = model.init(
+        rng,
+        src=dummy_src_input,
+        src_mask=dummy_src_mask,
+        target=dummy_target_input,
+        target_mask=dummy_target_mask,
+    )
+
+    params = variables["params"]
     return model, params
