@@ -1,9 +1,9 @@
 import jax.numpy as jnp
-from flax import nnx
+from flax import linen as nn
 
 
-class InputEmbeddings(nnx.Module):
-    def __init__(self, d_model: int, vocab_size: int) -> None:
+class InputEmbeddings(nn.Module):
+    def setup(self, d_model: int, vocab_size: int) -> None:
         """
         Args:
             d_model: dimension of the model
@@ -18,9 +18,7 @@ class InputEmbeddings(nnx.Module):
         # This is a (vocab_size x d_model) matrix so
         # that each word is represented by a vector of dimension d_model.
         # These are learned.
-        self.embedding = nnx.Embed(
-            num_embeddings=vocab_size, features=d_model, rngs=nnx.Rngs(0)
-        )
+        self.embedding = nn.Embed(num_embeddings=vocab_size, features=d_model)
 
     def __call__(self, x):
         # Get the embedding for each word in x
@@ -28,8 +26,8 @@ class InputEmbeddings(nnx.Module):
         return self.embedding(x) * self.d_model**0.5
 
 
-class PositionalEncoding(nnx.Module):
-    def __init__(self, d_model: int, seq_len: int, dropout: float = 0.1):
+class PositionalEncoding(nn.Module):
+    def setup(self, d_model: int, seq_len: int, dropout: float = 0.1):
         """
         Args:
             d_model: embedding dimension
@@ -38,7 +36,7 @@ class PositionalEncoding(nnx.Module):
         """
         self.d_model = d_model
         self.seq_len = seq_len
-        self.dropout = nnx.Dropout(rate=dropout)
+        self.dropout = nn.Dropout(rate=dropout)
 
         # create positon vector
         # for example, if seq_len = 5, then position = [0, 1, 2, 3, 4]
@@ -71,8 +69,8 @@ class PositionalEncoding(nnx.Module):
         return self.dropout(x, deterministic=not training)
 
 
-class LayerNorm(nnx.Module):
-    def __init__(self, eps: float = 1e-6) -> None:
+class LayerNorm(nn.Module):
+    def setup(self, eps: float = 1e-6) -> None:
         """
         Args:
             eps: epsilon for numerical stability
@@ -81,8 +79,8 @@ class LayerNorm(nnx.Module):
             None
         """
         self.eps = eps  # helps avoid division by zero
-        self.alpha = nnx.Param(jnp.ones(1))
-        self.bias = nnx.Param(jnp.zeros(1))
+        self.alpha = nn.Variable(jnp.ones(1))
+        self.bias = nn.Variable(jnp.zeros(1))
 
     def __call__(self, x):
         # compute mean and std for each feature of d_model
@@ -96,8 +94,8 @@ class LayerNorm(nnx.Module):
         return (self.alpha * (x - mean) / (std + self.eps) ** 0.5) + self.bias
 
 
-class FeedForwardBlock(nnx.Module):
-    def __init__(self, d_model: int, d_ff: int, dropout: float) -> None:
+class FeedForwardBlock(nn.Module):
+    def setup(self, d_model: int, d_ff: int, dropout: float) -> None:
         """
         Args:
             d_model: dimension of the model
@@ -109,25 +107,25 @@ class FeedForwardBlock(nnx.Module):
         """
         self.d_model = d_model
         self.d_ff = d_ff
-        self.linear_1 = nnx.Linear(d_model, d_ff, rngs=nnx.Rngs(0))
-        self.dropout = nnx.Dropout(rate=dropout)
-        self.linear_2 = nnx.Linear(d_ff, d_model, rngs=nnx.Rngs(0))
+        self.linear_1 = nn.Dense(features=d_ff)
+        self.dropout = nn.Dropout(rate=dropout)
+        self.linear_2 = nn.Dense(features=d_model)
 
     def __call__(self, x):
         # simple feed forward network
         # (seq_len, d_model) --> (dff, d_model) --> (seq_len, d_model)
-        x = nnx.leaky_relu(self.linear_1(x))
+        x = nn.leaky_relu(self.linear_1(x))
         x = self.dropout(x)
         x = self.linear_2(x)
         return x
 
 
-class MultiHeadAttentionBlock(nnx.Module):
+class MultiHeadAttentionBlock(nn.Module):
     """
     Multi Head Attention Block
     """
 
-    def __init__(self, d_model: int, n_heads: int, dropout: float) -> None:
+    def setup(self, d_model: int, n_heads: int, dropout: float) -> None:
         """
 
         Args:
@@ -143,11 +141,11 @@ class MultiHeadAttentionBlock(nnx.Module):
 
         assert d_model % n_heads == 0, "d_model must be divisible by n_heads"
         self.d_k = d_model // n_heads
-        self.w_q = nnx.Linear(d_model, d_model, rngs=nnx.Rngs(0))
-        self.w_k = nnx.Linear(d_model, d_model, rngs=nnx.Rngs(0))
-        self.w_v = nnx.Linear(d_model, d_model, rngs=nnx.Rngs(0))
-        self.w_o = nnx.Linear(d_model, d_model, rngs=nnx.Rngs(0))
-        self.dropout = nnx.Dropout(rate=dropout)
+        self.w_q = nn.Dense(features=d_model)
+        self.w_k = nn.Dense(features=d_model)
+        self.w_v = nn.Dense(features=d_model)
+        self.w_o = nn.Dense(features=d_model)
+        self.dropout = nn.Dropout(rate=dropout)
 
     @staticmethod
     def scaled_dot_product_attention(
@@ -155,7 +153,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         key: jnp.ndarray,
         value: jnp.ndarray,
         mask,
-        dropout: nnx.Dropout,
+        dropout: nn.Dropout,
     ) -> jnp.ndarray:
         d_k = query.shape[-1]  # get dimension of last axis
         # (Q * K^T)/sqrt(d_k)
@@ -163,7 +161,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         if mask:
             attention_scores = jnp.where(mask == 0, -1e10, attention_scores)
         # softmax(Q * K^T/sqrt(d_k))
-        attention_scores = nnx.softmax(attention_scores, axis=-1)
+        attention_scores = nn.softmax(attention_scores, axis=-1)
         if dropout:
             attention_scores = dropout(attention_scores, dropout)
         # (Q * K^T)/sqrt(d_k) * V
@@ -220,8 +218,8 @@ class MultiHeadAttentionBlock(nnx.Module):
         return x
 
 
-class EncoderBlock(nnx.Module):
-    def __init__(
+class EncoderBlock(nn.Module):
+    def setup(
         self,
         d_model: int,
         n_heads: int,
@@ -246,7 +244,7 @@ class EncoderBlock(nnx.Module):
             d_model=d_model, d_ff=d_ff, dropout=dropout
         )
         # norms and drop out for the residual connections
-        self.dropout = nnx.Dropout(rate=dropout)
+        self.dropout = nn.Dropout(rate=dropout)
         self.norm1 = LayerNorm()
         self.norm2 = LayerNorm()
 
@@ -268,8 +266,8 @@ class EncoderBlock(nnx.Module):
         return output
 
 
-class Encoder(nnx.Module):
-    def __init__(self, blocks: nnx.List[EncoderBlock]) -> None:
+class Encoder(nn.Module):
+    def setup(self, blocks: nn.Sequential) -> None:
         """
         Args:
             blocks: list of encoder blocks
@@ -277,7 +275,7 @@ class Encoder(nnx.Module):
         Returns:
             None
         """
-        self.blocks = nnx.List(blocks)
+        self.blocks: nn.Sequential = blocks
         self.norm = LayerNorm()
 
     def __call__(self, x, mask):
@@ -286,8 +284,8 @@ class Encoder(nnx.Module):
         return self.norm(x)
 
 
-class DecoderBlock(nnx.Module):
-    def __init__(
+class DecoderBlock(nn.Module):
+    def setup(
         self,
         d_model: int,
         n_heads: int,
@@ -303,7 +301,7 @@ class DecoderBlock(nnx.Module):
         self.feed_forward_block = FeedForwardBlock(
             d_model=d_model, d_ff=d_ff, dropout=dropout
         )
-        self.dropout = nnx.Dropout(dropout)
+        self.dropout = nn.Dropout(dropout)
         self.norm1 = LayerNorm()
         self.norm2 = LayerNorm()
         self.norm3 = LayerNorm()
@@ -334,8 +332,8 @@ class DecoderBlock(nnx.Module):
         return output
 
 
-class Decoder(nnx.Module):
-    def __init__(self, blocks: nnx.List[DecoderBlock]) -> None:
+class Decoder(nn.Module):
+    def setup(self, blocks: nn.Sequential) -> None:
         """
         Args:
             blocks: list of decoder blocks
@@ -343,7 +341,7 @@ class Decoder(nnx.Module):
         Returns:
             None
         """
-        self.blocks = nnx.List(blocks)
+        self.blocks: nn.Sequential = blocks
         self.norm = LayerNorm()
 
     def __call__(self, x, encoder_output, src_mask, target_mask):
@@ -352,7 +350,7 @@ class Decoder(nnx.Module):
         return self.norm(x)
 
 
-class ProjectionLayer(nnx.Module):
+class ProjectionLayer(nn.Module):
     """
     Projection layer to map the output of the decoder to the vocabulary. This gives us the logits
 
@@ -364,16 +362,16 @@ class ProjectionLayer(nnx.Module):
         None
     """
 
-    def __init__(self, d_model: int, vocab_size: int) -> None:
-        self.linear = nnx.Linear(d_model, vocab_size, rngs=nnx.Rngs(0))
+    def setup(self, vocab_size: int) -> None:
+        self.linear = nn.Dense(features=vocab_size)
 
     def __call__(self, x):
         # (seq_len, d_model) --> (seq_len, vocab_size)
-        return nnx.log_softmax(self.linear(x))
+        return nn.log_softmax(self.linear(x))
 
 
-class Transformer(nnx.Module):
-    def __init__(
+class Transformer(nn.Module):
+    def setup(
         self,
         d_model: int,
         N: int,
@@ -415,22 +413,28 @@ class Transformer(nnx.Module):
             d_model=d_model, seq_len=seq_len, dropout=dropout
         )
 
-        encoder_blocks = nnx.List()
-        decoder_blocks = nnx.List()
-        for _ in range(N):
-            encoder_blocks.append(
-                EncoderBlock(
-                    d_model=d_model, n_heads=n_heads, d_ff=d_ff, dropout=dropout
-                )
+        self.encoder = Encoder(
+            nn.Sequential(
+                layers=[
+                    EncoderBlock(
+                        d_model=d_model, n_heads=n_heads, d_ff=d_ff, dropout=dropout
+                    )
+                    for _ in range(N)
+                ]
             )
-            decoder_blocks.append(
-                DecoderBlock(
-                    d_model=d_model, n_heads=n_heads, d_ff=d_ff, dropout=dropout
-                )
-            )
+        )
 
-        self.encoder = Encoder(encoder_blocks)
-        self.decoder = Decoder(decoder_blocks)
+        self.decoder = Decoder(
+            nn.Sequential(
+                layers=[
+                    DecoderBlock(
+                        d_model=d_model, n_heads=n_heads, d_ff=d_ff, dropout=dropout
+                    )
+                    for _ in range(N)
+                ]
+            )
+        )
+
         self.projection = ProjectionLayer(d_model=d_model, vocab_size=target_vocab_size)
 
     def __call__(self, src, src_mask, target, target_mask):
