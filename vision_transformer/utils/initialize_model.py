@@ -4,7 +4,7 @@ import jax
 
 
 def initialize_model(config):
-    model = VisionTransformer(
+    model: VisionTransformer = VisionTransformer(
         num_classes=config.NUM_CLASSES,
         patch_size=config.PATCH_SIZE,
         d_model=config.D_MODEL,
@@ -16,21 +16,19 @@ def initialize_model(config):
         in_channels=config.IN_CHANNELS,
     )
 
-    rng = jax.random.PRNGKey(0)
+    rng: jax.random.PRNGKey = jax.random.PRNGKey(0)
 
-    dummy_input_ids = jnp.zeros(
-        (config.BATCH_SIZE, config.NUM_PATCHES), dtype=jnp.int32
+    dummy_input = jnp.zeros(
+        (config.BATCH_SIZE, config.NUM_PATCHES, config.IN_CHANNELS, config.PATCH_SIZE),
+        dtype=jnp.int32,
     )
     dummy_mask = jnp.zeros((config.BATCH_SIZE, config.NUM_PATCHES), dtype=jnp.float32)
-    dummy_timestep = jnp.zeros((config.BATCH_SIZE,), dtype=jnp.float32)
 
     # Initialize with dummy inputs
     variables = model.init(
         rng,
-        input_ids=dummy_input_ids,
-        mask=dummy_mask,
-        timestep=dummy_timestep,
-        train=False,
+        x=dummy_input,
+        src_mask=dummy_mask,
     )
 
     params = variables["params"]

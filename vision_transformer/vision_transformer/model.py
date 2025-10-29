@@ -5,35 +5,30 @@ from flax import linen as nn
 class PatchEmbedding(nn.Module):
     """
     Projects the image into patches
+
     """
 
-    def __init__(
-        self, img_size: int, patch_size: int, in_channels: int, d_model: int
+    patch_size: int
+    in_channels: int
+
+    def setup(
+        self,
     ) -> None:
         """
         Args:
-            img_size: size of the image
-            patch_size: size of the patch
-            d_model: dimension of the model
-
+            None
 
         Returns:
             None
         """
-        self.img_size = img_size
-        self.patch_size = patch_size
-        self.in_channels = in_channels
-        self.d_model = d_model
-        self.num_patches = (img_size // patch_size) ** 2
 
         # project the image into patches of size patch_size
         # each conv/patch will learn a representation of the image
         self.projection = nn.Conv(
-            features=in_channels,
-            kernel_size=patch_size,
-            strides=patch_size,
+            features=self.in_channels,
+            kernel_size=self.patch_size,
+            strides=self.patch_size,
         )
-        # where did d_model go
 
     def __call__(self, x: jnp.ndarray):
         """
@@ -46,33 +41,38 @@ class PatchEmbedding(nn.Module):
             None
         """
         x = self.projection(x)
-        x = x.flatten(2).transpose(0, 2, 1)
+        B, H, W, C = x.shape
+        x = x.reshape(B, C, H * W)
 
         return x
 
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, d_model: int, num_patches: int, dropout: float = 0.1):
+    d_model: int
+    num_patches: int
+    dropout_rate: float = 0.1
+
+    def setup(self):
         """
         Args:
             d_model: embedding dimension
             seq_len: maximum input sequence length
             dropout: dropout rate (used during training)
         """
-        self.dropout = nn.Dropout(rate=dropout)
+        self.dropout = nn.Dropout(rate=self)
 
         # create cls token with shape (1, 1, d_model)
-        self.cls_token = nn.Variable(
-            "cls_token", nn.initializers.zeros, (1, 1, d_model)
+        self.cls_token = self.param(
+            "cls_token", nn.initializers.zeros, (1, 1, self.d_model)
         )
         # create positional encoding with shape (1, num_patches + 1, d_model)
-        self.pe = nn.Variable(
+        self.pe = self.param(
             "positional_encoding",
             nn.initializers.zeros,
-            (1, num_patches + 1, d_model),
+            (1, self.num_patches + 1, self.d_model),
         )
 
-    def __call__(self, x: jnp.ndarray, training: bool):
+    def __call__(self, x: jnp.ndarray, training: bool = False):
         """
         Args:
             x: input tensor of shape (batch_size, seq_len, d_model)
@@ -82,7 +82,7 @@ class PositionalEncoding(nn.Module):
         B = x.shape[0]
 
         # duplicate cls token B times so each batch has its own cls token
-        cls = jnp.tile(self.cls_token.value, (B, 1, 1))
+        cls = jnp.tile(self.cls_token, (B, 1, 1))
         # concatenate cls token to sequence (batch_size, seq_len + 1, d_model)
         x = jnp.concatenate([cls, x], axis=1)
 
@@ -93,7 +93,9 @@ class PositionalEncoding(nn.Module):
 
 
 class LayerNorm(nn.Module):
-    def __init__(self, eps: float = 1e-6) -> None:
+    eps: float = 1e-6  # helps avoid division by zero
+
+    def setup(self) -> None:
         """
         Args:
             eps: epsilon for numerical stability
@@ -101,9 +103,9 @@ class LayerNorm(nn.Module):
         Returns:
             None
         """
-        self.eps = eps  # helps avoid division by zero
-        self.alpha = nn.Variable("alpha", nn.initializers.ones, (1))
-        self.bias = nn.Variable("bias", nn.initializers.zeros, (1))
+
+        self.alpha = self.param("alpha", nn.initializers.ones, (1))
+        self.bias = self.param("bias", nn.initializers.zeros, (1))
 
     def __call__(self, x):
         # compute mean and std for each feature of d_model
@@ -118,7 +120,13 @@ class LayerNorm(nn.Module):
 
 
 class MultiLayerPerceptron(nn.Module):
-    def __init__(self, d_model: int, d_ff: int, dropout: float) -> None:
+    d_model: int
+    d_ff: int
+    dropout_rate: float
+
+    def setup(
+        self,
+    ) -> None:
         """
         Args:
             d_model: dimension of the model
@@ -128,12 +136,11 @@ class MultiLayerPerceptron(nn.Module):
         Returns:
             None
         """
-        self.d_model = d_model
-        self.d_ff = d_ff
+
         # self.dropout = dropout
-        self.linear_1 = nn.Dense(features=d_ff)
-        self.dropout = nn.Dropout(rate=dropout)
-        self.linear_2 = nn.Dense(features=d_model)
+        self.linear_1 = nn.Dense(features=self.d_ff)
+        self.dropout = nn.Dropout(rate=self.dropout_rate)
+        self.linear_2 = nn.Dense(features=self.d_model)
 
     def __call__(self, x: jnp.ndarray):
         # simple feed forward network
@@ -148,7 +155,11 @@ class MultiHeadAttentionBlock(nn.Module):
     Multi Head Attention Block
     """
 
-    def __init__(self, d_model: int, n_heads: int, dropout: float) -> None:
+    d_model: int
+    n_heads: int
+    dropout_rate: float
+
+    def setup(self) -> None:
         """
 
         Args:
@@ -159,17 +170,16 @@ class MultiHeadAttentionBlock(nn.Module):
         Returns:
             None
         """
-        self.d_model = d_model
-        self.n_heads = n_heads
+
         # self.dropout = dropout
 
-        assert d_model % n_heads == 0, "d_model must be divisible by n_heads"
-        self.d_k = d_model // n_heads
-        self.w_q = nn.Dense(features=d_model)
-        self.w_k = nn.Dense(features=d_model)
-        self.w_v = nn.Dense(features=d_model)
-        self.w_o = nn.Dense(features=d_model)
-        self.dropout = nn.Dropout(rate=dropout)
+        assert self.d_model % self.n_heads == 0, "d_model must be divisible by n_heads"
+        self.d_k = self.d_model // self.n_heads
+        self.w_q = nn.Dense(features=self.d_model)
+        self.w_k = nn.Dense(features=self.d_model)
+        self.w_v = nn.Dense(features=self.d_model)
+        self.w_o = nn.Dense(features=self.d_model)
+        self.dropout = nn.Dropout(rate=self.dropout_rate)
 
     @staticmethod
     def scaled_dot_product_attention(
@@ -255,13 +265,12 @@ class MultiHeadAttentionBlock(nn.Module):
 
 
 class EncoderBlock(nn.Module):
-    def __init__(
-        self,
-        d_model: int,
-        n_heads: int,
-        d_ff: int,
-        dropout: float,
-    ) -> None:
+    d_model: int
+    n_heads: int
+    d_ff: int
+    dropout_rate: float
+
+    def setup(self) -> None:
         """
         Args:
             multi_head_attention: multi head attention block
@@ -273,15 +282,15 @@ class EncoderBlock(nn.Module):
         """
         # encoder block has one self attention block
         self.multi_head_attention_block = MultiHeadAttentionBlock(
-            d_model=d_model, n_heads=n_heads, dropout=dropout
+            d_model=self.d_model, n_heads=self.n_heads, dropout_rate=self.dropout_rate
         )
         # and one feed forward block
         self.multi_layer_perceptron_block = MultiLayerPerceptron(
-            d_model=d_model, d_ff=d_ff, dropout=dropout
+            d_model=self.d_model, d_ff=self.d_ff, dropout_rate=self.dropout_rate
         )
         # Lastly there are two residual connections in the encoder block
         # that connect the multi head attention block and the feed forward block
-        self.dropout = nn.Dropout(rate=dropout)
+        self.dropout = nn.Dropout(rate=self.dropout_rate)
         self.norm1 = LayerNorm()
         self.norm2 = LayerNorm()
 
@@ -298,7 +307,9 @@ class EncoderBlock(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, blocks) -> None:
+    encoder_blocks: nn.Sequential
+
+    def setup(self) -> None:
         """
         Args:
             blocks: list of encoder blocks
@@ -306,7 +317,7 @@ class Encoder(nn.Module):
         Returns:
             None
         """
-        self.blocks: nn.Sequential = blocks
+        self.blocks: nn.Sequential = self.encoder_blocks
         self.norm = LayerNorm()
 
     def __call__(self, x, mask):
@@ -329,10 +340,11 @@ class ProjectionLayer(nn.Module):
     """
     Projection layer to map the output of the decoder to the vocabulary. This gives us the logits
 
-
     """
 
-    def __init__(self, num_classes: int) -> None:
+    num_classes: int
+
+    def setup(self, num_classes: int) -> None:
         """
         Args:
             d_model: dimension of the model
@@ -349,17 +361,18 @@ class ProjectionLayer(nn.Module):
 
 
 class VisionTransformer(nn.Module):
-    def __init__(
+    N: int
+    n_heads: int
+    dropout: float
+    img_size: int
+    patch_size: int
+    in_channels: int
+    d_model: int
+    d_ff: int
+    num_classes: int
+
+    def setup(
         self,
-        N: int,
-        n_heads: int,
-        dropout: float,
-        img_size: int,
-        patch_size: int,
-        in_channels: int,
-        d_model: int,
-        d_ff: int,
-        num_classes: int,
     ) -> None:
         """
         Args:
@@ -375,30 +388,28 @@ class VisionTransformer(nn.Module):
         Returns:
             None
         """
-        # self.encoder_blocks = nn.Sequential()
 
         self.patch_embedding = PatchEmbedding(
-            img_size=img_size,
-            patch_size=patch_size,
-            in_channels=in_channels,
-            d_model=d_model,
+            patch_size=self.patch_size,
+            in_channels=self.in_channels,
         )
         self.positional_encoding = PositionalEncoding(
-            d_model=d_model,
-            num_patches=(img_size // patch_size) ** 2,
-            dropout=dropout,
+            d_model=self.d_model,
+            num_patches=(self.img_size // self.patch_size) ** 2,
+            dropout_rate=self.dropout,
         )
-        self.projection_layer = ProjectionLayer(
-            d_model=d_model, num_classes=num_classes
-        )
+        self.projection_layer = ProjectionLayer(num_classes=self.num_classes)
 
         self.encoder = Encoder(
             nn.Sequential(
                 layers=[
                     EncoderBlock(
-                        d_model=d_model, n_heads=n_heads, d_ff=d_ff, dropout=dropout
+                        d_model=self.d_model,
+                        n_heads=self.n_heads,
+                        d_ff=self.d_ff,
+                        dropout_rate=self.dropout,
                     )
-                    for _ in range(N)
+                    for _ in range(self.N)
                 ]
             )
         )
