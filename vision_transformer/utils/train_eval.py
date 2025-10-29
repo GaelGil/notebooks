@@ -9,7 +9,7 @@ import jax
 import jax.numpy as jnp
 import optax
 import orbax.checkpoint as ocp
-from flax import nnx
+from flax import linen as nn
 from flax.training import train_state
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -59,7 +59,7 @@ def train(
     return state
 
 
-@nnx.jit
+@nn.jit
 def train_step(
     state: train_state.TrainState,
     batch,
@@ -86,7 +86,7 @@ def train_step(
         print("params type:", type(params))
         print("batch[0] type:", type(batch[0]))
         # pass batch through the model in training state
-        logits = state.apply_fn(params, batch[0])
+        logits = state.apply_fn(params, batch[0], train=True)
         # calculate mean loss for the batch
         loss = optax.softmax_cross_entropy(
             logits=logits.squeeze(), labels=batch[1]
@@ -117,12 +117,12 @@ def eval(state: train_state.TrainState, val_loader: DataLoader) -> float:
     return num_correct / total
 
 
-@nnx.jit
+@nn.jit
 def eval_step(state: train_state.TrainState, batch):
     # pass batch through the model in training state
     logits = state.apply_fn(state.params, batch[0], training=False)
     logits = logits.squeeze()
     # get predictions from logits
-    preditcions = jnp.round(nnx.softmax(logits))
+    preditcions = jnp.round(nn.softmax(logits))
     # return number of correct predictions
     return preditcions == batch[1]

@@ -12,13 +12,17 @@ def initialize_model(config):
         n_heads=config.H,
         d_ff=config.D_FF,
         dropout=config.DROPOUT,
+        img_size=config.IMG_SIZE,
+        in_channels=config.IN_CHANNELS,
     )
 
     rng = jax.random.PRNGKey(0)
 
-    dummy_input_ids = jnp.zeros((config.batch_size, config.seq_len), dtype=jnp.int32)
-    dummy_mask = jnp.zeros((config.batch_size, config.seq_len), dtype=jnp.float32)
-    dummy_timestep = jnp.zeros((config.batch_size,), dtype=jnp.float32)
+    dummy_input_ids = jnp.zeros(
+        (config.BATCH_SIZE, config.NUM_PATCHES), dtype=jnp.int32
+    )
+    dummy_mask = jnp.zeros((config.BATCH_SIZE, config.NUM_PATCHES), dtype=jnp.float32)
+    dummy_timestep = jnp.zeros((config.BATCH_SIZE,), dtype=jnp.float32)
 
     # Initialize with dummy inputs
     variables = model.init(
