@@ -14,7 +14,6 @@ from flax.training import train_state
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from vision_transformer.model import VisionTransformer
 
 
 def train(
