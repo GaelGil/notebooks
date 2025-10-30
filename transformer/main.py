@@ -4,7 +4,7 @@ import jax
 import optax
 import orbax.checkpoint as ocp
 from flax.training import train_state
-from utils.initialize_model import initialize_model
+from utils.init_train_state import init_train_state
 
 from utils.config import config
 from utils.LangDataset import LangDataset
@@ -33,7 +33,7 @@ def main():
     )
     # initialize the model
     logger.info("Initializing the model and optimizer")
-    state = initialize_model(config)
+    state: train_state.TrainState = init_train_state(config)
 
     # create checkpoint
     checkpointer = ocp.StandardCheckpointer()
@@ -56,11 +56,10 @@ def main():
     else:
         logger.info("No checkpoint found, training from scratch")
     train(
-        model=model,
         state=state,
         train_loader=train_loader,
         val_loader=val_loader,
-        epochs=config.EPOCHS,
+        num_epochs=config.EPOCHS,
         manager=manager,
     )
 

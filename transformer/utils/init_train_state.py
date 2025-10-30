@@ -7,7 +7,7 @@ from flax.training import train_state
 import optax
 
 
-def init_train_state(config: Config):
+def init_train_state(config: Config) -> train_state.TrainState:
     model: Transformer = Transformer(
         num_classes=config.NUM_CLASSES,
         patch_size=config.PATCH_SIZE,
