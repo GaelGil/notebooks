@@ -83,7 +83,7 @@ class PositionalEncoding(nn.Module):
             training: whether in training mode for dropout
         """
         # get batch size
-        print(f"BATCH SHAPE: {x.shape}")
+        print(f"PE shape: {self.pe.shape}")
         B = x.shape[0]
 
         # duplicate cls token B times so each batch has its own cls token

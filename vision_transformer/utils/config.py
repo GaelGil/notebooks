@@ -68,6 +68,7 @@ IMG_TRANSFORMATIONS = transforms.Compose(
         transforms.RandomRotation(15),
         transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+        transforms.Lambda(lambda x: x.permute(1,2,0)),  # convert from NCHW to NHWC
+        transforms.Lambda(lambda x: (x - 0.5)/0.5)  # normalize manually
     ]
 )
