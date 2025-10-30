@@ -16,7 +16,6 @@ from transformer.model import Transformer
 
 
 def train(
-    model: Transformer,
     state: train_state.TrainState,
     train_loader: DataLoader,
     val_loader: DataLoader,

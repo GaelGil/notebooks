@@ -33,20 +33,8 @@ def main():
     )
     # initialize the model
     logger.info("Initializing the model and optimizer")
-    model, params = initialize_model(config)
+    state = initialize_model(config)
 
-    # initliaze the optimizer
-    optimizer = optax.adam(learning_rate=config.LR)
-
-    # train the model
-    logger.info("Training the model")
-    # define the train state
-    # apply_fn tells flax how to run a forward pass
-    # params are the parameters of the model
-    # tx is the optimizer used to update the parameters
-    state = train_state.TrainState.create(
-        apply_fn=model.apply, params=params, tx=optimizer
-    )
     # create checkpoint
     checkpointer = ocp.StandardCheckpointer()
 
@@ -72,7 +60,6 @@ def main():
         state=state,
         train_loader=train_loader,
         val_loader=val_loader,
-        optimizer=optimizer,
         epochs=config.EPOCHS,
         manager=manager,
     )

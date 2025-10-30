@@ -3,7 +3,12 @@ from flax import linen as nn
 
 
 class InputEmbeddings(nn.Module):
-    def setup(self, d_model: int, vocab_size: int) -> None:
+    d_model: int
+    vocab_size: int
+
+    def setup(
+        self,
+    ) -> None:
         """
         Args:
             d_model: dimension of the model
@@ -12,13 +17,12 @@ class InputEmbeddings(nn.Module):
         Returns:
             None
         """
-        self.d_model = d_model
-        self.vocab_size = vocab_size
+
         # create embeddings matrix.
         # This is a (vocab_size x d_model) matrix so
         # that each word is represented by a vector of dimension d_model.
         # These are learned.
-        self.embedding = nn.Embed(num_embeddings=vocab_size, features=d_model)
+        self.embedding = nn.Embed(num_embeddings=self.vocab_size, features=self.d_model)
 
     def __call__(self, x):
         # Get the embedding for each word in x
@@ -70,17 +74,18 @@ class PositionalEncoding(nn.Module):
 
 
 class LayerNorm(nn.Module):
-    def setup(self, eps: float = 1e-6) -> None:
-        """
+    eps: float = 1e-6  # helps avoid division by zero
+
+    def setup(self) -> None:
+        """Set up layer norm
         Args:
-            eps: epsilon for numerical stability
+            None
 
         Returns:
             None
         """
-        self.eps = eps  # helps avoid division by zero
-        self.alpha = nn.Variable(jnp.ones(1))
-        self.bias = nn.Variable(jnp.zeros(1))
+        self.alpha = self.param("alpha", nn.initializers.ones, (1))
+        self.bias = self.param("bias", nn.initializers.zeros, (1))
 
     def __call__(self, x):
         # compute mean and std for each feature of d_model
@@ -95,7 +100,12 @@ class LayerNorm(nn.Module):
 
 
 class FeedForwardBlock(nn.Module):
-    def setup(self, d_model: int, d_ff: int, dropout: float) -> None:
+    d_model: int
+    d_ff: int
+    dropout_rate: float
+    training: bool
+
+    def setup(self) -> None:
         """
         Args:
             d_model: dimension of the model
@@ -105,11 +115,10 @@ class FeedForwardBlock(nn.Module):
         Returns:
             None
         """
-        self.d_model = d_model
-        self.d_ff = d_ff
-        self.linear_1 = nn.Dense(features=d_ff)
-        self.dropout = nn.Dropout(rate=dropout)
-        self.linear_2 = nn.Dense(features=d_model)
+
+        self.linear_1 = nn.Dense(features=self.d_ff)
+        self.dropout = nn.Dropout(rate=self.dropout_rate)
+        self.linear_2 = nn.Dense(features=self.d_model)
 
     def __call__(self, x):
         # simple feed forward network
@@ -219,32 +228,49 @@ class MultiHeadAttentionBlock(nn.Module):
 
 
 class EncoderBlock(nn.Module):
-    def setup(
-        self,
-        d_model: int,
-        n_heads: int,
-        d_ff: int,
-        dropout: float,
-    ) -> None:
+    """
+    Atttributes:
+        d_model: dimension of model
+        n_heads: number of heads
+        d_ff: dimension of feed forward network
+        dropout_rate: dropout rate
+        training: whether in training mode
+    """
+
+    d_model: int
+    n_heads: int
+    d_ff: int
+    dropout_rate: float
+    training: bool
+
+    def setup(self) -> None:
         """
+        Set up encoder block
+        Each encoder block has one multi head attention block and one feed forward block.
+        There is also the residual connections of which it has two.
         Args:
-            multi_head_attention: multi head attention block
-            feed_forward: feed forward block
-            dropout: dropout probability
+            None
 
         Returns:
             None
         """
         # encoder block has one self attention block
         self.multi_head_attention_block = MultiHeadAttentionBlock(
-            d_model=d_model, n_heads=n_heads, dropout=dropout
+            d_model=self.d_model,
+            n_heads=self.n_heads,
+            dropout_rate=self.dropout_rate,
+            training=self.training,
         )
         # and one feed forward block
-        self.feed_forward_block = FeedForwardBlock(
-            d_model=d_model, d_ff=d_ff, dropout=dropout
+        self.multi_layer_perceptron_block = FeedForwardBlock(
+            d_model=self.d_model,
+            d_ff=self.d_ff,
+            dropout_rate=self.dropout_rate,
+            training=self.training,
         )
-        # norms and drop out for the residual connections
-        self.dropout = nn.Dropout(rate=dropout)
+        # Lastly there are two residual connections in the encoder block
+        # that connect the multi head attention block and the feed forward block
+        self.dropout = nn.Dropout(rate=self.dropout_rate)
         self.norm1 = LayerNorm()
         self.norm2 = LayerNorm()
 
