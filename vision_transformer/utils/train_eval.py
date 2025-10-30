@@ -1,6 +1,6 @@
 """
 This training and evaluation file is based on the implementation from
-"https://cloud.google.com/blog/products/ai-machine-learning/guide-to-jax-for-pytorch-developers"
+https://wandb.ai/jax-series/simple-training-loop/reports/Writing-a-Training-Loop-in-JAX-and-Flax--VmlldzoyMzA4ODEy
 """
 
 from typing import Any
@@ -102,6 +102,15 @@ def train_step(
 
 
 def eval(state: train_state.TrainState, val_loader: DataLoader) -> float:
+    """
+    evaluate the model on the validation set
+    Args:
+        state: train_state.TrainState
+        val_loader: DataLoader
+
+    Returns:
+        accuracy
+    """
     total = 0
     num_correct = 0
     # loop over the dataset
@@ -118,6 +127,15 @@ def eval(state: train_state.TrainState, val_loader: DataLoader) -> float:
 
 @jax.jit
 def eval_step(state: train_state.TrainState, batch):
+    """
+    evaluate the model on a single batch
+    Args:
+        state: train_state.TrainState
+        batch: batch
+
+    Returns:
+        predictions
+    """
     # pass batch through the model in training state
     logits = state.apply_fn(state.params, batch[0])
     logits = logits.squeeze()
