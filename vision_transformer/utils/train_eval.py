@@ -18,7 +18,6 @@ from vision_transformer.model import VisionTransformer
 
 
 def train(
-    model: VisionTransformer,
     state: train_state.TrainState,
     train_loader: DataLoader,
     val_loader: DataLoader,
@@ -59,7 +58,7 @@ def train(
     return state
 
 
-@nn.jit
+@jax.jit
 def train_step(
     state: train_state.TrainState,
     batch,
@@ -83,10 +82,8 @@ def train_step(
         """
         Compute the loss function for a single batch
         """
-        print("params type:", type(params))
-        print("batch[0] type:", type(batch[0]))
         # pass batch through the model in training state
-        logits = state.apply_fn(params, batch[0], train=True)
+        logits = state.apply_fn(params, batch[0])
         # calculate mean loss for the batch
         loss = optax.softmax_cross_entropy(
             logits=logits.squeeze(), labels=batch[1]
@@ -117,10 +114,10 @@ def eval(state: train_state.TrainState, val_loader: DataLoader) -> float:
     return num_correct / total
 
 
-@nn.jit
+@jax.jit
 def eval_step(state: train_state.TrainState, batch):
     # pass batch through the model in training state
-    logits = state.apply_fn(state.params, batch[0], training=False)
+    logits = state.apply_fn(state.params, batch[0])
     logits = logits.squeeze()
     # get predictions from logits
     preditcions = jnp.round(nn.softmax(logits))
