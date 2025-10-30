@@ -2,11 +2,12 @@ from vision_transformer.model import VisionTransformer
 import jax.numpy as jnp
 import jax
 import optax
+from utils.config import Config
 from flax.training import train_state
 
 
 
-def init_train_state(config):
+def init_train_state(config: Config) -> train_state.TrainState:
     model: VisionTransformer = VisionTransformer(
         num_classes=config.NUM_CLASSES,
         patch_size=config.PATCH_SIZE,
@@ -20,8 +21,7 @@ def init_train_state(config):
         training=False
     )
 
-    rng: jax.random.PRNGKey = jax.random.PRNGKey(0)
-
+    rng = jax.random.PRNGKey(0)
 
     dummy_input = jnp.zeros(
     (config.BATCH_SIZE, config.IMG_SIZE, config.IMG_SIZE, config.IN_CHANNELS),
@@ -30,7 +30,7 @@ def init_train_state(config):
 
     # Initialize with dummy inputs
     variables = model.init(
-        {"params": rng},
+        rng,
         x=dummy_input,
     )
 

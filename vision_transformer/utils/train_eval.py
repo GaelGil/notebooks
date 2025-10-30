@@ -25,6 +25,7 @@ def train(
     manager: ocp.CheckpointManager,
     logger,
 ):
+    rng = jax.random.PRNGKey(0)
     # loop over the dataset for num_epochs
     for epoch in range(epochs):
         # create a tqdm progress bar
@@ -34,8 +35,8 @@ def train(
         # iterate through each batch in the dataset
         for batch in train_loader:
             # train on batch
-            print(f"Batch Shape: {batch[0].shape}")
-            state, _ = train_step(state=state, batch=batch)
+            print(f"BATCH SHAPE: {batch[0].shape}")
+            state, _ = train_step(state=state, batch=batch, dropout_rng=rng)
 
         # after each epoch, evaluate on train and val set
         progress_bar.set_postfix(
@@ -62,6 +63,7 @@ def train(
 def train_step(
     state: train_state.TrainState,
     batch,
+    dropout_rng: jax.random.PRNGKey,
 ) -> tuple[train_state.TrainState, Any]:
     """
     handle a single training step
@@ -77,16 +79,13 @@ def train_step(
         train_state.TrainState and loss
     """
     image, label = batch    
-    print(f"Image Shape: {image.shape}")
-    print(f"Label Shape: {label.shape}")
-    print(f"Label: {label}")
     # define loss function
     def loss_fn(params):
         """
         Compute the loss function for a single batch
         """
         # pass batch through the model in training state
-        logits = state.apply_fn(params, image)
+        logits = state.apply_fn( {'params': params}, image, rngs={'dropout': dropout_rng})
         # calculate mean loss for the batch
         loss = optax.softmax_cross_entropy(
             logits=logits.squeeze(), labels=label
