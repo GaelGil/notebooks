@@ -3,9 +3,11 @@ import jax.numpy as jnp
 
 from transformer.model import Transformer
 from utils.config import Config
+from flax.training import train_state
+import optax
 
 
-def initialize_model(config: Config):
+def init_train_state(config: Config):
     model: Transformer = Transformer(
         num_classes=config.NUM_CLASSES,
         patch_size=config.PATCH_SIZE,
@@ -54,4 +56,15 @@ def initialize_model(config: Config):
     )
 
     params = variables["params"]
-    return model, params
+
+    # initliaze the optimizer
+    optimizer = optax.adam(learning_rate=config.LR)
+
+    # define the train state
+    # apply_fn tells flax how to run a forward pass
+    # params are the parameters of the model
+    # tx is the optimizer used to update the parameters
+    state = train_state.TrainState.create(
+        apply_fn=model.apply, params=params, tx=optimizer
+    )
+    return state
