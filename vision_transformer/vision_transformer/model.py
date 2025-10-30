@@ -41,12 +41,10 @@ class PatchEmbedding(nn.Module):
         Returns:
             None
         """
-        print(f"Input shape: {x.shape}")
+        print(f"SHAPE AT PATCH EMBEDDING: {x.shape}")
         x = self.projection(x)
-        print("Projection output shape:", x.shape)
         B, H, W, C = x.shape
         x = x.reshape(B, H * W, C)
-        print("Patch embedding output shape:", x.shape)
         return x
 
 
@@ -82,8 +80,8 @@ class PositionalEncoding(nn.Module):
             x: input tensor of shape (batch_size, seq_len, d_model)
             training: whether in training mode for dropout
         """
+        print(f"SHAPE AT PE EMBEDDING: {x.shape}")
         # get batch size
-        print(f"PE shape: {self.pe.shape}")
         B = x.shape[0]
 
         # duplicate cls token B times so each batch has its own cls token
@@ -113,6 +111,7 @@ class LayerNorm(nn.Module):
         self.bias = self.param("bias", nn.initializers.zeros, (1))
 
     def __call__(self, x):
+        print(f"SHAPE AT LN: {x.shape}")
         # compute mean and std for each feature of d_model
         # (batch, seq_len, d_model)
         # axis=-1 means along the last dimension which is d_model
@@ -149,6 +148,7 @@ class MultiLayerPerceptron(nn.Module):
         self.linear_2 = nn.Dense(features=self.d_model)
 
     def __call__(self, x: jnp.ndarray):
+        print(f"SHAPE AT MLP: {x.shape}")
         # simple feed forward network
         x = nn.gelu(self.linear_1(x))
         x = self.dropout(x, deterministic=self.training)
@@ -229,6 +229,7 @@ class MultiHeadAttentionBlock(nn.Module):
         Returns:
             None
         """
+        print(f"SHAPE AT MHAB: {q.shape}")
         # (seq_len, d_model) * (d_model, d_model) -> (seq_len, d_model)
         query: jnp.ndarray = self.w_q(q)
         key: jnp.ndarray = self.w_k(k)
@@ -364,8 +365,10 @@ class ProjectionLayer(nn.Module):
         self.linear = nn.Dense(features=self.num_classes)
 
     def __call__(self, x):
-        # (seq_len, d_model) -> (seq_len, vocab_size)
-        return nn.log_softmax(self.linear(x))
+        cls_token = x[:, 0]  # shape: (batch_size, d_model)
+        print(f"SHAPE AT PROJECTION (CLS token): {cls_token.shape}")
+        logits = self.linear(cls_token)  # (batch_size, num_classes)
+        return nn.log_softmax(logits)
 
 
 class VisionTransformer(nn.Module):
