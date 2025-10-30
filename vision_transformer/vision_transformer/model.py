@@ -26,8 +26,9 @@ class PatchEmbedding(nn.Module):
         # each conv/patch will learn a representation of the image
         self.projection = nn.Conv(
             features=self.d_model,
-            kernel_size=self.patch_size,
+            kernel_size=(self.patch_size, self.patch_size),
             strides=self.patch_size,
+            padding="VALID",
         )
 
     def __call__(self, x: jnp.ndarray):
@@ -40,10 +41,12 @@ class PatchEmbedding(nn.Module):
         Returns:
             None
         """
+        print(f"Input shape: {x.shape}")
         x = self.projection(x)
+        print("Projection output shape:", x.shape)
         B, H, W, C = x.shape
         x = x.reshape(B, H * W, C)
-
+        print("Patch embedding output shape:", x.shape)
         return x
 
 
@@ -80,6 +83,7 @@ class PositionalEncoding(nn.Module):
             training: whether in training mode for dropout
         """
         # get batch size
+        print(f"BATCH SHAPE: {x.shape}")
         B = x.shape[0]
 
         # duplicate cls token B times so each batch has its own cls token
@@ -189,7 +193,6 @@ class MultiHeadAttentionBlock(nn.Module):
         query: jnp.ndarray,
         key: jnp.ndarray,
         value: jnp.ndarray,
-        mask: jnp.ndarray,
         dropout: nn.Dropout,
         training: bool,
     ) -> jnp.ndarray:
@@ -199,7 +202,6 @@ class MultiHeadAttentionBlock(nn.Module):
             query: query
             key: key
             value: value
-            mask: mask
             dropout: dropout
 
         Returns:
@@ -208,15 +210,6 @@ class MultiHeadAttentionBlock(nn.Module):
         d_k = query.shape[-1]  # get dimension of last axis
         # (Q * K^T)/sqrt(d_k)
         attention_scores = jnp.matmul(query, key.swapaxes(-2, -1)) / jnp.sqrt(d_k)
-        if mask is not None:
-            # Expand mask to match attention_scores shape
-            if mask.ndim == 2:  # (batch, seq_len)
-                mask = mask[:, jnp.newaxis, jnp.newaxis, :]  # -> (batch, 1, 1, seq_len)
-            elif mask.ndim == 3:  # (batch, 1, seq_len)
-                mask = mask[:, :, jnp.newaxis, :]
-
-            # Apply mask (False = masked out)
-            attention_scores = jnp.where(mask, attention_scores, -1e10)
         # softmax(Q * K^T/sqrt(d_k))
         attention_scores = nn.softmax(attention_scores, axis=-1)
         if dropout:
@@ -225,14 +218,13 @@ class MultiHeadAttentionBlock(nn.Module):
         x = jnp.matmul(attention_scores, value)
         return x
 
-    def __call__(self, q: jnp.ndarray, k: jnp.ndarray, v: jnp.ndarray, mask):
+    def __call__(self, q: jnp.ndarray, k: jnp.ndarray, v: jnp.ndarray):
         """
 
         Args:
             q: query
             k: key
             v: value
-            mask: mask
 
         Returns:
             None
@@ -267,7 +259,6 @@ class MultiHeadAttentionBlock(nn.Module):
             query=query,
             key=key,
             value=value,
-            mask=mask,
             dropout=self.dropout,
             training=self.training,
         )
@@ -310,8 +301,8 @@ class EncoderBlock(nn.Module):
         self.norm1 = LayerNorm()
         self.norm2 = LayerNorm()
 
-    def __call__(self, x, src_mask):
-        multi_head_attention_output = self.multi_head_attention_block(x, x, x, src_mask)
+    def __call__(self, x):
+        multi_head_attention_output = self.multi_head_attention_block(x, x, x)
 
         x = self.dropout(self.norm1(multi_head_attention_output + x), deterministic=self.training)
 
@@ -333,22 +324,21 @@ class Encoder(nn.Module):
         Returns:
             None
         """
-        self.blocks: nn.Sequential = self.encoder_blocks
+        self.blocks = self.encoder_blocks
         self.norm = LayerNorm()
 
-    def __call__(self, x, mask):
+    def __call__(self, x):
         """
         Goes through all the encoder blocks
 
         Args:
             x: input
-            mask: mask
 
         Returns:
             None
         """
         
-        x = self.blocks(x=x, src_mask=mask)
+        x = self.blocks(x)
         # for block in self.blocks:
         #     x = block(x, mask)
         return self.norm(x)
@@ -362,7 +352,7 @@ class ProjectionLayer(nn.Module):
 
     num_classes: int
 
-    def setup(self, num_classes: int) -> None:
+    def setup(self) -> None:
         """
         Args:
             d_model: dimension of the model
@@ -371,7 +361,7 @@ class ProjectionLayer(nn.Module):
         Returns:
             None
         """
-        self.linear = nn.Dense(features=num_classes)
+        self.linear = nn.Dense(features=self.num_classes)
 
     def __call__(self, x):
         # (seq_len, d_model) -> (seq_len, vocab_size)
@@ -422,7 +412,7 @@ class VisionTransformer(nn.Module):
 
         self.encoder = Encoder(
             nn.Sequential(
-                layers=[
+             layers=[
                     EncoderBlock(
                         d_model=self.d_model,
                         n_heads=self.n_heads,
@@ -435,9 +425,9 @@ class VisionTransformer(nn.Module):
             )
         )
 
-    def __call__(self, x, src_mask):
+    def __call__(self, x):
         x = self.patch_embedding(x)
         x = self.positional_encoding(x)
-        x = self.encoder(x, src_mask)
+        x = self.encoder(x)
         x = self.projection_layer(x)
         return x

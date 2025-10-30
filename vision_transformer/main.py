@@ -7,7 +7,7 @@ from flax.training import train_state
 
 from utils.config import IMG_TRANSFORMATIONS, config
 from utils.ImageDataset import ImageDataset
-from utils.initialize_model import initialize_model
+from utils.init_train_state import init_train_state
 from utils.train_eval import train
 
 logger = getLogger(__name__)
@@ -37,18 +37,9 @@ def main():
     train_loader, val_loader, test_loader = dataset.get_data_loaders()
     # initialize the model
     logger.info("Initializing the model and optimizer")
-    model, params = initialize_model(config)
+    state = init_train_state(config)
 
-    # initliaze the optimizer
-    optimizer = optax.adam(learning_rate=config.LR)
 
-    # define the train state
-    # apply_fn tells jax how to run a forward pass
-    # params are the parameters of the model
-    # tx is the optimizer used to update the parameters
-    state = train_state.TrainState.create(
-        apply_fn=model.apply, params=params, tx=optimizer
-    )
 
     # checkpoint options
     checkpoint_options = ocp.CheckpointManagerOptions(
@@ -71,7 +62,6 @@ def main():
     # train the model
     logger.info("Training the model")
     train(
-        model=model,
         state=state,
         train_loader=train_loader,
         val_loader=val_loader,
