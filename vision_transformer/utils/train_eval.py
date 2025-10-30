@@ -25,6 +25,7 @@ def train(
     manager: ocp.CheckpointManager,
     logger,
 ):
+    # initialize the random number generator for dropout
     rng = jax.random.PRNGKey(0)
     # loop over the dataset for num_epochs
     for epoch in range(epochs):
@@ -35,7 +36,6 @@ def train(
         # iterate through each batch in the dataset
         for batch in train_loader:
             # train on batch
-            print(f"BATCH SHAPE: {batch[0].shape}")
             state, _ = train_step(state=state, batch=batch, dropout_rng=rng)
 
         # after each epoch, evaluate on train and val set
@@ -72,13 +72,14 @@ def train_step(
     update parameters
 
     Args:
-        model: model
+        state: train_state.TrainState
         batch: batch
+        dropout_rng: random number generator
 
     Returns:
         train_state.TrainState and loss
     """
-    image, label = batch    
+    image, label = batch # unpack the batch 
     # define loss function
     def loss_fn(params):
         """
@@ -101,7 +102,6 @@ def train_step(
 
 
 def eval(state: train_state.TrainState, val_loader: DataLoader) -> float:
-    # set model to eval mode
     total = 0
     num_correct = 0
     # loop over the dataset
