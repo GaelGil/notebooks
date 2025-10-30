@@ -14,6 +14,7 @@ def initialize_model(config):
         dropout=config.DROPOUT,
         img_size=config.IMG_SIZE,
         in_channels=config.IN_CHANNELS,
+        training=False
     )
 
     rng: jax.random.PRNGKey = jax.random.PRNGKey(0)
@@ -22,7 +23,7 @@ def initialize_model(config):
         (config.BATCH_SIZE, config.NUM_PATCHES, config.IN_CHANNELS, config.PATCH_SIZE),
         dtype=jnp.int32,
     )
-    dummy_mask = jnp.zeros((config.BATCH_SIZE, config.NUM_PATCHES), dtype=jnp.float32)
+    dummy_mask = jnp.zeros((config.BATCH_SIZE, config.NUM_PATCHES+1), dtype=jnp.float32)
 
     # Initialize with dummy inputs
     variables = model.init(
