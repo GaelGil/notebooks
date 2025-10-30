@@ -16,7 +16,7 @@ logger = getLogger(__name__)
 def main():
     # set the device
     device = jax.devices("gpu")[0]
-    logger.info(f"Using device: {device}")
+    print(f"Using device: {device}")
 
     # initialize the dataset
     logger.info(f"Loading Dataset from: {config.DATA_PATH}")

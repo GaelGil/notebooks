@@ -30,7 +30,7 @@ def init_train_state(config):
 
     # Initialize with dummy inputs
     variables = model.init(
-        rng,
+        {"params": rng},
         x=dummy_input,
     )
 

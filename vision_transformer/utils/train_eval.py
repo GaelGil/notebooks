@@ -34,7 +34,7 @@ def train(
         # iterate through each batch in the dataset
         for batch in train_loader:
             # train on batch
-
+            print(f"Batch Shape: {batch[0].shape}")
             state, _ = train_step(state=state, batch=batch)
 
         # after each epoch, evaluate on train and val set
@@ -76,17 +76,20 @@ def train_step(
     Returns:
         train_state.TrainState and loss
     """
-
+    image, label = batch    
+    print(f"Image Shape: {image.shape}")
+    print(f"Label Shape: {label.shape}")
+    print(f"Label: {label}")
     # define loss function
     def loss_fn(params):
         """
         Compute the loss function for a single batch
         """
         # pass batch through the model in training state
-        logits = state.apply_fn(params, batch[0])
+        logits = state.apply_fn(params, image)
         # calculate mean loss for the batch
         loss = optax.softmax_cross_entropy(
-            logits=logits.squeeze(), labels=batch[1]
+            logits=logits.squeeze(), labels=label
         ).mean()
         return loss
 
