@@ -90,7 +90,7 @@ class PositionalEncoding(nn.Module):
         # add positional encoding (batch_size, seq_len + 1, d_model)
         x = x + self.pe
 
-        return self.dropout(x, deterministic=not self.training)
+        return self.dropout(x, deterministic=self.training)
 
 
 class LayerNorm(nn.Module):
@@ -147,7 +147,7 @@ class MultiLayerPerceptron(nn.Module):
     def __call__(self, x: jnp.ndarray):
         # simple feed forward network
         x = nn.gelu(self.linear_1(x))
-        x = self.dropout(x, deterministic=not self.training)
+        x = self.dropout(x, deterministic=self.training)
         x = self.linear_2(x)
         return x
 
@@ -220,7 +220,7 @@ class MultiHeadAttentionBlock(nn.Module):
         # softmax(Q * K^T/sqrt(d_k))
         attention_scores = nn.softmax(attention_scores, axis=-1)
         if dropout:
-            attention_scores = dropout(attention_scores, dropout, deterministic=not training)
+            attention_scores = dropout(attention_scores, deterministic=training)
         # softmax((Q * K^T)/sqrt(d_k)) * V
         x = jnp.matmul(attention_scores, value)
         return x
@@ -313,11 +313,11 @@ class EncoderBlock(nn.Module):
     def __call__(self, x, src_mask):
         multi_head_attention_output = self.multi_head_attention_block(x, x, x, src_mask)
 
-        x = self.dropout(self.norm1(multi_head_attention_output + x), deterministic=not self.training)
+        x = self.dropout(self.norm1(multi_head_attention_output + x), deterministic=self.training)
 
         multi_layer_perceptron_output = self.multi_layer_perceptron_block(x)
 
-        output = self.dropout(self.norm2(multi_layer_perceptron_output + x), deterministic=not self.training)
+        output = self.dropout(self.norm2(multi_layer_perceptron_output + x), deterministic=self.training)
 
         return output
 
@@ -347,7 +347,7 @@ class Encoder(nn.Module):
         Returns:
             None
         """
-        x = self.blocks(x, mask)
+        x = self.blocks(x=x, src_mask=mask)
         # for block in self.blocks:
         #     x = block(x, mask)
         return self.norm(x)
