@@ -39,8 +39,8 @@ def train(
 
         # after each epoch, evaluate on train and val set
         progress_bar.set_postfix(
-            train_accuracy=eval(val_loader=train_loader),
-            eval_accuracy=eval(val_loader=val_loader),
+            train_accuracy=eval(state=state, val_loader=train_loader),
+            eval_accuracy=eval(state=state, val_loader=val_loader),
         )
         logger.info(f"Saving checkpoint at epoch {epoch}")
 
@@ -135,10 +135,11 @@ def eval_step(state: train_state.TrainState, batch):
     Returns:
         predictions
     """
+    image, label = batch # unpack the batch 
     # pass batch through the model in training state
-    logits = state.apply_fn(state.params, batch[0])
+    logits = state.apply_fn( {'params': state.params}, image, rngs={'dropout': jax.random.PRNGKey(0)})
     logits = logits.squeeze()
     # get predictions from logits
     preditcions = jnp.round(nn.softmax(logits))
     # return number of correct predictions
-    return preditcions == batch[1]
+    return preditcions == label

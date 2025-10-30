@@ -49,7 +49,7 @@ def main():
     )
     # checkpoint manager
     manager = ocp.CheckpointManager(
-        directory=config.CHECKPOINT_PATH,
+        directory=config.CHECKPOINT_PATH.resolve(),
         options=checkpoint_options,
     )
 
