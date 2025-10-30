@@ -186,7 +186,7 @@ class MultiHeadAttentionBlock(nn.Module):
         query: jnp.ndarray,
         key: jnp.ndarray,
         value: jnp.ndarray,
-        mask,
+        mask: jnp.ndarray,
         dropout: nn.Dropout,
     ) -> jnp.ndarray:
         """
@@ -203,8 +203,8 @@ class MultiHeadAttentionBlock(nn.Module):
         """
         d_k = query.shape[-1]  # get dimension of last axis
         # (Q * K^T)/sqrt(d_k)
-        attention_scores = jnp.matmul(query, key.transpose(-2, -1)) / jnp.sqrt(d_k)
-        if mask:
+        attention_scores = jnp.matmul(query, key.swapaxes(-2, -1)) / jnp.sqrt(d_k)
+        if mask is not None:
             attention_scores = jnp.where(mask == 0, -1e10, attention_scores)
         # softmax(Q * K^T/sqrt(d_k))
         attention_scores = nn.softmax(attention_scores, axis=-1)
@@ -243,23 +243,25 @@ class MultiHeadAttentionBlock(nn.Module):
         # 8 Heads where each head contains a matrix of n vectors of dimension 64
         # keep the batch dimension the same and the sequence length the same
         # split the embeddings into 8 heads
-        query = query.view(
+        query = query.reshape(
             query.shape[0], query.shape[1], self.n_heads, self.d_k
-        ).transpose(1, 2)
-        key = key.view(key.shape[0], key.shape[1], self.n_heads, self.d_k).transpose(
-            1, 2
-        )
-        value = value.view(
+        ).transpose(0, 2, 1, 3)
+        key = key.reshape(key.shape[0], key.shape[1], self.n_heads, self.d_k).transpose(0, 2, 1, 3)
+        value = value.reshape(
             value.shape[0], value.shape[1], self.n_heads, self.d_k
-        ).transpose(1, 2)
+        ).transpose(0, 2, 1, 3)
 
         # apply scaled dot product attention to each head
         x = MultiHeadAttentionBlock.scaled_dot_product_attention(
-            query, key, value, self.dropout
+            query=query,
+            key=key,
+            value=value,
+            mask=mask,
+            dropout=self.dropout,
         )
 
         # reshape back to (seq_len, d_model)
-        x = x.transpose(1, 2).contiguous().view(x.shape[0], -1, self.d_model)
+        x = x.transpose(1, 2).contiguous().reshape(x.shape[0], -1, self.d_model)
         x = self.w_o(x)
         return x
 
