@@ -87,7 +87,7 @@ class PositionalEncoding(nn.Module):
         x = jnp.concatenate([cls, x], axis=1)
 
         # add positional encoding (batch_size, seq_len + 1, d_model)
-        x = x + self.pe.value
+        x = x + self.pe
 
         return self.dropout(x, deterministic=not training)
 
@@ -331,8 +331,9 @@ class Encoder(nn.Module):
         Returns:
             None
         """
-        for block in self.blocks:
-            x = block(x, mask)
+        x = self.blocks(x, mask)
+        # for block in self.blocks:
+        #     x = block(x, mask)
         return self.norm(x)
 
 
