@@ -9,7 +9,7 @@ class PatchEmbedding(nn.Module):
     """
 
     patch_size: int
-    in_channels: int
+    d_model: int
 
     def setup(
         self,
@@ -25,7 +25,7 @@ class PatchEmbedding(nn.Module):
         # project the image into patches of size patch_size
         # each conv/patch will learn a representation of the image
         self.projection = nn.Conv(
-            features=self.in_channels,
+            features=self.d_model,
             kernel_size=self.patch_size,
             strides=self.patch_size,
         )
@@ -42,7 +42,7 @@ class PatchEmbedding(nn.Module):
         """
         x = self.projection(x)
         B, H, W, C = x.shape
-        x = x.reshape(B, C, H * W)
+        x = x.reshape(B, H * W, C)
 
         return x
 
@@ -391,7 +391,7 @@ class VisionTransformer(nn.Module):
 
         self.patch_embedding = PatchEmbedding(
             patch_size=self.patch_size,
-            in_channels=self.in_channels,
+            d_model=self.d_model,
         )
         self.positional_encoding = PositionalEncoding(
             d_model=self.d_model,
