@@ -50,6 +50,7 @@ class PatchEmbedding(nn.Module):
 class PositionalEncoding(nn.Module):
     d_model: int
     num_patches: int
+    training: bool
     dropout_rate: float = 0.1
 
     def setup(self):
@@ -59,7 +60,7 @@ class PositionalEncoding(nn.Module):
             seq_len: maximum input sequence length
             dropout: dropout rate (used during training)
         """
-        self.dropout = nn.Dropout(rate=self)
+        self.dropout = nn.Dropout(rate=self.dropout_rate)
 
         # create cls token with shape (1, 1, d_model)
         self.cls_token = self.param(
@@ -89,7 +90,7 @@ class PositionalEncoding(nn.Module):
         # add positional encoding (batch_size, seq_len + 1, d_model)
         x = x + self.pe
 
-        return self.dropout(x, deterministic=not training)
+        return self.dropout(x, deterministic=not self.training)
 
 
 class LayerNorm(nn.Module):
@@ -123,6 +124,7 @@ class MultiLayerPerceptron(nn.Module):
     d_model: int
     d_ff: int
     dropout_rate: float
+    training: bool
 
     def setup(
         self,
@@ -145,7 +147,7 @@ class MultiLayerPerceptron(nn.Module):
     def __call__(self, x: jnp.ndarray):
         # simple feed forward network
         x = nn.gelu(self.linear_1(x))
-        x = self.dropout(x)
+        x = self.dropout(x, deterministic=not self.training)
         x = self.linear_2(x)
         return x
 
@@ -158,6 +160,7 @@ class MultiHeadAttentionBlock(nn.Module):
     d_model: int
     n_heads: int
     dropout_rate: float
+    training: bool
 
     def setup(self) -> None:
         """
@@ -188,6 +191,7 @@ class MultiHeadAttentionBlock(nn.Module):
         value: jnp.ndarray,
         mask: jnp.ndarray,
         dropout: nn.Dropout,
+        training: bool,
     ) -> jnp.ndarray:
         """
         For each head, compute  softmax(Q * K^T/sqrt(d_k)) * V
@@ -205,11 +209,18 @@ class MultiHeadAttentionBlock(nn.Module):
         # (Q * K^T)/sqrt(d_k)
         attention_scores = jnp.matmul(query, key.swapaxes(-2, -1)) / jnp.sqrt(d_k)
         if mask is not None:
-            attention_scores = jnp.where(mask == 0, -1e10, attention_scores)
+            # Expand mask to match attention_scores shape
+            if mask.ndim == 2:  # (batch, seq_len)
+                mask = mask[:, jnp.newaxis, jnp.newaxis, :]  # -> (batch, 1, 1, seq_len)
+            elif mask.ndim == 3:  # (batch, 1, seq_len)
+                mask = mask[:, :, jnp.newaxis, :]
+
+            # Apply mask (False = masked out)
+            attention_scores = jnp.where(mask, attention_scores, -1e10)
         # softmax(Q * K^T/sqrt(d_k))
         attention_scores = nn.softmax(attention_scores, axis=-1)
         if dropout:
-            attention_scores = dropout(attention_scores, dropout)
+            attention_scores = dropout(attention_scores, dropout, deterministic=not training)
         # softmax((Q * K^T)/sqrt(d_k)) * V
         x = jnp.matmul(attention_scores, value)
         return x
@@ -258,10 +269,12 @@ class MultiHeadAttentionBlock(nn.Module):
             value=value,
             mask=mask,
             dropout=self.dropout,
+            training=self.training,
         )
 
         # reshape back to (seq_len, d_model)
-        x = x.transpose(1, 2).contiguous().reshape(x.shape[0], -1, self.d_model)
+        # x = x.transpose(1, 2).contiguous().reshape(x.shape[0], -1, self.d_model)
+        x = jnp.transpose(x, (0, 2, 1, 3)).reshape(x.shape[0], -1, self.d_model)
         x = self.w_o(x)
         return x
 
@@ -271,6 +284,7 @@ class EncoderBlock(nn.Module):
     n_heads: int
     d_ff: int
     dropout_rate: float
+    training: bool
 
     def setup(self) -> None:
         """
@@ -284,11 +298,11 @@ class EncoderBlock(nn.Module):
         """
         # encoder block has one self attention block
         self.multi_head_attention_block = MultiHeadAttentionBlock(
-            d_model=self.d_model, n_heads=self.n_heads, dropout_rate=self.dropout_rate
+            d_model=self.d_model, n_heads=self.n_heads, dropout_rate=self.dropout_rate, training=self.training
         )
         # and one feed forward block
         self.multi_layer_perceptron_block = MultiLayerPerceptron(
-            d_model=self.d_model, d_ff=self.d_ff, dropout_rate=self.dropout_rate
+            d_model=self.d_model, d_ff=self.d_ff, dropout_rate=self.dropout_rate, training=self.training
         )
         # Lastly there are two residual connections in the encoder block
         # that connect the multi head attention block and the feed forward block
@@ -299,11 +313,11 @@ class EncoderBlock(nn.Module):
     def __call__(self, x, src_mask):
         multi_head_attention_output = self.multi_head_attention_block(x, x, x, src_mask)
 
-        x = self.dropout(self.norm1(multi_head_attention_output + x))
+        x = self.dropout(self.norm1(multi_head_attention_output + x), deterministic=not self.training)
 
         multi_layer_perceptron_output = self.multi_layer_perceptron_block(x)
 
-        output = self.dropout(self.norm2(multi_layer_perceptron_output + x))
+        output = self.dropout(self.norm2(multi_layer_perceptron_output + x), deterministic=not self.training)
 
         return output
 
@@ -373,6 +387,7 @@ class VisionTransformer(nn.Module):
     d_model: int
     d_ff: int
     num_classes: int
+    training: bool
 
     def setup(
         self,
@@ -400,6 +415,7 @@ class VisionTransformer(nn.Module):
             d_model=self.d_model,
             num_patches=(self.img_size // self.patch_size) ** 2,
             dropout_rate=self.dropout,
+            training=self.training
         )
         self.projection_layer = ProjectionLayer(num_classes=self.num_classes)
 
@@ -411,6 +427,7 @@ class VisionTransformer(nn.Module):
                         n_heads=self.n_heads,
                         d_ff=self.d_ff,
                         dropout_rate=self.dropout,
+                        training=self.training
                     )
                     for _ in range(self.N)
                 ]
