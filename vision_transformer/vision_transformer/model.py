@@ -347,6 +347,7 @@ class Encoder(nn.Module):
         Returns:
             None
         """
+        
         x = self.blocks(x=x, src_mask=mask)
         # for block in self.blocks:
         #     x = block(x, mask)
