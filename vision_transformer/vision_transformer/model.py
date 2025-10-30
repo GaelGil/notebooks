@@ -167,7 +167,6 @@ class MultiLayerPerceptron(nn.Module):
         self.linear_2 = nn.Dense(features=self.d_model)
 
     def __call__(self, x: jnp.ndarray):
-        print(f"SHAPE AT MLP: {x.shape}")
         # simple feed forward network
         x = nn.gelu(self.linear_1(x))
         x = self.dropout(x, deterministic=self.training)

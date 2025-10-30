@@ -1,6 +1,6 @@
 """
 This training and evaluation file is based on the implementation from
-"https://cloud.google.com/blog/products/ai-machine-learning/guide-to-jax-for-pytorch-developers"
+https://wandb.ai/jax-series/simple-training-loop/reports/Writing-a-Training-Loop-in-JAX-and-Flax--VmlldzoyMzA4ODEy
 """
 
 import jax
