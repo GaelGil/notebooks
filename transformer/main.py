@@ -26,9 +26,9 @@ def main():
 
     print(f"Dataset length: {dataset_obj.length()}")
 
-    # split the into train, val and test
+    # split the into train, val and test sets
     train_dataset, val_dataset, test_dataset = dataset_obj.split()
-    # print(dataset["train"][0][config.LANG_SRC])
+
     # tokenize the dataset in both languages using the entire dataset
     tokenizer_src = TokenizeDataset(
         dataset=dataset["train"],
