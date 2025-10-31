@@ -21,15 +21,22 @@ def main():
 
     # load the dataset
     logger.info(f"Loading Dataset from: {config.DATA_PATH}")
-    dataset_obj = LangDataset()
+    dataset_obj = LangDataset(dataset_name=config.DATA_PATH)
     dataset = dataset_obj.load_dataset()
-
-    print(f"Dataset length: {dataset_obj.length()}")
+    logger.info(f"Length of dataset: {dataset_obj.length()}")
 
     # split the into train, val and test sets
-    train_dataset, val_dataset, test_dataset = dataset_obj.split()
+    logger.info("Splitting the dataset into train, val and test sets")
+    train_dataset, val_dataset, test_dataset = dataset_obj.split(
+        test_split=config.TEST_SPLIT, val_split=config.VAL_SPLIT
+    )
+
+    logger.info(f"Length of train dataset: {len(train_dataset)}")
+    logger.info(f"Length of val dataset: {len(val_dataset)}")
+    logger.info(f"Length of test dataset: {len(test_dataset)}")
 
     # tokenize the dataset in both languages using the entire dataset
+    logger.info("Tokenizing the dataset")
     tokenizer_src = TokenizeDataset(
         dataset=dataset["train"],
         language=config.LANG_SRC,
