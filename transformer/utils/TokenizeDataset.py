@@ -19,12 +19,7 @@ class TokenizeDataset:
         trainer = WordLevelTrainer(
             special_tokens=["[UNK]", "[PAD]", "[SOS]", "[EOS]"], min_frequency=2
         )
-        print(f"Sample 0 :{dataset[0]}")
-        print(f"Sample 0 :{dataset[1]}")
-
         text_iter = (example[language] for example in dataset)
-        print(type(text_iter))
-        # print(len(text_iter))
         tokenizer.train_from_iterator(text_iter, trainer=trainer)
         tokenizer.save(str(self.tokenizer_path))
         self.tokenizer = tokenizer

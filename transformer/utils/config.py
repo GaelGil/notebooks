@@ -22,6 +22,9 @@ class Config(BaseModel):
     DATA_PATH: str
     MAX_TO_KEEP: int
     CHECKPOINT_PATH: str
+    TRAIN_SPLIT: float
+    VAL_SPLIT: float
+    TEST_SPLIT: float
 
 
 config = Config(
@@ -42,7 +45,10 @@ config = Config(
     EXPERIMENT_NAME="runs/model",
     DROPOUT=0.1,
     DEVICE="CUDA",
-    DATA_PATH="./data",
+    DATA_PATH="somosnlp-hackathon-2022/Axolotl-Spanish-Nahuatl",
     MAX_TO_KEEP=5,
     CHECKPOINT_PATH="./checkpoints",
+    TRAIN_SPLIT=0.9,
+    VAL_SPLIT=0.05,
+    TEST_SPLIT=0.05,
 )

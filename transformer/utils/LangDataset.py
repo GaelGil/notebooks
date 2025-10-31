@@ -5,29 +5,27 @@ from torch.utils.data import DataLoader
 
 
 class LangDataset:
-    def __init__(self):
+    def __init__(self, dataset_name: str):
         self.dataset = None
+        self.dataset_name = dataset_name
         pass
 
     def load_dataset(self):
-        self.dataset = load_dataset("somosnlp-hackathon-2022/Axolotl-Spanish-Nahuatl")
+        self.dataset = load_dataset(self.dataset_name)
 
         return self.dataset
 
     def length(self):
-        return len(self.dataset)
+        return len(self.dataset["train"])
 
-    def split(self, test_size=0.1, val_size=0.1, seed=42):
-        # Split training into train/val if needed
+    def split(self, test_split: float, val_split: float, seed: int = 42):
         train_valid = self.dataset["train"].train_test_split(
-            test_size=val_size, seed=seed
+            test_size=(val_split + test_split), seed=seed
         )
         train_ds = train_valid["train"]
         val_ds = train_valid["test"]
 
-        # If dataset already has a test split, use it
-        test_ds = self.dataset.get("test", None)
-
+        test_ds = val_ds.train_test_split(test_size=test_split, seed=seed)["test"]
         return train_ds, val_ds, test_ds
 
     def to_data_loader(self, train_ds, val_ds, batch_size=32):

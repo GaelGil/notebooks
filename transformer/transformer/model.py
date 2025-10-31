@@ -31,28 +31,33 @@ class InputEmbeddings(nn.Module):
 
 
 class PositionalEncoding(nn.Module):
-    def setup(self, d_model: int, seq_len: int, dropout: float = 0.1):
+    d_model: int
+    seq_len: int
+    dropout_rate: float
+
+    def setup(self):
         """
         Args:
             d_model: embedding dimension
             seq_len: maximum input sequence length
             dropout: dropout rate (used during training)
         """
-        self.d_model = d_model
-        self.seq_len = seq_len
-        self.dropout = nn.Dropout(rate=dropout)
+
+        self.dropout = nn.Dropout(rate=self.dropout_rate)
 
         # create positon vector
         # for example, if seq_len = 5, then position = [0, 1, 2, 3, 4]
         # in our case we create a vector of size seq_len
-        position = jnp.arange(seq_len)[:, None]  # (seq_len, 1)
+        position = jnp.arange(self.seq_len)[:, None]  # (seq_len, 1)
 
         # create a vector of size d_model/2
-        div_term = jnp.exp(jnp.arange(0, d_model, 2) * (-jnp.log(10000.0) / d_model))
+        div_term = jnp.exp(
+            jnp.arange(0, self.d_model, 2) * (-jnp.log(10000.0) / self.d_model)
+        )
 
         # create a matrix of size (seq_len, d_model) which is
         # the same as embeddings and fill with zeros
-        pe = jnp.zeros((seq_len, d_model))
+        pe = jnp.zeros((self.seq_len, self.d_model))
 
         # apply sin and cos to even and odd indices in pe matrix
         pe = pe.at[:, 0::2].set(jnp.sin(position * div_term))
@@ -134,7 +139,11 @@ class MultiHeadAttentionBlock(nn.Module):
     Multi Head Attention Block
     """
 
-    def setup(self, d_model: int, n_heads: int, dropout: float) -> None:
+    d_model: int
+    n_heads: int
+    dropout_rate: float
+
+    def setup(self) -> None:
         """
 
         Args:
@@ -145,16 +154,14 @@ class MultiHeadAttentionBlock(nn.Module):
         Returns:
             None
         """
-        self.d_model = d_model
-        self.n_heads = n_heads
 
-        assert d_model % n_heads == 0, "d_model must be divisible by n_heads"
-        self.d_k = d_model // n_heads
-        self.w_q = nn.Dense(features=d_model)
-        self.w_k = nn.Dense(features=d_model)
-        self.w_v = nn.Dense(features=d_model)
-        self.w_o = nn.Dense(features=d_model)
-        self.dropout = nn.Dropout(rate=dropout)
+        assert self.d_model % self.n_heads == 0, "d_model must be divisible by n_heads"
+        self.d_k = self.d_model // self.n_heads
+        self.w_q = nn.Dense(features=self.d_model)
+        self.w_k = nn.Dense(features=self.d_model)
+        self.w_v = nn.Dense(features=self.d_model)
+        self.w_o = nn.Dense(features=self.d_model)
+        self.dropout = nn.Dropout(rate=self.dropout_rate)
 
     @staticmethod
     def scaled_dot_product_attention(
@@ -194,7 +201,6 @@ class MultiHeadAttentionBlock(nn.Module):
         key: jnp.ndarray = self.w_k(k)
         value: jnp.ndarray = self.w_v(v)
 
-        # reshape using .view
         # (seq_len, d_model) -> (seq_len, n_heads, d_k) -> (n_heads, seq_len, d_k)
         # where dk = d_model // n_heads
         # (n, 512) -> (n, h, dk) -> (h, n, dk)
@@ -206,23 +212,28 @@ class MultiHeadAttentionBlock(nn.Module):
         # 8 Heads where each head contains a matrix of n vectors of dimension 64
         # keep the batch dimension the same and the sequence length the same
         # split the embeddings into 8 heads
-        query = query.view(
+        query = query.reshape(
             query.shape[0], query.shape[1], self.n_heads, self.d_k
-        ).transpose(1, 2)
-        key = key.view(key.shape[0], key.shape[1], self.n_heads, self.d_k).transpose(
-            1, 2
+        ).transpose(0, 2, 1, 3)
+        key = key.reshape(key.shape[0], key.shape[1], self.n_heads, self.d_k).transpose(
+            0, 2, 1, 3
         )
-        value = value.view(
+        value = value.reshape(
             value.shape[0], value.shape[1], self.n_heads, self.d_k
-        ).transpose(1, 2)
+        ).transpose(0, 2, 1, 3)
 
         # apply scaled dot product attention to each head
         x = MultiHeadAttentionBlock.scaled_dot_product_attention(
-            query, key, value, self.dropout
+            query=query,
+            key=key,
+            value=value,
+            dropout=self.dropout,
+            training=self.training,
         )
 
         # reshape back to (seq_len, d_model)
-        x = x.transpose(1, 2).contiguous().view(x.shape[0], -1, self.d_model)
+        # x = x.transpose(1, 2).contiguous().reshape(x.shape[0], -1, self.d_model)
+        x = jnp.transpose(x, (0, 2, 1, 3)).reshape(x.shape[0], -1, self.d_model)
         x = self.w_o(x)
         return x
 
@@ -293,7 +304,9 @@ class EncoderBlock(nn.Module):
 
 
 class Encoder(nn.Module):
-    def setup(self, blocks: nn.Sequential) -> None:
+    encoder_blocks: nn.Sequential
+
+    def setup(self) -> None:
         """
         Args:
             blocks: list of encoder blocks
@@ -301,7 +314,7 @@ class Encoder(nn.Module):
         Returns:
             None
         """
-        self.blocks: nn.Sequential = blocks
+        self.blocks: nn.Sequential = self.encoder_blocks
         self.norm = LayerNorm()
 
     def __call__(self, x, mask):
@@ -311,23 +324,24 @@ class Encoder(nn.Module):
 
 
 class DecoderBlock(nn.Module):
+    d_model: int
+    n_heads: int
+    d_ff: int
+    dropout_rate: float
+
     def setup(
         self,
-        d_model: int,
-        n_heads: int,
-        d_ff: int,
-        dropout: float,
     ) -> None:
         self.masked_multi_head_attention_block = MultiHeadAttentionBlock(
-            d_model=d_model, n_heads=n_heads, dropout=dropout
+            d_model=self.d_model, n_heads=self.n_heads, dropout=self.dropout_rate
         )
         self.cross_attention_block = MultiHeadAttentionBlock(
-            d_model=d_model, n_heads=n_heads, dropout=dropout
+            d_model=self.d_model, n_heads=self.n_heads, dropout=self.dropout_rate
         )
         self.feed_forward_block = FeedForwardBlock(
-            d_model=d_model, d_ff=d_ff, dropout=dropout
+            d_model=self.d_model, d_ff=self.d_ff, dropout=self.dropout_rate
         )
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = nn.Dropout(self.dropout_rate)
         self.norm1 = LayerNorm()
         self.norm2 = LayerNorm()
         self.norm3 = LayerNorm()
@@ -359,7 +373,9 @@ class DecoderBlock(nn.Module):
 
 
 class Decoder(nn.Module):
-    def setup(self, blocks: nn.Sequential) -> None:
+    decoder_blocks: nn.Sequential
+
+    def setup(self) -> None:
         """
         Args:
             blocks: list of decoder blocks
@@ -367,7 +383,7 @@ class Decoder(nn.Module):
         Returns:
             None
         """
-        self.blocks: nn.Sequential = blocks
+        self.blocks: nn.Sequential = self.decoder_blocks
         self.norm = LayerNorm()
 
     def __call__(self, x, encoder_output, src_mask, target_mask):
@@ -388,8 +404,10 @@ class ProjectionLayer(nn.Module):
         None
     """
 
-    def setup(self, vocab_size: int) -> None:
-        self.linear = nn.Dense(features=vocab_size)
+    vocab_size: int
+
+    def setup(self) -> None:
+        self.linear = nn.Dense(features=self.vocab_size)
 
     def __call__(self, x):
         # (seq_len, d_model) --> (seq_len, vocab_size)
