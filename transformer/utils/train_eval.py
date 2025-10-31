@@ -51,7 +51,7 @@ def train(
     return state
 
 
-@nnx.jit
+@jax.jit
 def train_step(
     state: train_state.TrainState,
     batch,
@@ -70,6 +70,7 @@ def train_step(
     Returns:
         None
     """
+    seq, target = batch
 
     # define loss function
     def loss_fn(params):
@@ -77,10 +78,10 @@ def train_step(
         Compute the loss function for a single batch
         """
         # pass batch through the model in training state
-        logits = state.apply_fn({"params": params}, batch[0], training=True)
+        logits = state.apply_fn({"params": params}, seq, training=True)
         # calculate mean loss for the batch
         loss = optax.softmax_cross_entropy(
-            logits=logits.squeeze(), labels=batch[1]
+            logits=logits.squeeze(), labels=target
         ).mean()
         return loss
 
@@ -108,12 +109,13 @@ def eval(state: train_state.TrainState, val_loader: DataLoader):
     return num_correct / total
 
 
-@nnx.jit
+@jax.jit
 def eval_step(state: train_state.TrainState, batch):
+    seq, target = batch
     # pass batch through the model in training state
-    logits = state.apply_fn(state.params, batch[0], training=False)
+    logits = state.apply_fn(state.params, seq, training=False)
     logits = logits.squeeze()
     # get predictions from logits
     preditcions = jnp.round(nnx.softmax(logits))
     # return number of correct predictions
-    return preditcions == batch[1]
+    return preditcions == target
