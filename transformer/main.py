@@ -1,4 +1,4 @@
-from logging import getLogger
+import logging
 
 import jax
 import optax
@@ -10,7 +10,8 @@ from utils.config import config
 from utils.LangDataset import LangDataset
 from utils.train_eval import train
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def main():
