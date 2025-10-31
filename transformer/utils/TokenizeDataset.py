@@ -25,14 +25,21 @@ class TokenizeDataset:
             None
         """
         self.language = language
+        self.dataset = dataset
         self.tokenizer_path = Path(tokenizer_path.format(language))
         tokenizer = Tokenizer(WordLevel(unk_token="[UNK]"))
         tokenizer.pre_tokenizer = Whitespace()
         trainer = WordLevelTrainer(
             special_tokens=["[UNK]", "[PAD]", "[SOS]", "[EOS]"], min_frequency=2
         )
-        text_iter = (example[language] for example in dataset)
-        tokenizer.train_from_iterator(text_iter, trainer=trainer)
+
+        def text_iter():
+            for example in dataset:
+                text = example.get(language)
+                if text:
+                    yield text
+
+        tokenizer.train_from_iterator(text_iter(), trainer=trainer)
         tokenizer.save(str(self.tokenizer_path))
         self.tokenizer = tokenizer
 
@@ -48,9 +55,41 @@ class TokenizeDataset:
         """
         return self.tokenizer
 
+    def check_null(self):
+        """
+        Check if the tokenizer is null
+
+        Args:
+            None
+
+        Returns:
+            True if the tokenizer is null
+        """
+        for example in self.dataset:
+            text = example.get(self.language)
+            if not isinstance(text, str) or not text.strip():
+                self.dataset.remove(example)
+        return True
+
+    def get_token_ids(self):
+        """
+        Get the token ids for the dataset
+
+        Args:
+            None
+
+        Returns:
+            List of token ids
+        """
+        token_ids = []
+        for example in self.dataset:
+            print(example)
+            token_ids.append(self.encode(example))
+        return token_ids
+
     def encode(self, example, max_len=128) -> dict:
         """
-        Encode the dataset
+        Encode an example
 
 
         Args:
@@ -61,16 +100,16 @@ class TokenizeDataset:
             Dict containing the encoded sequence
 
         """
-        seq_ids = (
+        token_ids = (
             [self.tokenizer.token_to_id("[SOS]")]
             + self.tokenizer.encode(example[self.language]).ids
             + [self.tokenizer.token_to_id("[EOS]")]
         )
 
-        seq_ids = seq_ids[:max_len] + [self.tokenizer.token_to_id("[PAD]")] * (
-            max_len - len(seq_ids)
+        token_ids = token_ids[:max_len] + [self.tokenizer.token_to_id("[PAD]")] * (
+            max_len - len(token_ids)
         )
 
         return {
-            "ids": seq_ids,
+            "ids": token_ids,
         }

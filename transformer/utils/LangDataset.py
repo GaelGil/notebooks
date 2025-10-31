@@ -1,5 +1,6 @@
 from datasets import load_dataset
 from torch.utils.data import DataLoader
+
 # Load a public dataset
 # Replace "username/my_dataset" with the actual dataset ID from the Hugging Face Hub
 
@@ -32,6 +33,24 @@ class LangDataset:
             None
         """
         return len(self.dataset["train"])
+
+    def check_null(self, src_lang, target_lang):
+        """
+        Check if the tokenizer is null
+
+        Args:
+            None
+
+        Returns:
+            True if the tokenizer is null
+        """
+
+        for example in self.dataset:
+            src_text = example.get(src_lang)
+            target_text = example.get(target_lang)
+            if not isinstance(text, str) or not text.strip():
+                self.dataset.remove(example)
+        return True
 
     def split(self, test_split: float, val_split: float, seed: int = 42):
         train_valid = self.dataset["train"].train_test_split(
