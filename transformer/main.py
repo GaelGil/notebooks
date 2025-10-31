@@ -1,14 +1,8 @@
 import logging
 
-import jax
-import orbax.checkpoint as ocp
-from flax.training import train_state
-
 from utils.config import config
-from utils.init_train_state import init_train_state
 from utils.LangDataset import LangDataset
 from utils.TokenizeDataset import TokenizeDataset
-from utils.train_eval import train
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -16,8 +10,8 @@ logger.setLevel(logging.INFO)
 
 def main():
     # set the device
-    device = jax.devices("gpu")[0]
-    logger.info(f"Using device: {device}")
+    # device = jax.devices("gpu")[0]
+    # logger.info(f"Using device: {device}")
 
     # load the dataset
     logger.info(f"Loading Dataset from: {config.DATA_PATH}")
@@ -38,52 +32,50 @@ def main():
         tokenizer_path=config.TOKENIZER_FILE,
     )
 
-    # get the tokenizers
-    src_tokenizer = src_tokenizer.get_tokenizer()
-    target_tokenizer = target_tokenizer.get_tokenizer()
-    # encode the dataset
-    src_ids = src_tokenizer.encode(raw_dataset["train"], max_len=128)
-    target_ids = target_tokenizer.encode(raw_dataset["train"], max_len=128)
+    src_ids = src_tokenizer.get_token_ids()
+    target_ids = target_tokenizer.get_token_ids()
+    logger.info(f"Length of tokenized dataset: {len(src_ids)}")
+    logger.info(f"Length of tokenized dataset: {len(target_ids)}")
 
-    # logger.info("Splitting the dataset into train, val and test sets")
-    # # split the dataset
-    train_loader, val_loader, test_loader = dataset.split_data(
-        train_split=config.TRAIN_SPLIT,
-        val_split=config.VAL_SPLIT,
-        batch_size=config.BATCH_SIZE,
-        num_workers=config.NUM_WORKERS,
-    )
-    # initialize the model
-    logger.info("Initializing the model and optimizer")
-    state: train_state.TrainState = init_train_state(config)
+    # # logger.info("Splitting the dataset into train, val and test sets")
+    # # # split the dataset
+    # train_loader, val_loader, test_loader = dataset.split_data(
+    #     train_split=config.TRAIN_SPLIT,
+    #     val_split=config.VAL_SPLIT,
+    #     batch_size=config.BATCH_SIZE,
+    #     num_workers=config.NUM_WORKERS,
+    # )
+    # # initialize the model
+    # logger.info("Initializing the model and optimizer")
+    # state: train_state.TrainState = init_train_state(config)
 
-    # create checkpoint
-    checkpointer = ocp.StandardCheckpointer()
+    # # create checkpoint
+    # checkpointer = ocp.StandardCheckpointer()
 
-    # checkpoint options
-    checkpoint_options = ocp.CheckpointManagerOptions(
-        max_to_keep=config.MAX_TO_KEEP, save_interval_steps=2
-    )
-    # checkpoint manager
-    manager = ocp.CheckpointManager(
-        directory=config.CHECKPOINT_PATH,
-        options=checkpoint_options,
-        handler_registry=checkpointer,
-    )
+    # # checkpoint options
+    # checkpoint_options = ocp.CheckpointManagerOptions(
+    #     max_to_keep=config.MAX_TO_KEEP, save_interval_steps=2
+    # )
+    # # checkpoint manager
+    # manager = ocp.CheckpointManager(
+    #     directory=config.CHECKPOINT_PATH,
+    #     options=checkpoint_options,
+    #     handler_registry=checkpointer,
+    # )
 
-    # restore from latest checkpoint if exists
-    if manager.latest_step():
-        logger.info("Restoring from latest checkpoint")
-        manager.restore(manager.latest_step())
-    else:
-        logger.info("No checkpoint found, training from scratch")
-    train(
-        state=state,
-        train_loader=train_loader,
-        val_loader=val_loader,
-        num_epochs=config.EPOCHS,
-        manager=manager,
-    )
+    # # restore from latest checkpoint if exists
+    # if manager.latest_step():
+    #     logger.info("Restoring from latest checkpoint")
+    #     manager.restore(manager.latest_step())
+    # else:
+    #     logger.info("No checkpoint found, training from scratch")
+    # train(
+    #     state=state,
+    #     train_loader=train_loader,
+    #     val_loader=val_loader,
+    #     num_epochs=config.EPOCHS,
+    #     manager=manager,
+    # )
 
 
 if __name__ == "__main__":
