@@ -27,22 +27,23 @@ def main():
 
     # tokenize the dataset in both languages using the entire dataset
     logger.info("Tokenizing the dataset")
-    tokenizer_src = TokenizeDataset(
+    src_tokenizer = TokenizeDataset(
         dataset=raw_dataset["train"],
         language=config.LANG_SRC,
         tokenizer_path=config.TOKENIZER_FILE,
     )
-    tokenizer_target = TokenizeDataset(
+    target_tokenizer = TokenizeDataset(
         dataset=raw_dataset["train"],
         language=config.LANG_TARGET,
         tokenizer_path=config.TOKENIZER_FILE,
     )
 
     # get the tokenizers
-    tokenizer_src = tokenizer_src.get_tokenizer()
-    tokenizer_target = tokenizer_target.get_tokenizer()
-    src = tokenizer_src.encode(raw_dataset["train"][0], max_len=128)
-    target = tokenizer_target.encode(raw_dataset["train"][1], max_len=128)
+    src_tokenizer = src_tokenizer.get_tokenizer()
+    target_tokenizer = target_tokenizer.get_tokenizer()
+    # encode the dataset
+    src_ids = src_tokenizer.encode(raw_dataset["train"], max_len=128)
+    target_ids = target_tokenizer.encode(raw_dataset["train"], max_len=128)
 
     # logger.info("Splitting the dataset into train, val and test sets")
     # # split the dataset
