@@ -1,13 +1,13 @@
 import logging
 
 import jax
-import optax
 import orbax.checkpoint as ocp
 from flax.training import train_state
-from utils.init_train_state import init_train_state
-from utils.TokenizeDataset import TokenizeDataset
+
 from utils.config import config
+from utils.init_train_state import init_train_state
 from utils.LangDataset import LangDataset
+from utils.TokenizeDataset import TokenizeDataset
 from utils.train_eval import train
 
 logger = logging.getLogger(__name__)
