@@ -1,8 +1,9 @@
+from pathlib import Path
+
 from tokenizers import Tokenizer
 from tokenizers.models import WordLevel
-from tokenizers.trainers import WordLevelTrainer
 from tokenizers.pre_tokenizers import Whitespace
-from pathlib import Path
+from tokenizers.trainers import WordLevelTrainer
 
 
 class TokenizeDataset:
@@ -27,5 +28,24 @@ class TokenizeDataset:
     def get_tokenizer(self):
         return self.tokenizer
 
-    def encode(self, text):
-        return self.tokenizer.encode(text)
+    def encode(self, example, tokenizer_src, tokenizer_target, max_len=128):
+        src = (
+            [tokenizer_src.token_to_id("[SOS]")]
+            + tokenizer_src.encode(example["en"]).ids
+            + [tokenizer_src.token_to_id("[EOS]")]
+        )
+
+        tgt = (
+            [tokenizer_target.token_to_id("[SOS]")]
+            + tokenizer_target.encode(example["de"]).ids
+            + [tokenizer_target.token_to_id("[EOS]")]
+        )
+
+        src = src[:max_len] + [tokenizer_src.token_to_id("[PAD]")] * (
+            max_len - len(src)
+        )
+        tgt = tgt[:max_len] + [tokenizer_target.token_to_id("[PAD]")] * (
+            max_len - len(tgt)
+        )
+
+        return {"src_ids": src, "tgt_ids": tgt}
