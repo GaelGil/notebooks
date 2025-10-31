@@ -14,8 +14,6 @@ class Config(BaseModel):
     N: int
     LANG_SRC: str
     LANG_TARGET: str
-    MODEL_FOLDER: str
-    MODEL_BASENAME: str
     PRELOAD: None
     TOKENIZER_FILE: str
     EXPERIMENT_NAME: str
@@ -39,8 +37,6 @@ config = Config(
     N=6,
     LANG_SRC="sp",
     LANG_TARGET="nah",
-    MODEL_FOLDER="./models",
-    MODEL_BASENAME="tmodel_",
     PRELOAD=None,
     TOKENIZER_FILE="tokenizer_{}.json",
     EXPERIMENT_NAME="runs/model",
