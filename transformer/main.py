@@ -21,19 +21,9 @@ def main():
 
     # load the dataset
     logger.info(f"Loading Dataset from: {config.DATA_PATH}")
-    dataset_obj = LangDataset(dataset_name=config.DATA_PATH)
-    dataset = dataset_obj.load_dataset()
-    logger.info(f"Length of dataset: {dataset_obj.length()}")
-
-    # split the into train, val and test sets
-    logger.info("Splitting the dataset into train, val and test sets")
-    train_dataset, val_dataset, test_dataset = dataset_obj.split(
-        test_split=config.TEST_SPLIT, val_split=config.VAL_SPLIT
-    )
-
-    logger.info(f"Length of train dataset: {len(train_dataset)}")
-    logger.info(f"Length of val dataset: {len(val_dataset)}")
-    logger.info(f"Length of test dataset: {len(test_dataset)}")
+    dataset = LangDataset(dataset_name=config.DATA_PATH)
+    dataset = dataset.load_dataset()
+    logger.info(f"Length of dataset: {dataset.length()}")
 
     # tokenize the dataset in both languages using the entire dataset
     logger.info("Tokenizing the dataset")
@@ -54,43 +44,43 @@ def main():
 
     # logger.info("Splitting the dataset into train, val and test sets")
     # # split the dataset
-    # train_loader, val_loader, test_loader = dataset.split_data(
-    #     train_split=config.TRAIN_SPLIT,
-    #     val_split=config.VAL_SPLIT,
-    #     batch_size=config.BATCH_SIZE,
-    #     num_workers=config.NUM_WORKERS,
-    # )
-    # # initialize the model
-    # logger.info("Initializing the model and optimizer")
-    # state: train_state.TrainState = init_train_state(config)
+    train_loader, val_loader, test_loader = dataset.split_data(
+        train_split=config.TRAIN_SPLIT,
+        val_split=config.VAL_SPLIT,
+        batch_size=config.BATCH_SIZE,
+        num_workers=config.NUM_WORKERS,
+    )
+    # initialize the model
+    logger.info("Initializing the model and optimizer")
+    state: train_state.TrainState = init_train_state(config)
 
-    # # create checkpoint
-    # checkpointer = ocp.StandardCheckpointer()
+    # create checkpoint
+    checkpointer = ocp.StandardCheckpointer()
 
-    # # checkpoint options
-    # checkpoint_options = ocp.CheckpointManagerOptions(
-    #     max_to_keep=config.MAX_TO_KEEP, save_interval_steps=2
-    # )
-    # # checkpoint manager
-    # manager = ocp.CheckpointManager(
-    #     directory=config.CHECKPOINT_PATH,
-    #     options=checkpoint_options,
-    #     handler_registry=checkpointer,
-    # )
+    # checkpoint options
+    checkpoint_options = ocp.CheckpointManagerOptions(
+        max_to_keep=config.MAX_TO_KEEP, save_interval_steps=2
+    )
+    # checkpoint manager
+    manager = ocp.CheckpointManager(
+        directory=config.CHECKPOINT_PATH,
+        options=checkpoint_options,
+        handler_registry=checkpointer,
+    )
 
-    # # restore from latest checkpoint if exists
-    # if manager.latest_step():
-    #     logger.info("Restoring from latest checkpoint")
-    #     manager.restore(manager.latest_step())
-    # else:
-    #     logger.info("No checkpoint found, training from scratch")
-    # train(
-    #     state=state,
-    #     train_loader=train_loader,
-    #     val_loader=val_loader,
-    #     num_epochs=config.EPOCHS,
-    #     manager=manager,
-    # )
+    # restore from latest checkpoint if exists
+    if manager.latest_step():
+        logger.info("Restoring from latest checkpoint")
+        manager.restore(manager.latest_step())
+    else:
+        logger.info("No checkpoint found, training from scratch")
+    train(
+        state=state,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        num_epochs=config.EPOCHS,
+        manager=manager,
+    )
 
 
 if __name__ == "__main__":

@@ -25,6 +25,7 @@ class Config(BaseModel):
     TRAIN_SPLIT: float
     VAL_SPLIT: float
     TEST_SPLIT: float
+    NUM_WORKERS: int
 
 
 config = Config(
@@ -51,4 +52,5 @@ config = Config(
     TRAIN_SPLIT=0.9,
     VAL_SPLIT=0.05,
     TEST_SPLIT=0.05,
+    NUM_WORKERS=0,
 )

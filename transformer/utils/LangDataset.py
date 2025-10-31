@@ -11,11 +11,26 @@ class LangDataset:
         pass
 
     def load_dataset(self):
-        self.dataset = load_dataset(self.dataset_name)
+        """
+        Load the dataset from the Hugging Face Hub
+        Args:
+            None
 
+        Returns:
+            None
+        """
+        self.dataset = load_dataset(self.dataset_name)
         return self.dataset
 
     def length(self):
+        """
+        Get the length of the dataset
+        Args:
+            None
+
+        Returns:
+            None
+        """
         return len(self.dataset["train"])
 
     def split(self, test_split: float, val_split: float, seed: int = 42):
