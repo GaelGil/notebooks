@@ -18,13 +18,17 @@ def main():
     device = jax.devices("gpu")[0]
     logger.info(f"Using device: {device}")
 
-    # initialize the dataset
-    logger.info(f"Loading Dataset from: {config.DATA_PATH}")
-
     # load the dataset
-    dataset = LangDataset()
-    dataset = dataset.load_dataset()
-    # tokenize the dataset
+    logger.info(f"Loading Dataset from: {config.DATA_PATH}")
+    dataset_obj = LangDataset()
+    dataset = dataset_obj.load_dataset()
+
+    print(f"Dataset length: {dataset_obj.length()}")
+
+    # split the into train, val and test
+    train_dataset, val_dataset, test_dataset = dataset_obj.split()
+    # print(dataset["train"][0][config.LANG_SRC])
+    # tokenize the dataset in both languages using the entire dataset
     tokenizer_src = TokenizeDataset(
         dataset=dataset["train"],
         language=config.LANG_SRC,
@@ -35,13 +39,10 @@ def main():
         language=config.LANG_TARGET,
         tokenizer_path=config.TOKENIZER_FILE,
     )
-    # split the dataset
+
+    # get the tokenizers
     tokenizer_src = tokenizer_src.get_tokenizer()
     tokenizer_target = tokenizer_target.get_tokenizer()
-
-    print(dataset)  # Shows dataset splits and sizes
-    print(dataset["train"][0])  # Shows the first training example
-    # logger.info(f"Dataset length: {dataset.get_datset_length()}")
 
     # logger.info("Splitting the dataset into train, val and test sets")
     # # split the dataset
