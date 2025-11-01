@@ -86,8 +86,6 @@ class TokenizeDataset:
         for example in self.dataset:
             # get the text with the corresponding language
             text = example.get(self.language)
-            if not isinstance(text, str) or not text.strip():
-                continue  # or log & skip
             token_ids.append(self.encode(text))
         return token_ids
 
