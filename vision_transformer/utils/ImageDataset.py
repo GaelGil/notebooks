@@ -1,9 +1,10 @@
+import os
+
 import jax.numpy as jnp
 import torch
 from jax.tree_util import tree_map
 from torch.utils.data import DataLoader, default_collate
 from torchvision.datasets import ImageFolder
-import os
 
 
 class ImageDataset:
@@ -14,7 +15,7 @@ class ImageDataset:
         self.test_loader: DataLoader
         self.val_loader: DataLoader
 
-    def get_datset_length(self):
+    def get_length(self):
         return self.dataset_len
 
     def numpy_collate(self, batch):
