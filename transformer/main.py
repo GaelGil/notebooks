@@ -41,11 +41,11 @@ def main():
 
     # get the token ids for the dataset
     logger.info("Getting the token ids ...")
-    src_ids = src_tokenizer.get_token_ids()
-    target_ids = target_tokenizer.get_token_ids()
+    src_data = src_tokenizer.get_token_ids()
+    target_data = target_tokenizer.get_token_ids()
 
     # set the token ids for the dataset
-    lang_dataset.set_src_target_ids(src_ids=src_ids, target_ids=target_ids)
+    lang_dataset.set_src_target_ids(src_data=src_data, target_data=target_data)
 
     # split the src and target ids into train, val and test sets
     lang_dataset.split(
