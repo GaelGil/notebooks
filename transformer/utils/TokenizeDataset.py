@@ -82,18 +82,22 @@ class TokenizeDataset:
             List of token ids
         """
         token_ids = []
+        # for example in self.dataset:
         for example in self.dataset:
-            print(example)
-            token_ids.append(self.encode(example))
+            # get the text with the corresponding language
+            text = example.get(self.language)
+            if not isinstance(text, str) or not text.strip():
+                continue  # or log & skip
+            token_ids.append(self.encode(text))
         return token_ids
 
-    def encode(self, example, max_len=128) -> dict:
+    def encode(self, text, max_len=128) -> dict:
         """
-        Encode an example
+        Encode the text
 
 
         Args:
-            example: example from the dataset
+            text: example from the dataset
             max_len: maximum length of the sequence
 
         Returns:
@@ -102,7 +106,7 @@ class TokenizeDataset:
         """
         token_ids = (
             [self.tokenizer.token_to_id("[SOS]")]
-            + self.tokenizer.encode(example[self.language]).ids
+            + self.tokenizer.encode(text).ids
             + [self.tokenizer.token_to_id("[EOS]")]
         )
 
