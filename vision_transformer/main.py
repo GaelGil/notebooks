@@ -32,7 +32,7 @@ def main():
         num_workers=config.NUM_WORKERS,
         save_splits_path=config.SPLITS_PATH,
     )
-    train_loader, val_loader, test_loader = dataset.get_data_loaders()
+    train_loader, val_loader, test_loader = dataset.get_loaders()
     # initialize the model
     logger.info("Initializing the model and optimizer")
     state = init_train_state(config)
