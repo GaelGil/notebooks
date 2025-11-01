@@ -20,8 +20,8 @@ class LangDataset:
         self.dataset: dict = load_dataset(dataset_name)
         self.src_lang: str = src_lang
         self.target_lang: str = target_lang
-        self.src_ids = None
-        self.target_ids = None
+        self.src_data = None
+        self.target_data = None
         self.src_train_loader = None
         self.src_val_loader = None
         self.src_test_loader = None
@@ -56,9 +56,9 @@ class LangDataset:
         """
         return self.dataset
 
-    def set_src_target_ids(self, src_ids: dict, target_ids: dict):
-        self.src_ids = src_ids
-        self.target_ids = target_ids
+    def set_src_target_ids(self, src_data: dict, target_data: dict):
+        self.src_data = src_data
+        self.target_data = target_data
 
     def valid_pair(self, example):
         src = example.get(self.src_lang)
@@ -94,32 +94,30 @@ class LangDataset:
     def numpy_collate(self, batch):
         return tree_map(jnp.array, default_collate(batch))
 
+    def split_counts(self):
+        src_count = len(self.src_ids)
+        target_count = len(self.target_ids)
+        return src_count, target_count
+
     def split(
         self, train_split: float, val_split: float, batch_size: int, seed: int = 42
     ):
         generator = torch.Generator().manual_seed(seed)
 
-        src_count = len(self.src_ids)
-        target_count = len(self.target_ids)
-
-        src_train_count = int(train_split * src_count)
-        target_train_count = int(train_split * target_count)
-
-        src_val_count = int(val_split * src_count)
-        target_val_count = int(val_split * target_count)
-
-        src_test_count = src_count - src_train_count - src_val_count
-        target_test_count = target_count - target_train_count - target_val_count
+        data_count = len(self.src_data)
+        train_count = int(train_split * data_count)
+        val_count = int(val_split * data_count)
+        test_count = data_count - train_count - val_count
 
         src_train, src_valid, src_test = torch.utils.data.random_split(
-            self.src_ids,
-            (src_train_count, src_val_count, src_test_count),
+            self.src_data,
+            (train_count, val_count, test_count),
             generator=generator,
         )
 
         target_train, target_valid, target_test = torch.utils.data.random_split(
-            self.target_ids,
-            (target_train_count, target_val_count, target_test_count),
+            self.target_data,
+            (train_count, val_count, test_count),
             generator=generator,
         )
 
