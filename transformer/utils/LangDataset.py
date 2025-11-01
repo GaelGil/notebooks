@@ -7,11 +7,27 @@ from torch.utils.data import DataLoader, default_collate
 
 class LangDataset:
     def __init__(self, dataset_name: str, src_lang: str, target_lang: str):
+        """
+        Load the dataset from the Hugging Face Hub
+        Args:
+            dataset_name: name of the dataset
+            src_lang: source language
+            target_lang: target language
+
+        Returns:
+            None
+        """
         self.dataset: dict = load_dataset(dataset_name)
         self.src_lang: str = src_lang
         self.target_lang: str = target_lang
         self.src_ids = None
         self.target_ids = None
+        self.src_train_loader = None
+        self.src_val_loader = None
+        self.src_test_loader = None
+        self.target_train_loader = None
+        self.target_val_loader = None
+        self.target_test_loader = None
 
     def __len__(self):
         """
@@ -78,7 +94,9 @@ class LangDataset:
     def numpy_collate(self, batch):
         return tree_map(jnp.array, default_collate(batch))
 
-    def split(self, train_split: float, val_split: float, seed: int = 42):
+    def split(
+        self, train_split: float, val_split: float, batch_size: int, seed: int = 42
+    ):
         generator = torch.Generator().manual_seed(seed)
 
         src_count = len(self.src_ids)
@@ -105,24 +123,56 @@ class LangDataset:
             generator=generator,
         )
 
-        train_loader = DataLoader(
-            train_ds,
+        src_train_loader = DataLoader(
+            src_train,
             batch_size=batch_size,
             shuffle=True,
             collate_fn=self.numpy_collate,
         )
-        val_loader = DataLoader(
-            val_ds,
+        src_val_loader = DataLoader(
+            src_valid,
             batch_size=batch_size,
             shuffle=False,
             collate_fn=self.numpy_collate,
         )
-        test_loader = DataLoader(
-            test_ds,
+        src_test_loader = DataLoader(
+            src_test,
             batch_size=batch_size,
             shuffle=False,
-            collate_fn=lang_dataset.numpy_collate,
+            collate_fn=self.numpy_collate,
         )
 
+        target_train_loader = DataLoader(
+            target_train,
+            batch_size=batch_size,
+            shuffle=True,
+            collate_fn=self.numpy_collate,
+        )
+        target_val_loader = DataLoader(
+            target_valid,
+            batch_size=batch_size,
+            shuffle=False,
+            collate_fn=self.numpy_collate,
+        )
+        target_test_loader = DataLoader(
+            target_test,
+            batch_size=batch_size,
+            shuffle=False,
+            collate_fn=self.numpy_collate,
+        )
+        self.src_train_loader = src_train_loader
+        self.src_val_loader = src_val_loader
+        self.src_test_loader = src_test_loader
+        self.target_train_loader = target_train_loader
+        self.target_val_loader = target_val_loader
+        self.target_test_loader = target_test_loader
+
     def get_loaders(self):
-        pass
+        return (
+            self.src_train_loader,
+            self.src_val_loader,
+            self.src_test_loader,
+            self.target_train_loader,
+            self.target_val_loader,
+            self.target_test_loader,
+        )
