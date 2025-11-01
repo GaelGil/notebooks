@@ -1,5 +1,4 @@
-from logging import getLogger
-
+from absl import logging
 import jax
 import orbax.checkpoint as ocp
 
@@ -8,22 +7,22 @@ from utils.ImageDataset import ImageDataset
 from utils.init_train_state import init_train_state
 from utils.train_eval import train
 
-logger = getLogger(__name__)
 
+logging.set_verbosity(logging.INFO)
 
 def main():
     # set the device
     device = jax.devices("gpu")[0]
-    print(f"Using device: {device}")
+    logging.info(f"Using device: {device}")
 
     # initialize the dataset
-    logger.info(f"Loading Dataset from: {config.DATA_PATH}")
+    logging.info(f"Loading Dataset from: {config.DATA_PATH}")
     dataset = ImageDataset(
         dataset_path=config.DATA_PATH, transformations=IMG_TRANSFORMATIONS
     )
-    logger.info(f"Dataset length: {dataset.get_length()}")
+    logging.info(f"Dataset length: {dataset.get_length()}")
 
-    logger.info("Splitting the dataset into train, val and test sets")
+    logging.info("Splitting the dataset into train, val and test sets")
     # split the dataset
     dataset.split_data(
         train_split=config.TRAIN_SPLIT,
@@ -34,44 +33,66 @@ def main():
     )
     train_loader, val_loader, test_loader = dataset.get_loaders()
     # initialize the model
-    logger.info("Initializing the model and optimizer")
+    logging.info("Initializing the model and optimizer")
     state = init_train_state(config)
 
-    # checkpoint options
+
+    # metrics_handler = ocp.JsonCheckpointHandler()
+    #     manager = ocp.CheckpointManager(
+    #     root_dir="./checkpoints",
+    #     checkpointers={
+    #         "state": ocp.PyTreeCheckpointHandler(),
+    #         "metrics": metrics_handler
+    #     }
+    # )
+
+#     manager.save(
+#     step=epoch,
+#     items={
+#         "state": state,         # model/optimizer state
+#         "metrics": metrics      # dict of metrics
+#     }
+# )
+    # # checkpoint options
     checkpoint_options = ocp.CheckpointManagerOptions(
         max_to_keep=config.MAX_TO_KEEP,
         save_interval_steps=config.SAVE_INTERVAL,
         enable_async_checkpointing=config.ASYNC_CHECKPOINTING,
-    )
+        best_fn=lambda metrics: metrics['val_accuracy'],
+    )   
     # checkpoint manager
     manager = ocp.CheckpointManager(
         directory=config.CHECKPOINT_PATH.resolve(),
         options=checkpoint_options,
     )
 
-    # restore from latest checkpoint if exists
-    if manager.latest_step():
-        logger.info("Restoring from latest checkpoint")
-        state = manager.restore(
-            manager.latest_step(),
+    # restore state
+    if manager.latest_step(): # check if there is a latest checkpoint
+        logging.info("Restoring from latest checkpoint")
+        best_step = manager.best_step() # get the best step
+        # restore from latest checkpoint
+        restored = manager.restore(
+            step=best_step,
             args=ocp.args.Composite(
-                state=ocp.args.StandardRestore(state),
+                state=ocp.args.StandardRestore(state),  # provide initial state as template
             ),
         )
+        # update state to the restored state
+        state = restored.state
     else:
-        logger.info("No checkpoint found, training from scratch")
+        logging.info("No checkpoint found, training from scratch")
     # train the model
-    logger.info("Training the model")
+    logging.info("Training the model")
     train(
         state=state,
         train_loader=train_loader,
         val_loader=val_loader,
         epochs=config.EPOCHS,
         manager=manager,
-        logger=logger,
+        logger=logging,
     )
 
-    logger.info("Saving the final model")
+    logging.info("Saving the final model")
     params = jax.device_get(state.params)
     checkpointer = ocp.Checkpointer(ocp.StandardCheckpointHandler())
     checkpointer.save(config.FINAL_SAVE_PATH, args=ocp.args.StandardSave(params))
