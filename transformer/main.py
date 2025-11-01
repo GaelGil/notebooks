@@ -1,5 +1,7 @@
 import logging
 
+from torch.utils.data import DataLoader
+
 from utils.config import config
 from utils.LangDataset import LangDataset
 from utils.TokenizeDataset import TokenizeDataset
@@ -17,35 +19,45 @@ def main():
 
     # load the dataset
     logger.info(f"Loading Dataset from: {config.DATA_PATH}")
-    dataset = LangDataset(
+    lang_dataset = LangDataset(
         dataset_name=config.DATA_PATH,
         src_lang=config.LANG_SRC,
         target_lang=config.LANG_TARGET,
     )
-    raw_dataset = dataset.load_dataset()
-    logger.info(f"Length of dataset: {dataset.length()}")
-    dataset.handle_null()
-    logger.info(f"Length of dataset: {dataset.length()}")
+    logger.info(f"Length of dataset: {lang_dataset.__len__()}")
+    lang_dataset.handle_null()
+    logger.info(f"Length of dataset after handling null: {lang_dataset.__len__()}")
 
     # tokenize the dataset in both languages using the entire dataset
-    logger.info("Tokenizing the dataset")
+    logger.info("Tokenizing the dataset ...")
     src_tokenizer = TokenizeDataset(
-        dataset=raw_dataset["train"],
+        dataset=lang_dataset.dataset["train"],
         language=config.LANG_SRC,
         tokenizer_path=config.TOKENIZER_FILE,
     )
     target_tokenizer = TokenizeDataset(
-        dataset=raw_dataset["train"],
+        dataset=lang_dataset.dataset["train"],
         language=config.LANG_TARGET,
         tokenizer_path=config.TOKENIZER_FILE,
     )
 
+    # get the token ids
+    logger.info("Getting the token ids ...")
     src_ids = src_tokenizer.get_token_ids()
     target_ids = target_tokenizer.get_token_ids()
-    logger.info(f"Length of tokenized dataset: {len(src_ids)}")
-    logger.info(f"Length of tokenized dataset: {len(target_ids)}")
-    logger.info(f"src token_ids: {src_ids[0]}")
-    logger.info(f"target token_ids: {target_ids[0]}")
+
+    lang_dataset.set_src_target_ids(src_data=src_ids, target_data=target_ids)
+
+    logger.info("Collating the dataset ...")
+    train_loader = DataLoader(
+        dataset=lang_dataset,
+        batch_size=config.BATCH_SIZE,
+        shuffle=True,
+        pin_memory=True,
+        collate_fn=lang_dataset.numpy_collate,
+    )
+    for batch in train_loader:
+        print(batch)
 
     # # logger.info("Splitting the dataset into train, val and test sets")
     # # # split the dataset
