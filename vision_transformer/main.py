@@ -1,9 +1,7 @@
 from logging import getLogger
 
 import jax
-import optax
 import orbax.checkpoint as ocp
-from flax.training import train_state
 
 from utils.config import IMG_TRANSFORMATIONS, config
 from utils.ImageDataset import ImageDataset
@@ -39,8 +37,6 @@ def main():
     logger.info("Initializing the model and optimizer")
     state = init_train_state(config)
 
-
-
     # checkpoint options
     checkpoint_options = ocp.CheckpointManagerOptions(
         max_to_keep=config.MAX_TO_KEEP,
@@ -56,11 +52,12 @@ def main():
     # restore from latest checkpoint if exists
     if manager.latest_step():
         logger.info("Restoring from latest checkpoint")
-        state = manager.restore(manager.latest_step(), args=ocp.args.Composite(
-        state=ocp.args.StandardRestore(state),
-
-    ),
-    )
+        state = manager.restore(
+            manager.latest_step(),
+            args=ocp.args.Composite(
+                state=ocp.args.StandardRestore(state),
+            ),
+        )
     else:
         logger.info("No checkpoint found, training from scratch")
     # train the model
