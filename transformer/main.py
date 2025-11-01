@@ -1,7 +1,5 @@
 import logging
 
-from torch.utils.data import DataLoader
-
 from utils.config import config
 from utils.LangDataset import LangDataset
 from utils.TokenizeDataset import TokenizeDataset
@@ -48,16 +46,13 @@ def main():
 
     lang_dataset.set_src_target_ids(src_ids=src_ids, target_ids=target_ids)
 
-    logger.info("Collating the dataset ...")
-    train_loader = DataLoader(
-        dataset=lang_dataset,
+    train_loader, val_loader, test_loader = lang_dataset.split_data(
+        train_split=config.TRAIN_SPLIT,
+        val_split=config.VAL_SPLIT,
         batch_size=config.BATCH_SIZE,
-        shuffle=True,
-        pin_memory=True,
-        collate_fn=lang_dataset.numpy_collate,
     )
-    for batch in train_loader:
-        print(batch)
+
+    train_laoder, val_loader, test_loader = lang_dataset.get_loaders()
 
     # # logger.info("Splitting the dataset into train, val and test sets")
     # # # split the dataset

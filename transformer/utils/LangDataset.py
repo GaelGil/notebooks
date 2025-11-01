@@ -2,7 +2,7 @@ import jax.numpy as jnp
 import torch
 from datasets import load_dataset
 from jax.tree_util import tree_map
-from torch.utils.data import default_collate
+from torch.utils.data import DataLoader, default_collate
 
 
 class LangDataset:
@@ -77,3 +77,52 @@ class LangDataset:
 
     def numpy_collate(self, batch):
         return tree_map(jnp.array, default_collate(batch))
+
+    def split(self, train_split: float, val_split: float, seed: int = 42):
+        generator = torch.Generator().manual_seed(seed)
+
+        src_count = len(self.src_ids)
+        target_count = len(self.target_ids)
+
+        src_train_count = int(train_split * src_count)
+        target_train_count = int(train_split * target_count)
+
+        src_val_count = int(val_split * src_count)
+        target_val_count = int(val_split * target_count)
+
+        src_test_count = src_count - src_train_count - src_val_count
+        target_test_count = target_count - target_train_count - target_val_count
+
+        src_train, src_valid, src_test = torch.utils.data.random_split(
+            self.src_ids,
+            (src_train_count, src_val_count, src_test_count),
+            generator=generator,
+        )
+
+        target_train, target_valid, target_test = torch.utils.data.random_split(
+            self.target_ids,
+            (target_train_count, target_val_count, target_test_count),
+            generator=generator,
+        )
+
+        train_loader = DataLoader(
+            train_ds,
+            batch_size=batch_size,
+            shuffle=True,
+            collate_fn=self.numpy_collate,
+        )
+        val_loader = DataLoader(
+            val_ds,
+            batch_size=batch_size,
+            shuffle=False,
+            collate_fn=self.numpy_collate,
+        )
+        test_loader = DataLoader(
+            test_ds,
+            batch_size=batch_size,
+            shuffle=False,
+            collate_fn=lang_dataset.numpy_collate,
+        )
+
+    def get_loaders(self):
+        pass
