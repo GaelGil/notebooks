@@ -29,27 +29,39 @@ def train(
     # loop over the dataset for num_epochs
     for epoch in range(epochs):
         # create a tqdm progress bar
-        progress_bar = tqdm(
-            train_loader, desc=f"Epoch {epoch + 1}/{epochs}", leave=False
-        )
-        # iterate through each batch in the dataset
-        for batch in train_loader:
+        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}", leave=False)
+        for batch in progress_bar:
             # train on batch
-            state, _ = train_step(state=state, batch=batch, dropout_rng=rng)
+            state, loss = train_step(state=state, batch=batch, dropout_rng=rng)
 
+
+
+        eval_accuracy, eval_loss = eval(state=state, val_loader=val_loader)
+        train_accuracy, train_loss = eval(state=state, val_loader=train_loader)
         # after each epoch, evaluate on train and val set
         progress_bar.set_postfix(
-            train_accuracy=eval(state=state, val_loader=train_loader),
-            eval_accuracy=eval(state=state, val_loader=val_loader),
+            train_accuracy=train_accuracy,
+            eval_accuracy=eval_accuracy,
         )
-        logger.info(f"Saving checkpoint at epoch {epoch}")
 
+
+        metrics = {
+            "train_loss": train_loss,
+            "eval_loss": eval_loss,
+            "train_accuracy": train_accuracy,
+            "eval_accuracy": eval_accuracy,
+        }
+        # log the metrics to wandb
+        logger.info(metrics)
+
+        logger.info(f"Saving checkpoint at epoch {epoch}")
         # save the state after each epoch
         manager.save(
             step=epoch,
             args=ocp.args.Composite(
                 state=ocp.args.StandardSave(state),
-            ),
+                metrics=ocp.args.JsonSaveArgs(metrics) 
+               ),
         )
 
     logger.info("Training complete, waiting until all checkpoints are saved")
@@ -115,13 +127,13 @@ def eval(state: train_state.TrainState, val_loader: DataLoader) -> float:
     # loop over the dataset
     for batch in val_loader:
         # evaluate on batch
-        res = eval_step(state=state, batch=batch)
+        res, loss = eval_step(state=state, batch=batch)
         # get total number of examples
         total += res.shape[0]
         # get number of correct predictions (will be boolean so we can sum)
         num_correct += res.sum()
 
-    return num_correct / total
+    return num_correct / total, loss
 
 
 @jax.jit
@@ -138,8 +150,11 @@ def eval_step(state: train_state.TrainState, batch):
     image, label = batch # unpack the batch 
     # pass batch through the model in training state
     logits = state.apply_fn( {'params': state.params}, image, rngs={'dropout': jax.random.PRNGKey(0)})
+    loss = optax.softmax_cross_entropy(
+            logits=logits.squeeze(), labels=label
+        ).mean()
     logits = logits.squeeze()
     # get predictions from logits
     preditcions = jnp.round(nn.softmax(logits))
     # return number of correct predictions
-    return preditcions == label
+    return preditcions == label, loss

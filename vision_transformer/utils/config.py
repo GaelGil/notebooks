@@ -50,13 +50,13 @@ config = Config(
     IN_CHANNELS=3,
     TRAIN_SPLIT=0.8,
     VAL_SPLIT=0.1,
-    EPOCHS=10,
+    EPOCHS=15,
     LR=0.001,
     CHECKPOINT_PATH=Path("./checkpoints"),
     FINAL_SAVE_PATH=Path("./checkpoints/final"),
     MAX_TO_KEEP=5,
     SAVE_INTERVAL=1,
-    ASYNC_CHECKPOINTING=True,
+    ASYNC_CHECKPOINTING=False,
     SPLITS_PATH=Path("./data/splits"),
 )
 
