@@ -82,10 +82,11 @@ class TokenizeDataset:
             List of token ids
         """
         token_ids = []
-        # for example in self.dataset:
+        # loop over the dataset
         for example in self.dataset:
             # get the text with the corresponding language
             text = example.get(self.language)
+            # encode the text to token ids
             token_ids.append(self.encode(text))
         return token_ids
 
