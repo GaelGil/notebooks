@@ -5,7 +5,9 @@ from utils.LangDataset import LangDataset
 from utils.TokenizeDataset import TokenizeDataset
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 
 
 def main():
@@ -42,6 +44,8 @@ def main():
     target_ids = target_tokenizer.get_token_ids()
     logger.info(f"Length of tokenized dataset: {len(src_ids)}")
     logger.info(f"Length of tokenized dataset: {len(target_ids)}")
+    logger.info(f"src token_ids: {src_ids[0]}")
+    logger.info(f"target token_ids: {target_ids[0]}")
 
     # # logger.info("Splitting the dataset into train, val and test sets")
     # # # split the dataset

@@ -37,15 +37,22 @@ class LangDataset:
         return len(self.dataset["train"])
 
     def valid_pair(self, example):
-        if not self.dataset:
-            # print("Dataset not loaded")
-            return
-        return (
-            isinstance(example[self.src_lang], str)
-            and example[self.src_lang].strip()
-            and isinstance(example[self.target_lang], str)
-            and example[self.target_lang].strip()
-        )
+        src = example.get(self.src_lang)
+        tgt = example.get(self.target_lang)
+
+        # Reject if missing or None
+        if src is None or tgt is None:
+            return False
+
+        # Reject if not strings
+        if not isinstance(src, str) or not isinstance(tgt, str):
+            return False
+
+        # Reject empty or whitespace
+        if not src.strip() or not tgt.strip():
+            return False
+
+        return True
 
     def handle_null(self):
         """
