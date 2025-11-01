@@ -15,8 +15,14 @@ def main():
 
     # load the dataset
     logger.info(f"Loading Dataset from: {config.DATA_PATH}")
-    dataset = LangDataset(dataset_name=config.DATA_PATH)
+    dataset = LangDataset(
+        dataset_name=config.DATA_PATH,
+        src_lang=config.LANG_SRC,
+        target_lang=config.LANG_TARGET,
+    )
     raw_dataset = dataset.load_dataset()
+    logger.info(f"Length of dataset: {dataset.length()}")
+    dataset.handle_null()
     logger.info(f"Length of dataset: {dataset.length()}")
 
     # tokenize the dataset in both languages using the entire dataset

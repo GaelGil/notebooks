@@ -38,7 +38,7 @@ class LangDataset:
 
     def valid_pair(self, example):
         if not self.dataset:
-            print("Dataset not loaded")
+            # print("Dataset not loaded")
             return
         return (
             isinstance(example[self.src_lang], str)
