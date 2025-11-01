@@ -21,7 +21,7 @@ def main():
     dataset = ImageDataset(
         dataset_path=config.DATA_PATH, transformations=IMG_TRANSFORMATIONS
     )
-    logger.info(f"Dataset length: {dataset.get_datset_length()}")
+    logger.info(f"Dataset length: {dataset.get_length()}")
 
     logger.info("Splitting the dataset into train, val and test sets")
     # split the dataset
