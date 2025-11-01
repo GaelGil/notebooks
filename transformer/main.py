@@ -46,7 +46,7 @@ def main():
     src_ids = src_tokenizer.get_token_ids()
     target_ids = target_tokenizer.get_token_ids()
 
-    lang_dataset.set_src_target_ids(src_data=src_ids, target_data=target_ids)
+    lang_dataset.set_src_target_ids(src_ids=src_ids, target_ids=target_ids)
 
     logger.info("Collating the dataset ...")
     train_loader = DataLoader(

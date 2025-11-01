@@ -40,9 +40,9 @@ class LangDataset:
         """
         return self.dataset
 
-    def set_src_target_ids(self, src_data: dict, target_data: dict):
-        self.src_data = src_data
-        self.target_data = target_data
+    def set_src_target_ids(self, src_ids: dict, target_ids: dict):
+        self.src_ids = src_ids
+        self.target_ids = target_ids
 
     def valid_pair(self, example):
         src = example.get(self.src_lang)
