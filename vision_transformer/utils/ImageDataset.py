@@ -79,5 +79,5 @@ class ImageDataset:
             collate_fn=self.numpy_collate,
         )
 
-    def get_data_loaders(self):
+    def get_loaders(self):
         return self.train_loader, self.val_loader, self.test_loader
