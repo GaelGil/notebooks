@@ -15,7 +15,6 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 
-
 def train(
     state: train_state.TrainState,
     train_loader: DataLoader,
@@ -29,12 +28,12 @@ def train(
     # loop over the dataset for num_epochs
     for epoch in range(epochs):
         # create a tqdm progress bar
-        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}", leave=False)
+        progress_bar = tqdm(
+            train_loader, desc=f"Epoch {epoch + 1}/{epochs}", leave=False
+        )
         for batch in progress_bar:
             # train on batch
             state, loss = train_step(state=state, batch=batch, dropout_rng=rng)
-
-
 
         eval_accuracy, eval_loss = eval(state=state, val_loader=val_loader)
         train_accuracy, train_loss = eval(state=state, val_loader=train_loader)
@@ -43,7 +42,6 @@ def train(
             train_accuracy=train_accuracy,
             eval_accuracy=eval_accuracy,
         )
-
 
         metrics = {
             "train_loss": train_loss,
@@ -60,8 +58,11 @@ def train(
             step=epoch,
             args=ocp.args.Composite(
                 state=ocp.args.StandardSave(state),
-                metrics=ocp.args.JsonSaveArgs(metrics) 
-               ),
+                items={
+                    "state": state,
+                    "metrics": metrics,
+                },
+            ),
         )
 
     logger.info("Training complete, waiting until all checkpoints are saved")
@@ -90,18 +91,19 @@ def train_step(
     Returns:
         train_state.TrainState and loss
     """
-    image, label = batch # unpack the batch 
+    image, label = batch  # unpack the batch
+
     # define loss function
     def loss_fn(params):
         """
         Compute the loss function for a single batch
         """
         # pass batch through the model in training state
-        logits = state.apply_fn( {'params': params}, image, rngs={'dropout': dropout_rng})
+        logits = state.apply_fn(
+            {"params": params}, image, rngs={"dropout": dropout_rng}
+        )
         # calculate mean loss for the batch
-        loss = optax.softmax_cross_entropy(
-            logits=logits.squeeze(), labels=label
-        ).mean()
+        loss = optax.softmax_cross_entropy(logits=logits.squeeze(), labels=label).mean()
         return loss
 
     # compute loss and gradients
@@ -147,12 +149,12 @@ def eval_step(state: train_state.TrainState, batch):
     Returns:
         predictions
     """
-    image, label = batch # unpack the batch 
+    image, label = batch  # unpack the batch
     # pass batch through the model in training state
-    logits = state.apply_fn( {'params': state.params}, image, rngs={'dropout': jax.random.PRNGKey(0)})
-    loss = optax.softmax_cross_entropy(
-            logits=logits.squeeze(), labels=label
-        ).mean()
+    logits = state.apply_fn(
+        {"params": state.params}, image, rngs={"dropout": jax.random.PRNGKey(0)}
+    )
+    loss = optax.softmax_cross_entropy(logits=logits.squeeze(), labels=label).mean()
     logits = logits.squeeze()
     # get predictions from logits
     preditcions = jnp.round(nn.softmax(logits))
