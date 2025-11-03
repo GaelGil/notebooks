@@ -3,15 +3,16 @@ This training and evaluation file is based on the implementation from
 https://wandb.ai/jax-series/simple-training-loop/reports/Writing-a-Training-Loop-in-JAX-and-Flax--VmlldzoyMzA4ODEy
 """
 
+from typing import Any
+
 import jax
 import jax.numpy as jnp
 import optax
 import orbax.checkpoint as ocp
-from flax import nnx
+from flax import linen as nn
 from flax.training import train_state
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from typing import Any
 
 
 def train(
@@ -20,7 +21,22 @@ def train(
     val_loader: DataLoader,
     num_epochs: int,
     manager: ocp.CheckpointManager,
+    logger,
 ):
+    """
+    train the model
+    Args:
+        state: train_state.TrainState
+        train_loader: DataLoader
+        val_loader: DataLoader
+        epochs: int
+        manager: ocp.CheckpointManager
+        logger: logger
+
+    Returns:
+        None
+    """
+    rng = jax.random.PRNGKey(0)
     # loop over the dataset for num_epochs
     for epoch in range(num_epochs):
         # create a tqdm progress bar
@@ -28,21 +44,33 @@ def train(
             train_loader, desc=f"Epoch {epoch + 1}/{num_epochs}", leave=False
         )
         # iterate through each batch in the dataset
-        for batch in train_loader:
+        for batch in progress_bar:
             # train on batch
+            state, _ = train_step(state=state, batch=batch, dropout_rng=rng)
 
-            state, _ = (train_step(state=state, batch=batch),)
+        eval_accuracy, eval_loss = eval(state=state, val_loader=val_loader)
+        train_accuracy, train_loss = eval(state=state, val_loader=train_loader)
 
         # after each epoch, evaluate on train and val set
         progress_bar.set_postfix(
-            train_accuracy=eval(state=state, val_loader=train_loader),
-            eval_accuracy=eval(state=state, val_loader=val_loader),
+            train_accuracy=train_accuracy,
+            eval_accuracy=eval_accuracy,
         )
-        # save the state after each epoch
+
+        metrics = {
+            "train_loss": train_loss,
+            "eval_loss": eval_loss,
+            "train_accuracy": train_accuracy,
+            "eval_accuracy": eval_accuracy,
+        }
+        # log the metrics
+        logger.info(metrics)
+        logger.info(f"Saving checkpoint at epoch {epoch}")
         manager.save(
             step=epoch,
             args=ocp.args.Composite(
                 state=ocp.args.StandardSave(state),
+                metrics=ocp.args.StandardSave(metrics),
             ),
         )
 
@@ -55,6 +83,7 @@ def train(
 def train_step(
     state: train_state.TrainState,
     batch,
+    dropout_rng: jax.random.PRNGKey,
 ) -> tuple[train_state.TrainState, Any]:
     """
     handle a single training step
@@ -63,14 +92,14 @@ def train_step(
     update parameters
 
     Args:
-        model: model
-        optimizer: optimizer
+        state: train_state.TrainState
         batch: batch
+        dropout_rng: random number generator
 
     Returns:
-        None
+        train_state.TrainState and loss
     """
-    seq, target = batch
+    seq, label = batch  # unpack the batch
 
     # define loss function
     def loss_fn(params):
@@ -78,11 +107,9 @@ def train_step(
         Compute the loss function for a single batch
         """
         # pass batch through the model in training state
-        logits = state.apply_fn({"params": params}, seq, training=True)
+        logits = state.apply_fn({"params": params}, seq, rngs={"dropout": dropout_rng})
         # calculate mean loss for the batch
-        loss = optax.softmax_cross_entropy(
-            logits=logits.squeeze(), labels=target
-        ).mean()
+        loss = optax.softmax_cross_entropy(logits=logits.squeeze(), labels=label).mean()
         return loss
 
     # compute loss and gradients
@@ -94,28 +121,48 @@ def train_step(
 
 
 def eval(state: train_state.TrainState, val_loader: DataLoader):
-    # set model to eval mode
+    """
+    evaluate the model on the validation set
+    Args:
+        state: train_state.TrainState
+        val_loader: DataLoader
+
+    Returns:
+        accuracy
+    """
     total = 0
     num_correct = 0
     # loop over the dataset
     for batch in val_loader:
         # evaluate on batch
-        res = eval_step(state=state, batch=batch)
-        # get total number of examples
+        res, loss = eval_step(state=state, batch=batch)
+        # get num of examples in current batch and add to total
         total += res.shape[0]
-        # get number of correct predictions (will be boolean so we can sum)
+        # get number of correct predictions for current batch (will be boolean so we can sum)
         num_correct += res.sum()
 
-    return num_correct / total
+    return num_correct / total, loss
 
 
 @jax.jit
 def eval_step(state: train_state.TrainState, batch):
-    seq, target = batch
+    """
+    evaluate the model on a single batch
+    Args:
+        state: train_state.TrainState
+        batch: batch
+
+    Returns:
+        predictions
+    """
+    seq, label = batch  # unpack the batch
     # pass batch through the model in training state
-    logits = state.apply_fn(state.params, seq, training=False)
+    logits = state.apply_fn(
+        {"params": state.params}, seq, rngs={"dropout": jax.random.PRNGKey(0)}
+    )
+    loss = optax.softmax_cross_entropy(logits=logits.squeeze(), labels=label).mean()
     logits = logits.squeeze()
     # get predictions from logits
-    preditcions = jnp.round(nnx.softmax(logits))
+    preditcions = jnp.round(nn.softmax(logits))
     # return number of correct predictions
-    return preditcions == target
+    return preditcions == label, loss
