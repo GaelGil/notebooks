@@ -70,10 +70,7 @@ def train(
             step=epoch,
             args=ocp.args.Composite(
                 state=ocp.args.StandardSave(state),
-                items={
-                    "state": state,
-                    "metrics": metrics,
-                },
+                metrics=ocp.args.StandardSave(metrics),
             ),
         )
 
@@ -126,7 +123,7 @@ def train_step(
     return state, loss
 
 
-def eval(state: train_state.TrainState, val_loader: DataLoader) -> float:
+def eval(state: train_state.TrainState, val_loader: DataLoader):
     """
     evaluate the model on the validation set
     Args:
