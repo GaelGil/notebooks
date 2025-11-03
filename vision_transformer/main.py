@@ -35,30 +35,17 @@ def main():
     logging.info("Initializing the model and optimizer")
     state = init_train_state(config)
 
-    metrics_handler = ocp.JsonCheckpointHandler()
-    manager = ocp.CheckpointManager(
-        root_dir=config.CHECKPOINT_PATH.resolve(),
-        checkpointers={
-            "state": ocp.PyTreeCheckpointHandler(),
-            "metrics": metrics_handler,
-        },
-    )
-
-    #     manager.save(
-    #     step=epoch,
-    #     items={
-    #         "state": state,         # model/optimizer state
-    #         "metrics": metrics      # dict of metrics
-    #     }
-    # )
-    # # checkpoint options
+    # define checkpoint options
     checkpoint_options = ocp.CheckpointManagerOptions(
         max_to_keep=config.MAX_TO_KEEP,
         save_interval_steps=config.SAVE_INTERVAL,
         enable_async_checkpointing=config.ASYNC_CHECKPOINTING,
-        best_fn=lambda metrics: metrics["val_accuracy"],
+        best_fn=lambda metrics: metrics[config.BEST_FN],
     )
-    # checkpoint manager
+
+    # metrics handler
+    metrics_handler = ocp.JsonCheckpointHandler()
+    # define the checkpoint manager
     manager = ocp.CheckpointManager(
         directory=config.CHECKPOINT_PATH.resolve(),
         handler_registry={
@@ -68,11 +55,13 @@ def main():
         options=checkpoint_options,
     )
 
-    # restore state
+    # restore previous checkpoint
     if manager.latest_step():  # check if there is a latest checkpoint
         logging.info("Restoring from latest checkpoint")
-        best_step = manager.best_step()  # get the best step
-        # restore from latest checkpoint
+        # get the best step/checkpoint
+        # this was deinfed in the checkpoint options
+        best_step = manager.best_step()
+        # restore from the best step
         restored = manager.restore(
             step=best_step,
             args=ocp.args.Composite(
