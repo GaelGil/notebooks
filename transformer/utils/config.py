@@ -26,6 +26,7 @@ class Config(BaseModel):
     VAL_SPLIT: float
     TEST_SPLIT: float
     NUM_WORKERS: int
+    BEST_FN: str
 
 
 config = Config(
@@ -53,4 +54,5 @@ config = Config(
     VAL_SPLIT=0.05,
     TEST_SPLIT=0.05,
     NUM_WORKERS=0,
+    BEST_FN="val_accuracy",
 )

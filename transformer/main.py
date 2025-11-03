@@ -1,33 +1,31 @@
-import logging
+import jax
+from absl import logging
 
 from utils.config import config
 from utils.LangDataset import LangDataset
 from utils.TokenizeDataset import TokenizeDataset
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.set_verbosity(logging.INFO)
 
 
 def main():
     # set the device
-    # device = jax.devices("gpu")[0]
-    # logger.info(f"Using device: {device}")
+    device = jax.devices("gpu")[0]
+    logging.info(f"Using device: {device}")
 
     # load the dataset
-    logger.info(f"Loading Dataset from: {config.DATA_PATH}")
+    logging.info(f"Loading Dataset from: {config.DATA_PATH}")
     lang_dataset = LangDataset(
         dataset_name=config.DATA_PATH,
         src_lang=config.LANG_SRC,
         target_lang=config.LANG_TARGET,
     )
-    logger.info(f"Length of dataset: {lang_dataset.__len__()}")
+    logging.info(f"Length of dataset: {lang_dataset.__len__()}")
     lang_dataset.handle_null()
-    logger.info(f"Length of dataset after handling null: {lang_dataset.__len__()}")
+    logging.info(f"Length of dataset after handling null: {lang_dataset.__len__()}")
 
     # tokenize the dataset in both languages using the entire dataset
-    logger.info("Tokenizing the dataset ...")
+    logging.info("Tokenizing the dataset ...")
     src_tokenizer = TokenizeDataset(
         dataset=lang_dataset.dataset["train"],
         language=config.LANG_SRC,
@@ -40,7 +38,7 @@ def main():
     )
 
     # get the token ids for the dataset
-    logger.info("Getting the token ids ...")
+    logging.info("Getting the token ids ...")
     src_data = src_tokenizer.get_token_ids()
     target_data = target_tokenizer.get_token_ids()
 
@@ -77,34 +75,54 @@ def main():
     # )
     # # initialize the model
     # logger.info("Initializing the model and optimizer")
-    # state: train_state.TrainState = init_train_state(config)
+    # state = init_train_state(config)
 
-    # # create checkpoint
-    # checkpointer = ocp.StandardCheckpointer()
-
-    # # checkpoint options
+    # # define checkpoint options
     # checkpoint_options = ocp.CheckpointManagerOptions(
-    #     max_to_keep=config.MAX_TO_KEEP, save_interval_steps=2
-    # )
-    # # checkpoint manager
-    # manager = ocp.CheckpointManager(
-    #     directory=config.CHECKPOINT_PATH,
-    #     options=checkpoint_options,
-    #     handler_registry=checkpointer,
+    #     max_to_keep=config.MAX_TO_KEEP,
+    #     save_interval_steps=config.SAVE_INTERVAL,
+    #     enable_async_checkpointing=config.ASYNC_CHECKPOINTING,
+    #     best_fn=lambda metrics: metrics[config.BEST_FN],
     # )
 
-    # # restore from latest checkpoint if exists
-    # if manager.latest_step():
-    #     logger.info("Restoring from latest checkpoint")
-    #     manager.restore(manager.latest_step())
+    # # metrics handler
+    # metrics_handler = ocp.JsonCheckpointHandler()
+    # # define the checkpoint manager
+    # manager = ocp.CheckpointManager(
+    #     directory=config.CHECKPOINT_PATH.resolve(),
+    #     handler_registry={
+    #         "state": ocp.PyTreeCheckpointHandler(),
+    #         "metrics": metrics_handler,
+    #     },
+    #     options=checkpoint_options,
+    # )
+
+    # # restore previous checkpoint
+    # if manager.latest_step():  # check if there is a latest checkpoint
+    #     logging.info("Restoring from latest checkpoint")
+    #     # get the best step/checkpoint
+    #     # this was deinfed in the checkpoint options
+    #     best_step = manager.best_step()
+    #     # restore from the best step
+    #     restored = manager.restore(
+    #         step=best_step,
+    #         args=ocp.args.Composite(
+    #             state=ocp.args.StandardRestore(
+    #                 state
+    #             ),  # provide initial state as template
+    #         ),
+    #     )
+    #     # update state to the restored state
+    #     state = restored.state
     # else:
-    #     logger.info("No checkpoint found, training from scratch")
+    #     logging.info("No checkpoint found, training from scratch")
     # train(
     #     state=state,
     #     train_loader=train_loader,
     #     val_loader=val_loader,
     #     num_epochs=config.EPOCHS,
     #     manager=manager,
+    #     logger=logging
     # )
 
 
