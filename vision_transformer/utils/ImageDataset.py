@@ -15,10 +15,28 @@ class ImageDataset:
         self.test_loader: DataLoader
         self.val_loader: DataLoader
 
-    def get_length(self):
+    def get_length(self) -> int:
+        """
+        Returns the length of the dataset
+
+        Args:
+            None
+
+        Returns:
+            int: length of the dataset
+        """
         return self.dataset_len
 
     def numpy_collate(self, batch):
+        """
+        Collate function for DataLoader
+
+        Args:
+            batch: batch
+
+        Returns:
+            batch: batch
+        """
         return tree_map(jnp.array, default_collate(batch))
 
     def split_data(
@@ -31,6 +49,21 @@ class ImageDataset:
         load_splits: bool = False,
         seed: int = 42,
     ):
+        """
+        Split the dataset into train, validation and test sets
+
+        Args:
+            train_split: float
+            val_split: float
+            batch_size: int
+            num_workers: int
+            save_splits_path: str
+            load_splits: bool
+            seed: int
+
+        Returns:
+            None
+        """
         if load_splits and os.path.exists(save_splits_path):
             splits = torch.load(save_splits_path)
         else:
@@ -80,4 +113,15 @@ class ImageDataset:
         )
 
     def get_loaders(self):
+        """
+        Returns the train, val and test loaders
+
+        Args:
+            None
+
+        Returns:
+            train_loader: train loader
+            val_loader: val loader
+            test_loader: test loader
+        """
         return self.train_loader, self.val_loader, self.test_loader
