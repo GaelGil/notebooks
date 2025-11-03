@@ -1,14 +1,14 @@
-from absl import logging
 import jax
 import orbax.checkpoint as ocp
+from absl import logging
 
 from utils.config import IMG_TRANSFORMATIONS, config
 from utils.ImageDataset import ImageDataset
 from utils.init_train_state import init_train_state
 from utils.train_eval import train
 
-
 logging.set_verbosity(logging.INFO)
+
 
 def main():
     # set the device
@@ -21,7 +21,6 @@ def main():
         dataset_path=config.DATA_PATH, transformations=IMG_TRANSFORMATIONS
     )
     logging.info(f"Dataset length: {dataset.get_length()}")
-
     logging.info("Splitting the dataset into train, val and test sets")
     # split the dataset
     dataset.split_data(
@@ -36,45 +35,50 @@ def main():
     logging.info("Initializing the model and optimizer")
     state = init_train_state(config)
 
+    metrics_handler = ocp.JsonCheckpointHandler()
+    manager = ocp.CheckpointManager(
+        root_dir=config.CHECKPOINT_PATH.resolve(),
+        checkpointers={
+            "state": ocp.PyTreeCheckpointHandler(),
+            "metrics": metrics_handler,
+        },
+    )
 
-    # metrics_handler = ocp.JsonCheckpointHandler()
-    #     manager = ocp.CheckpointManager(
-    #     root_dir="./checkpoints",
-    #     checkpointers={
-    #         "state": ocp.PyTreeCheckpointHandler(),
-    #         "metrics": metrics_handler
+    #     manager.save(
+    #     step=epoch,
+    #     items={
+    #         "state": state,         # model/optimizer state
+    #         "metrics": metrics      # dict of metrics
     #     }
     # )
-
-#     manager.save(
-#     step=epoch,
-#     items={
-#         "state": state,         # model/optimizer state
-#         "metrics": metrics      # dict of metrics
-#     }
-# )
     # # checkpoint options
     checkpoint_options = ocp.CheckpointManagerOptions(
         max_to_keep=config.MAX_TO_KEEP,
         save_interval_steps=config.SAVE_INTERVAL,
         enable_async_checkpointing=config.ASYNC_CHECKPOINTING,
-        best_fn=lambda metrics: metrics['val_accuracy'],
-    )   
+        best_fn=lambda metrics: metrics["val_accuracy"],
+    )
     # checkpoint manager
     manager = ocp.CheckpointManager(
         directory=config.CHECKPOINT_PATH.resolve(),
+        handler_registry={
+            "state": ocp.PyTreeCheckpointHandler(),
+            "metrics": metrics_handler,
+        },
         options=checkpoint_options,
     )
 
     # restore state
-    if manager.latest_step(): # check if there is a latest checkpoint
+    if manager.latest_step():  # check if there is a latest checkpoint
         logging.info("Restoring from latest checkpoint")
-        best_step = manager.best_step() # get the best step
+        best_step = manager.best_step()  # get the best step
         # restore from latest checkpoint
         restored = manager.restore(
             step=best_step,
             args=ocp.args.Composite(
-                state=ocp.args.StandardRestore(state),  # provide initial state as template
+                state=ocp.args.StandardRestore(
+                    state
+                ),  # provide initial state as template
             ),
         )
         # update state to the restored state
