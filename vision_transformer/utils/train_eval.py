@@ -23,6 +23,19 @@ def train(
     manager: ocp.CheckpointManager,
     logger,
 ):
+    """
+    train the model
+    Args:
+        state: train_state.TrainState
+        train_loader: DataLoader
+        val_loader: DataLoader
+        epochs: int
+        manager: ocp.CheckpointManager
+        logger: logger
+
+    Returns:
+        None
+    """
     # initialize the random number generator for dropout
     rng = jax.random.PRNGKey(0)
     # loop over the dataset for num_epochs
@@ -33,23 +46,23 @@ def train(
         )
         for batch in progress_bar:
             # train on batch
-            state, loss = train_step(state=state, batch=batch, dropout_rng=rng)
+            state, _ = train_step(state=state, batch=batch, dropout_rng=rng)
 
+        # get eval/train accuracy and loss
         eval_accuracy, eval_loss = eval(state=state, val_loader=val_loader)
         train_accuracy, train_loss = eval(state=state, val_loader=train_loader)
-        # after each epoch, evaluate on train and val set
         progress_bar.set_postfix(
             train_accuracy=train_accuracy,
             eval_accuracy=eval_accuracy,
         )
-
+        # save the metrics
         metrics = {
             "train_loss": train_loss,
             "eval_loss": eval_loss,
             "train_accuracy": train_accuracy,
             "eval_accuracy": eval_accuracy,
         }
-
+        # log the metrics
         logger.info(metrics)
         logger.info(f"Saving checkpoint at epoch {epoch}")
         # save the state after each epoch
