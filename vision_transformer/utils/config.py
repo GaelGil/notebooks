@@ -30,6 +30,7 @@ class Config(BaseModel):
     SAVE_INTERVAL: int
     ASYNC_CHECKPOINTING: bool
     SPLITS_PATH: Path
+    BEST_FN: str
 
 
 config = Config(
@@ -58,6 +59,7 @@ config = Config(
     SAVE_INTERVAL=1,
     ASYNC_CHECKPOINTING=False,
     SPLITS_PATH=Path("./data/splits"),
+    BEST_FN="val_accuracy",
 )
 
 
@@ -68,7 +70,7 @@ IMG_TRANSFORMATIONS = transforms.Compose(
         transforms.RandomRotation(15),
         transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2),
         transforms.ToTensor(),
-        transforms.Lambda(lambda x: x.permute(1,2,0)),  # convert from NCHW to NHWC
-        transforms.Lambda(lambda x: (x - 0.5)/0.5)  # normalize manually
+        transforms.Lambda(lambda x: x.permute(1, 2, 0)),  # convert from NCHW to NHWC
+        transforms.Lambda(lambda x: (x - 0.5) / 0.5),  # normalize manually
     ]
 )

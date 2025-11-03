@@ -49,9 +49,8 @@ def train(
             "train_accuracy": train_accuracy,
             "eval_accuracy": eval_accuracy,
         }
-        # log the metrics to wandb
-        logger.info(metrics)
 
+        logger.info(metrics)
         logger.info(f"Saving checkpoint at epoch {epoch}")
         # save the state after each epoch
         manager.save(
