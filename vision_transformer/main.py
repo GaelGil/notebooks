@@ -46,12 +46,14 @@ def main():
     # metrics handler
     metrics_handler = ocp.JsonCheckpointHandler()
     # define the checkpoint manager
+    handler_registry = ocp.handlers.HandlerRegistry()
+    handler_registry.add("state", ocp.PyTreeCheckpointHandler())
+    handler_registry.add("metrics", metrics_handler)
+
+    # Define the checkpoint manager
     manager = ocp.CheckpointManager(
         directory=config.CHECKPOINT_PATH.resolve(),
-        handler_registry={
-            "state": ocp.PyTreeCheckpointHandler(),
-            "metrics": metrics_handler,
-        },
+        handler_registry=handler_registry,
         options=checkpoint_options,
     )
 
