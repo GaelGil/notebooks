@@ -35,7 +35,7 @@ class Config(BaseModel):
 
 config = Config(
     DEVICE="DEVICE",
-    DATA_PATH="./data",
+    DATA_PATH="./data/images",
     BATCH_SIZE=32,
     NUM_WORKERS=0,
     MODEL_PATH="model.pth",
