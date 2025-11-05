@@ -47,8 +47,8 @@ def main():
     registry = ocp.handlers.DefaultCheckpointHandlerRegistry()
 
     # Add handlers
-    registry.add("state", ocp.PyTreeCheckpointHandler())
-    registry.add("metrics", ocp.JsonCheckpointHandler())
+    registry.add(ocp.args.StandardCheckpointArgs, ocp.PyTreeCheckpointHandler)
+    registry.add(ocp.args.JsonCheckpointArgs, ocp.JsonCheckpointHandler)
 
     # Define the checkpoint manager
     manager = ocp.CheckpointManager(
