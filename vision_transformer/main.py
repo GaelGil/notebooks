@@ -47,8 +47,8 @@ def main():
     registry = ocp.handlers.DefaultCheckpointHandlerRegistry()
 
     # PyTree (model/optimizer state)
-    registry.add(ocp.args.StandardSave, ocp.PyTreeCheckpointHandler)
-    registry.add(ocp.args.StandardRestore, ocp.PyTreeCheckpointHandler)
+    registry.add("state", ocp.args.StandardSave)
+    registry.add("state", ocp.args.StandardRestore)
 
     # JSON (metrics)
     registry.add(ocp.args.JsonSave, ocp.JsonCheckpointHandler)
