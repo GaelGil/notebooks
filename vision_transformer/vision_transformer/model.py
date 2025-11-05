@@ -111,8 +111,9 @@ class PositionalEncoding(nn.Module):
 
 
 class LayerNorm(nn.Module):
+    d_model: int
     eps: float = 1e-6  # helps avoid division by zero
-
+    
     def setup(self) -> None:
         """ Set up layer norm 
         Args:
@@ -121,8 +122,9 @@ class LayerNorm(nn.Module):
         Returns:
             None
         """
-        self.alpha = self.param("alpha", nn.initializers.ones, (1))
-        self.bias = self.param("bias", nn.initializers.zeros, (1))
+        self.alpha = self.param("alpha", nn.initializers.ones, (self.d_model))
+        self.bias = self.param("bias", nn.initializers.zeros, (self.d_model))
+
 
     def __call__(self, x):
         # compute mean and std for each feature of d_model
@@ -332,8 +334,8 @@ class EncoderBlock(nn.Module):
         # Lastly there are two residual connections in the encoder block
         # that connect the multi head attention block and the feed forward block
         self.dropout = nn.Dropout(rate=self.dropout_rate)
-        self.norm1 = LayerNorm()
-        self.norm2 = LayerNorm()
+        self.norm1 = LayerNorm(d_model=self.d_model)
+        self.norm2 = LayerNorm(d_model=self.d_model)
 
     def __call__(self, x):
         multi_head_attention_output = self.multi_head_attention_block(x, x, x)
@@ -351,8 +353,10 @@ class Encoder(nn.Module):
     """
     Attributes:
         encoder_blocks: A sequence of encoder blocks
+        d_model: dimension of model
     """
     encoder_blocks: nn.Sequential
+    d_model: int
 
     def setup(self) -> None:
         """
@@ -364,7 +368,7 @@ class Encoder(nn.Module):
             None
         """
         self.blocks = self.encoder_blocks
-        self.norm = LayerNorm()
+        self.norm = LayerNorm(d_model=self.d_model)
 
     def __call__(self, x):
         """
@@ -405,7 +409,7 @@ class ProjectionLayer(nn.Module):
     def __call__(self, x):
         cls_token = x[:, 0]  # shape: (batch_size, d_model) get the cls token
         logits = self.linear(cls_token)  # shape: (batch_size, num_classes) get the logits
-        return nn.log_softmax(logits) # get the probabilities
+        return logits # get logits/raw output
 
 
 class VisionTransformer(nn.Module):
@@ -457,7 +461,7 @@ class VisionTransformer(nn.Module):
         )
         self.projection_layer = ProjectionLayer(num_classes=self.num_classes)
 
-        self.encoder = Encoder(
+        self.encoder = Encoder(encoder_blocks=
             nn.Sequential(
              layers=[
                     EncoderBlock(
@@ -469,7 +473,8 @@ class VisionTransformer(nn.Module):
                     )
                     for _ in range(self.N)
                 ]
-            )
+            ),
+            d_model=self.d_model
         )
 
     def __call__(self, x):
