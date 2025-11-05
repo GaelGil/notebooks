@@ -70,7 +70,7 @@ def train(
             step=epoch,
             args=ocp.args.Composite(
                 state=ocp.args.StandardSave(state),
-                metrics=ocp.args.StandardSave(metrics),
+                metrics=ocp.args.JsonSave(metrics),
             ),
         )
 

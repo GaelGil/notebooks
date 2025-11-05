@@ -43,18 +43,18 @@ def main():
         best_fn=lambda metrics: metrics[config.BEST_FN],
     )
 
-    # metrics handler
-    metrics_handler = ocp.JsonCheckpointHandler()
-    # define the checkpoint manager
-    handler_registry = {
-        "state": ocp.PyTreeCheckpointHandler(),  # for model state
-        "metrics": metrics_handler,  # for metrics (JSON)
-    }
+    # Create handler registry
+    registry = ocp.CheckpointHandlerRegistry()
+
+    # Add handlers
+    registry.add("state", ocp.PyTreeCheckpointHandler())
+    registry.add("metrics", ocp.JsonCheckpointHandler())
 
     # Define the checkpoint manager
     manager = ocp.CheckpointManager(
         directory=config.CHECKPOINT_PATH.resolve(),
-        handler_registry=handler_registry,
+        items_handler=ocp.PyTreeCheckpointHandler(),
+        handler_registry=registry,
         options=checkpoint_options,
     )
 
@@ -68,9 +68,8 @@ def main():
         restored = manager.restore(
             step=best_step,
             args=ocp.args.Composite(
-                state=ocp.args.StandardRestore(
-                    state
-                ),  # provide initial state as template
+                state=ocp.args.StandardRestore(state),
+                metrics=ocp.args.JsonRestore(),
             ),
         )
         # update state to the restored state
