@@ -57,9 +57,9 @@ config = Config(
     FINAL_SAVE_PATH=Path("./checkpoints/final"),
     MAX_TO_KEEP=5,
     SAVE_INTERVAL=1,
-    ASYNC_CHECKPOINTING=False,
+    ASYNC_CHECKPOINTING=True,
     SPLITS_PATH=Path("./data/splits"),
-    BEST_FN="val_accuracy",
+    BEST_FN="eval_accuracy",
 )
 
 
