@@ -62,6 +62,7 @@ class PositionalEncoding(nn.Module):
         training: whether in training mode
         dropout_rate: dropout rate
     """
+
     d_model: int
     num_patches: int
     training: bool
@@ -69,11 +70,11 @@ class PositionalEncoding(nn.Module):
 
     def setup(self):
         """
-        Create the positional encoding layer. This is a learnable parameter that we add to the sequence. 
+        Create the positional encoding layer. This is a learnable parameter that we add to the sequence.
         We also create a cls token that we append to the sequence.
         Args:
             None
-        
+
         Returns:
             None
         """
@@ -113,9 +114,9 @@ class PositionalEncoding(nn.Module):
 class LayerNorm(nn.Module):
     d_model: int
     eps: float = 1e-6  # helps avoid division by zero
-    
+
     def setup(self) -> None:
-        """ Set up layer norm 
+        """Set up layer norm
         Args:
             None
 
@@ -124,7 +125,6 @@ class LayerNorm(nn.Module):
         """
         self.alpha = self.param("alpha", nn.initializers.ones, (self.d_model))
         self.bias = self.param("bias", nn.initializers.zeros, (self.d_model))
-
 
     def __call__(self, x):
         # compute mean and std for each feature of d_model
@@ -146,17 +146,17 @@ class MultiLayerPerceptron(nn.Module):
         dropout_rate: dropout rate
         training: whether in training mode
     """
+
     d_model: int
     d_ff: int
     dropout_rate: float
     training: bool
 
-
     def setup(
         self,
     ) -> None:
         """
-        Create a feed forward network. With two linear layers. 
+        Create a feed forward network. With two linear layers.
         It should follow (batch_size, seq_len, d_model) -> (batch_size, seq_len, d_ff) -> (batch_size, seq_len, d_model)
         Args:
             None
@@ -194,10 +194,10 @@ class MultiHeadAttentionBlock(nn.Module):
 
     def setup(self) -> None:
         """
-        Set up multi head attention block. Each query, key, value gets its own linear layer. We will multiply 
-        w_q by q -> (batch_size, seq_len, d_model) -> (batch_size, seq_len, d_model) then split into 
+        Set up multi head attention block. Each query, key, value gets its own linear layer. We will multiply
+        w_q by q -> (batch_size, seq_len, d_model) -> (batch_size, seq_len, d_model) then split into
         n_heads -> (batch_size, seq_len, n_heads, d_k). Which means we have a sequence length each with 8 heads of size d_k
-        We will then compute scaled dot product attention for each head. 
+        We will then compute scaled dot product attention for each head.
 
         Args:
             None
@@ -276,7 +276,9 @@ class MultiHeadAttentionBlock(nn.Module):
         query = query.reshape(
             query.shape[0], query.shape[1], self.n_heads, self.d_k
         ).transpose(0, 2, 1, 3)
-        key = key.reshape(key.shape[0], key.shape[1], self.n_heads, self.d_k).transpose(0, 2, 1, 3)
+        key = key.reshape(key.shape[0], key.shape[1], self.n_heads, self.d_k).transpose(
+            0, 2, 1, 3
+        )
         value = value.reshape(
             value.shape[0], value.shape[1], self.n_heads, self.d_k
         ).transpose(0, 2, 1, 3)
@@ -306,6 +308,7 @@ class EncoderBlock(nn.Module):
         dropout_rate: dropout rate
         training: whether in training mode
     """
+
     d_model: int
     n_heads: int
     d_ff: int
@@ -325,11 +328,17 @@ class EncoderBlock(nn.Module):
         """
         # encoder block has one self attention block
         self.multi_head_attention_block = MultiHeadAttentionBlock(
-            d_model=self.d_model, n_heads=self.n_heads, dropout_rate=self.dropout_rate, training=self.training
+            d_model=self.d_model,
+            n_heads=self.n_heads,
+            dropout_rate=self.dropout_rate,
+            training=self.training,
         )
         # and one feed forward block
         self.multi_layer_perceptron_block = MultiLayerPerceptron(
-            d_model=self.d_model, d_ff=self.d_ff, dropout_rate=self.dropout_rate, training=self.training
+            d_model=self.d_model,
+            d_ff=self.d_ff,
+            dropout_rate=self.dropout_rate,
+            training=self.training,
         )
         # Lastly there are two residual connections in the encoder block
         # that connect the multi head attention block and the feed forward block
@@ -340,11 +349,15 @@ class EncoderBlock(nn.Module):
     def __call__(self, x):
         multi_head_attention_output = self.multi_head_attention_block(x, x, x)
 
-        x = self.dropout(self.norm1(multi_head_attention_output + x), deterministic=self.training)
+        x = self.dropout(
+            self.norm1(multi_head_attention_output + x), deterministic=self.training
+        )
 
         multi_layer_perceptron_output = self.multi_layer_perceptron_block(x)
 
-        output = self.dropout(self.norm2(multi_layer_perceptron_output + x), deterministic=self.training)
+        output = self.dropout(
+            self.norm2(multi_layer_perceptron_output + x), deterministic=self.training
+        )
 
         return output
 
@@ -355,6 +368,7 @@ class Encoder(nn.Module):
         encoder_blocks: A sequence of encoder blocks
         d_model: dimension of model
     """
+
     encoder_blocks: nn.Sequential
     d_model: int
 
@@ -380,7 +394,7 @@ class Encoder(nn.Module):
         Returns:
             None
         """
-        
+
         x = self.blocks(x)
         return self.norm(x)
 
@@ -408,8 +422,10 @@ class ProjectionLayer(nn.Module):
 
     def __call__(self, x):
         cls_token = x[:, 0]  # shape: (batch_size, d_model) get the cls token
-        logits = self.linear(cls_token)  # shape: (batch_size, num_classes) get the logits
-        return logits # get logits/raw output
+        logits = self.linear(
+            cls_token
+        )  # shape: (batch_size, num_classes) get the logits
+        return logits  # get logits/raw output
 
 
 class VisionTransformer(nn.Module):
@@ -423,8 +439,9 @@ class VisionTransformer(nn.Module):
         in_channels: number of channels
         d_model: dimension of the model
         num_classes: the number of classes in our dataset
-    
+
     """
+
     N: int
     n_heads: int
     dropout: float
@@ -457,24 +474,24 @@ class VisionTransformer(nn.Module):
             d_model=self.d_model,
             num_patches=(self.img_size // self.patch_size) ** 2,
             dropout_rate=self.dropout,
-            training=self.training
+            training=self.training,
         )
         self.projection_layer = ProjectionLayer(num_classes=self.num_classes)
 
-        self.encoder = Encoder(encoder_blocks=
-            nn.Sequential(
-             layers=[
+        self.encoder = Encoder(
+            encoder_blocks=nn.Sequential(
+                layers=[
                     EncoderBlock(
                         d_model=self.d_model,
                         n_heads=self.n_heads,
                         d_ff=self.d_ff,
                         dropout_rate=self.dropout,
-                        training=self.training
+                        training=self.training,
                     )
                     for _ in range(self.N)
                 ]
             ),
-            d_model=self.d_model
+            d_model=self.d_model,
         )
 
     def __call__(self, x):

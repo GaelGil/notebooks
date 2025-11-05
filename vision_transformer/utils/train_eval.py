@@ -112,7 +112,9 @@ def train_step(
             {"params": params}, image, rngs={"dropout": dropout_rng}
         )
         # calculate mean loss for the batch
-        loss = optax.softmax_cross_entropy(logits=logits.squeeze(), labels=label).mean()
+        loss = optax.softmax_cross_entropy_with_integer_labels(
+            logits=logits, labels=label
+        ).mean()
         return loss
 
     # compute loss and gradients
@@ -160,12 +162,20 @@ def eval_step(state: train_state.TrainState, batch):
     """
     image, label = batch  # unpack the batch
     # pass batch through the model in training state
+    print(f"IMAGE SHAPE: {image.shape}")
     logits = state.apply_fn(
         {"params": state.params}, image, rngs={"dropout": jax.random.PRNGKey(0)}
     )
-    loss = optax.softmax_cross_entropy(logits=logits.squeeze(), labels=label).mean()
-    logits = logits.squeeze()
+    print(f"LOGITS: {logits}")
+    print(f"LABEL: {label}")
+    print(f"LOGITS SHAPE: {logits.shape}")
+    print(f"LABEL SHAPE: {label.shape}")
+    loss = optax.softmax_cross_entropy_with_integer_labels(
+        logits=logits, labels=label
+    ).mean()
+    # logits = logits.squeeze()
     # get predictions from logits
-    preditcions = jnp.round(nn.softmax(logits))
+
+    preditcions = jnp.argmax(logits, axis=1)
     # return number of correct predictions
     return preditcions == label, loss
