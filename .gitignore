@@ -5,7 +5,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
-*/checkpoints
+**/checkpoints
+# *.msgpack
+# *.ckpt
+# *.npz
 # C extensions
 *.so
  
