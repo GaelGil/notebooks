@@ -51,7 +51,7 @@ def main():
     registry.add("state", ocp.args.StandardRestore)
 
     # JSON (metrics)
-    registry.add("metric", ocp.args.JsonSave)
+    registry.add("metrics", ocp.args.JsonSave)
     registry.add("metrics",ocp.args.JsonRestore)
 
     # Define the checkpoint manager
