@@ -44,7 +44,7 @@ def main():
     )
 
     # Create handler registry
-    registry = ocp.CheckpointHandlerRegistry()
+    registry = ocp.handlers.DefaultCheckpointHandlerRegistry()
 
     # Add handlers
     registry.add("state", ocp.PyTreeCheckpointHandler())
