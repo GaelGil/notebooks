@@ -57,10 +57,10 @@ def train(
         )
         # save the metrics
         metrics = {
-            "train_loss": train_loss,
-            "eval_loss": eval_loss,
-            "train_accuracy": train_accuracy,
-            "eval_accuracy": eval_accuracy,
+            "train_loss": float(train_loss),
+            "eval_loss": float(eval_loss),
+            "train_accuracy": float(train_accuracy),
+            "eval_accuracy": float(eval_accuracy),
         }
         # log the metrics
         logger.info(metrics)
