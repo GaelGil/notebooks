@@ -78,6 +78,7 @@ def main():
     # state = init_train_state(config)
 
     # # define checkpoint options
+    # define checkpoint options
     # checkpoint_options = ocp.CheckpointManagerOptions(
     #     max_to_keep=config.MAX_TO_KEEP,
     #     save_interval_steps=config.SAVE_INTERVAL,
@@ -85,15 +86,21 @@ def main():
     #     best_fn=lambda metrics: metrics[config.BEST_FN],
     # )
 
-    # # metrics handler
-    # metrics_handler = ocp.JsonCheckpointHandler()
-    # # define the checkpoint manager
+    # # Create handler registry
+    # registry = ocp.handlers.DefaultCheckpointHandlerRegistry()
+
+    # # PyTree (model/optimizer state)
+    # registry.add("state", ocp.args.StandardSave)
+    # registry.add("state", ocp.args.StandardRestore)
+
+    # # JSON (metrics)
+    # registry.add("metrics", ocp.args.JsonSave)
+    # registry.add("metrics",ocp.args.JsonRestore)
+
+    # # Define the checkpoint manager
     # manager = ocp.CheckpointManager(
     #     directory=config.CHECKPOINT_PATH.resolve(),
-    #     handler_registry={
-    #         "state": ocp.PyTreeCheckpointHandler(),
-    #         "metrics": metrics_handler,
-    #     },
+    #     handler_registry=registry,
     #     options=checkpoint_options,
     # )
 
@@ -107,22 +114,23 @@ def main():
     #     restored = manager.restore(
     #         step=best_step,
     #         args=ocp.args.Composite(
-    #             state=ocp.args.StandardRestore(
-    #                 state
-    #             ),  # provide initial state as template
+    #             state=ocp.args.StandardRestore(state),
+    #             metrics=ocp.args.JsonRestore(),
     #         ),
     #     )
     #     # update state to the restored state
     #     state = restored.state
     # else:
     #     logging.info("No checkpoint found, training from scratch")
+    # # train the model
+    # logging.info("Training the model")
     # train(
     #     state=state,
     #     train_loader=train_loader,
     #     val_loader=val_loader,
-    #     num_epochs=config.EPOCHS,
+    #     epochs=config.EPOCHS,
     #     manager=manager,
-    #     logger=logging
+    #     logger=logging,
     # )
 
 
