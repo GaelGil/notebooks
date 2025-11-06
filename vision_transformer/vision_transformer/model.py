@@ -244,7 +244,9 @@ class MultiHeadAttentionBlock(nn.Module):
         x = jnp.matmul(attention_scores, value)
         return x
 
-    def __call__(self, q: jnp.ndarray, k: jnp.ndarray, v: jnp.ndarray):
+    def __call__(
+        self, q: jnp.ndarray, k: jnp.ndarray, v: jnp.ndarray, is_training: bool
+    ):
         """
 
         Args:
@@ -287,7 +289,6 @@ class MultiHeadAttentionBlock(nn.Module):
             key=key,
             value=value,
             dropout=self.dropout,
-            training=self.training,
         )
 
         # reshape back to (seq_len, d_model)
@@ -311,7 +312,6 @@ class EncoderBlock(nn.Module):
     n_heads: int
     d_ff: int
     dropout_rate: float
-    training: bool
 
     def setup(self) -> None:
         """
@@ -329,14 +329,12 @@ class EncoderBlock(nn.Module):
             d_model=self.d_model,
             n_heads=self.n_heads,
             dropout_rate=self.dropout_rate,
-            training=self.training,
         )
         # and one feed forward block
         self.multi_layer_perceptron_block = MultiLayerPerceptron(
             d_model=self.d_model,
             d_ff=self.d_ff,
             dropout_rate=self.dropout_rate,
-            training=self.training,
         )
         # Lastly there are two residual connections in the encoder block
         # that connect the multi head attention block and the feed forward block
@@ -345,13 +343,17 @@ class EncoderBlock(nn.Module):
         self.norm2 = LayerNorm(d_model=self.d_model)
 
     def __call__(self, x, is_training: bool):
-        multi_head_attention_output = self.multi_head_attention_block(x, x, x)
+        multi_head_attention_output = self.multi_head_attention_block(
+            q=x, k=x, v=x, is_training=is_training
+        )
 
         x = self.dropout(
             self.norm1(multi_head_attention_output + x), deterministic=not is_training
         )
 
-        multi_layer_perceptron_output = self.multi_layer_perceptron_block(x)
+        multi_layer_perceptron_output = self.multi_layer_perceptron_block(
+            x=x, is_training=is_training
+        )
 
         output = self.dropout(
             self.norm2(multi_layer_perceptron_output + x), deterministic=not is_training
