@@ -1,10 +1,10 @@
-from vision_transformer.model import VisionTransformer
-import jax.numpy as jnp
 import jax
+import jax.numpy as jnp
 import optax
-from utils.config import Config
 from flax.training import train_state
 
+from utils.config import Config
+from vision_transformer.model import VisionTransformer
 
 
 def init_train_state(config: Config) -> train_state.TrainState:
@@ -19,15 +19,14 @@ def init_train_state(config: Config) -> train_state.TrainState:
         dropout=config.DROPOUT,
         img_size=config.IMG_SIZE,
         in_channels=config.IN_CHANNELS,
-        training=False
     )
     # initialize the rng
     rng = jax.random.PRNGKey(0)
 
     # create a dummy input to initialize the model
     dummy_input = jnp.zeros(
-    (config.BATCH_SIZE, config.IMG_SIZE, config.IMG_SIZE, config.IN_CHANNELS),
-    dtype=jnp.float32,
+        (config.BATCH_SIZE, config.IMG_SIZE, config.IMG_SIZE, config.IN_CHANNELS),
+        dtype=jnp.float32,
     )
 
     # Initialize with dummy inputs
@@ -35,7 +34,7 @@ def init_train_state(config: Config) -> train_state.TrainState:
         rng,
         x=dummy_input,
     )
-    
+
     # get the parameters
     params = variables["params"]
 
