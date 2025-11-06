@@ -9,7 +9,6 @@ import jax
 import jax.numpy as jnp
 import optax
 import orbax.checkpoint as ocp
-from flax import linen as nn
 from flax.training import train_state
 from torch.utils.data import DataLoader
 from tqdm import tqdm
