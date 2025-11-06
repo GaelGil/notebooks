@@ -45,12 +45,13 @@ class PatchEmbedding(nn.Module):
             x: image
 
         Returns:
-            None
+            x projected into patches
         """
         x = self.projection(x)
         # reshape x into (batch_size, num_patches, d_model)
         B, H, W, C = x.shape
         x = x.reshape(B, H * W, C)
+        # returns (batch_size, num_patches, d_model)
         return x
 
 
@@ -80,10 +81,13 @@ class PositionalEncoding(nn.Module):
         self.dropout = nn.Dropout(rate=self.dropout_rate)
 
         # create cls token with shape (1, 1, d_model)
+        # this token is a embedding and will be added to the num patches
         self.cls_token = self.param(
             "cls_token", nn.initializers.zeros, (1, 1, self.d_model)
         )
-        # create positional encoding with shape (1, num_patches + 1, d_model)
+        # create positional encoding matrix with shape (1, num_patches + 1, d_model)
+        # Each row in the positional encoding matrix is a vector that is added to a
+        # corresponding patch
         self.pe = self.param(
             "positional_encoding",
             nn.initializers.zeros,
@@ -107,6 +111,8 @@ class PositionalEncoding(nn.Module):
         # add positional encoding to sequence
         x = x + self.pe
 
+        # apply dropout
+        # returns (batch_size, num_patches + 1, d_model)
         return self.dropout(x, deterministic=not is_training)
 
 
@@ -203,8 +209,6 @@ class MultiHeadAttentionBlock(nn.Module):
         Returns:
             None
         """
-
-        # self.dropout = dropout
 
         assert self.d_model % self.n_heads == 0, "d_model must be divisible by n_heads"
         self.d_k = self.d_model // self.n_heads
