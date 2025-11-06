@@ -65,7 +65,6 @@ class PositionalEncoding(nn.Module):
 
     d_model: int
     num_patches: int
-    training: bool
     dropout_rate: float = 0.1
 
     def setup(self):
@@ -91,7 +90,7 @@ class PositionalEncoding(nn.Module):
             (1, self.num_patches + 1, self.d_model),
         )
 
-    def __call__(self, x: jnp.ndarray):
+    def __call__(self, x: jnp.ndarray, is_training: bool = True):
         """
         Args:
             x: input tensor of shape (batch_size, seq_len, d_model)
@@ -108,7 +107,7 @@ class PositionalEncoding(nn.Module):
         # add positional encoding to sequence
         x = x + self.pe
 
-        return self.dropout(x, deterministic=self.training)
+        return self.dropout(x, deterministic=not is_training)
 
 
 class LayerNorm(nn.Module):
@@ -150,7 +149,6 @@ class MultiLayerPerceptron(nn.Module):
     d_model: int
     d_ff: int
     dropout_rate: float
-    training: bool
 
     def setup(
         self,
@@ -168,10 +166,10 @@ class MultiLayerPerceptron(nn.Module):
         self.dropout = nn.Dropout(rate=self.dropout_rate)
         self.linear_2 = nn.Dense(features=self.d_model)
 
-    def __call__(self, x: jnp.ndarray):
+    def __call__(self, x: jnp.ndarray, is_training: bool):
         # simple feed forward network
         x = nn.gelu(self.linear_1(x))
-        x = self.dropout(x, deterministic=self.training)
+        x = self.dropout(x, deterministic=not is_training)
         x = self.linear_2(x)
         return x
 
@@ -241,7 +239,7 @@ class MultiHeadAttentionBlock(nn.Module):
         # softmax(Q * K^T/sqrt(d_k))
         attention_scores = nn.softmax(attention_scores, axis=-1)
         if dropout:
-            attention_scores = dropout(attention_scores, deterministic=training)
+            attention_scores = dropout(attention_scores, deterministic=not training)
         # softmax((Q * K^T)/sqrt(d_k)) * V
         x = jnp.matmul(attention_scores, value)
         return x
@@ -346,17 +344,17 @@ class EncoderBlock(nn.Module):
         self.norm1 = LayerNorm(d_model=self.d_model)
         self.norm2 = LayerNorm(d_model=self.d_model)
 
-    def __call__(self, x):
+    def __call__(self, x, is_training: bool):
         multi_head_attention_output = self.multi_head_attention_block(x, x, x)
 
         x = self.dropout(
-            self.norm1(multi_head_attention_output + x), deterministic=self.training
+            self.norm1(multi_head_attention_output + x), deterministic=not is_training
         )
 
         multi_layer_perceptron_output = self.multi_layer_perceptron_block(x)
 
         output = self.dropout(
-            self.norm2(multi_layer_perceptron_output + x), deterministic=self.training
+            self.norm2(multi_layer_perceptron_output + x), deterministic=not is_training
         )
 
         return output
@@ -451,7 +449,6 @@ class VisionTransformer(nn.Module):
     d_model: int
     d_ff: int
     num_classes: int
-    training: bool
 
     def setup(
         self,
@@ -474,7 +471,6 @@ class VisionTransformer(nn.Module):
             d_model=self.d_model,
             num_patches=(self.img_size // self.patch_size) ** 2,
             dropout_rate=self.dropout,
-            training=self.training,
         )
         self.projection_layer = ProjectionLayer(num_classes=self.num_classes)
 
@@ -486,7 +482,6 @@ class VisionTransformer(nn.Module):
                         n_heads=self.n_heads,
                         d_ff=self.d_ff,
                         dropout_rate=self.dropout,
-                        training=self.training,
                     )
                     for _ in range(self.N)
                 ]
@@ -494,9 +489,9 @@ class VisionTransformer(nn.Module):
             d_model=self.d_model,
         )
 
-    def __call__(self, x):
+    def __call__(self, x: jnp.ndarray, is_training: bool):
         x = self.patch_embedding(x)
-        x = self.positional_encoding(x)
-        x = self.encoder(x)
+        x = self.positional_encoding(x, is_training)
+        x = self.encoder(x, is_training)
         x = self.projection_layer(x)
         return x
