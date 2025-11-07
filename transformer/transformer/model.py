@@ -79,6 +79,7 @@ class PositionalEncoding(nn.Module):
 
 
 class LayerNorm(nn.Module):
+    d_model: int
     eps: float = 1e-6  # helps avoid division by zero
 
     def setup(self) -> None:
@@ -89,16 +90,19 @@ class LayerNorm(nn.Module):
         Returns:
             None
         """
-        self.alpha = self.param("alpha", nn.initializers.ones, (1))
-        self.bias = self.param("bias", nn.initializers.zeros, (1))
+        # create alpha and bias of shape (d_model)
+        # alpha and bias are learnable parameters
+        # alpha and bias are applied to each patch
+        self.alpha = self.param("alpha", nn.initializers.ones, (self.d_model))
+        self.bias = self.param("bias", nn.initializers.zeros, (self.d_model))
 
     def __call__(self, x):
-        # compute mean and std for each feature of d_model
-        # (batch, seq_len, d_model)
+        # compute mean and std for each patch in the sequence
+        # (batch, num_patches, d_model)
         # axis=-1 means along the last dimension which is d_model
-        # (batch_size, seq_len, 1) this holds mean of each feature
+        # (batch_size, num_patches, 1) this holds mean of each feature
         mean = jnp.mean(x, axis=-1, keepdims=True)
-        # (batch_size, seq_len, 1) holds std of each feature
+        # (batch_size, num_patches, 1) holds std of each feature
         std = jnp.std(x, axis=-1, keepdims=True)
         # all elements in x are normalized by mean and std
         return (self.alpha * (x - mean) / (std + self.eps) ** 0.5) + self.bias
