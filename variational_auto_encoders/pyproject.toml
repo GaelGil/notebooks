@@ -1,0 +1,20 @@
+[project]
+name = "transformer-project"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+
+dependencies = [
+    "jupyterlab>=4.4.5",
+    "numpy>=2.3.2",
+    "pandas>=2.3.1",
+    "pydantic>=2.11.7",
+    "seaborn>=0.13.2",
+    "jax[cuda13]>=0.5.0",
+    "flax>=0.8.4",
+    "optax>=0.2.3",
+    "torch>=2.9.0",
+    "torchvision>=0.24.0",
+    "tqdm>=4.67.1",
+]
