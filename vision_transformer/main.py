@@ -38,14 +38,19 @@ def main():
 
     # initialize the checkpoint manager
     checkpoint_manager = CheckpointManager(config)
+    #  PyTree (model/optimizer state)
     checkpoint_manager.add_to_register(
         "state", ocp.args.StandardSave, ocp.args.StandardRestore
     )
+    # JSON (metrics)
     checkpoint_manager.add_to_register(
         "metrics", ocp.args.JsonSave, ocp.args.JsonRestore
     )
+    # create the manager
     checkpoint_manager.create_manager()
+    # get the manager
     manager = checkpoint_manager.get_manager()
+    # restore the state
     state = checkpoint_manager.restore(state, logging)
 
     logging.info("Training the model")
