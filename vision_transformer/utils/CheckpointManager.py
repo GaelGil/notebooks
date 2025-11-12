@@ -1,4 +1,5 @@
 import orbax.checkpoint as ocp
+from flax.training import train_state
 
 from utils.config import Config
 
@@ -15,11 +16,9 @@ class CheckpointManager:
 
         self.registry = ocp.handlers.DefaultCheckpointHandlerRegistry()
 
-        # # PyTree (model/optimizer state)
         # self.registry.add("state", ocp.args.StandardSave)
         # self.registry.add("state", ocp.args.StandardRestore)
 
-        # # JSON (metrics)
         # self.registry.add("metrics", ocp.args.JsonSave)
         # self.registry.add("metrics", ocp.args.JsonRestore)
 
@@ -28,14 +27,34 @@ class CheckpointManager:
 
     def add_to_register(self, val: str, save_fn, restore_fn):
         """
+        Add the save and restore functions to the registry along with the value
+        Essentially the same as the below
         self.registry.add("state", ocp.args.StandardSave)
         self.registry.add("state", ocp.args.StandardRestore)
+
+        Args:
+            val: str
+            save_fn: function
+            restore_fn: function
+
+        Returns:
+            None
         """
 
         self.registry.add(val, save_fn)
         self.registry.add(val, restore_fn)
 
     def create_manager(self):
+        """
+        Creates the checkpoint manager using the registry options and checkpoint
+        options
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         self.manager = ocp.CheckpointManager(
             directory=self.config.CHECKPOINT_PATH.resolve(),
             handler_registry=self.registry,
@@ -45,7 +64,7 @@ class CheckpointManager:
     def get_manager(self) -> ocp.CheckpointManager:
         return self.manager
 
-    def restore(self, state, logging):
+    def restore(self, state, logging) -> train_state.TrainState:
         # restore previous checkpoint
         if self.manager.latest_step():  # check if there is a latest checkpoint
             logging.info("Restoring from latest checkpoint")
