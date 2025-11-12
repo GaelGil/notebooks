@@ -4,11 +4,12 @@ import jax.numpy as jnp
 import torch
 from jax.tree_util import tree_map
 from torch.utils.data import DataLoader, default_collate
+from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
 
 class ImageDataset:
-    def __init__(self, dataset_path: str, transformations=None) -> None:
+    def __init__(self, dataset_path: str, transformations: transforms.Compose) -> None:
         self.dataset = ImageFolder(root=dataset_path, transform=transformations)
         self.dataset_len: int = len(self.dataset)
         self.train_loader: DataLoader
