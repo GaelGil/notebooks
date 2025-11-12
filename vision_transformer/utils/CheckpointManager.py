@@ -1,0 +1,67 @@
+import orbax.checkpoint as ocp
+
+from utils.config import Config
+
+
+class CheckpointManager:
+    def __init__(self, config: Config) -> None:
+        self.config = config
+        self.checkpoint_options = ocp.CheckpointManagerOptions(
+            max_to_keep=config.MAX_TO_KEEP,
+            save_interval_steps=config.SAVE_INTERVAL,
+            enable_async_checkpointing=config.ASYNC_CHECKPOINTING,
+            best_fn=lambda metrics: metrics[config.BEST_FN],
+        )
+
+        self.registry = ocp.handlers.DefaultCheckpointHandlerRegistry()
+
+        # # PyTree (model/optimizer state)
+        # self.registry.add("state", ocp.args.StandardSave)
+        # self.registry.add("state", ocp.args.StandardRestore)
+
+        # # JSON (metrics)
+        # self.registry.add("metrics", ocp.args.JsonSave)
+        # self.registry.add("metrics", ocp.args.JsonRestore)
+
+        # Define the checkpoint manager
+        self.manager = None
+
+    def add_to_register(self, val: str, save_fn, restore_fn):
+        """
+        self.registry.add("state", ocp.args.StandardSave)
+        self.registry.add("state", ocp.args.StandardRestore)
+        """
+
+        self.registry.add(val, save_fn)
+        self.registry.add(val, restore_fn)
+
+    def create_manager(self):
+        self.manager = ocp.CheckpointManager(
+            directory=self.config.CHECKPOINT_PATH.resolve(),
+            handler_registry=self.registry,
+            options=self.checkpoint_options,
+        )
+
+    def get_manager(self) -> ocp.CheckpointManager:
+        return self.manager
+
+    def restore(self, state, logging):
+        # restore previous checkpoint
+        if self.manager.latest_step():  # check if there is a latest checkpoint
+            logging.info("Restoring from latest checkpoint")
+            # get the best step/checkpoint
+            # this was deinfed in the checkpoint options
+            best_step = self.manager.best_step()
+            # restore from the best step
+            restored = self.manager.restore(
+                step=best_step,
+                args=ocp.args.Composite(
+                    state=ocp.args.StandardRestore(state),
+                    metrics=ocp.args.JsonRestore(),
+                ),
+            )
+            # update state to the restored state
+            state = restored.state
+        else:
+            logging.info("No checkpoint found, training from scratch")
+        return state
