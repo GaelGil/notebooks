@@ -19,4 +19,5 @@ dependencies = [
     "torchvision>=0.24.0",
     "datasets>=4.3.0",
     "tokenizers>=0.22.1",
+    "transformers>=4.57.1",
 ]

@@ -3,6 +3,7 @@ from absl import logging
 
 from utils.config import config
 from utils.LangDataset import LangDataset
+from utils.Model import Model
 from utils.TokenizeDataset import TokenizeDataset
 
 logging.set_verbosity(logging.INFO)
@@ -12,6 +13,14 @@ def main():
     # set the device
     device = jax.devices("gpu")[0]
     logging.info(f"Using device: {device}")
+
+    model = Model(
+        model_name=config.MODEL_NAME,
+        tokenizer=config.TOKENIZER,
+        model=config.MODEL,
+    )
+
+    model = model.get_model()
 
     # load the dataset
     logging.info(f"Loading Dataset from: {config.DATA_PATH}")

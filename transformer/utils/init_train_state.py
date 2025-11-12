@@ -1,25 +1,12 @@
 import jax
 import jax.numpy as jnp
-
-from transformer.model import Transformer
-from utils.config import Config
-from flax.training import train_state
 import optax
+from flax.training import train_state
+
+from utils.config import Config
 
 
-def init_train_state(config: Config) -> train_state.TrainState:
-    model: Transformer = Transformer(
-        num_classes=config.NUM_CLASSES,
-        patch_size=config.PATCH_SIZE,
-        d_model=config.D_MODEL,
-        N=config.N,
-        n_heads=config.H,
-        dropout=config.DROPOUT,
-        img_size=config.IMG_SIZE,
-        in_channels=config.IN_CHANNELS,
-        d_ff=config.D_FF,
-    )
-
+def init_train_state(model, config: Config) -> train_state.TrainState:
     rng: jax.random.PRNGKey = jax.random.PRNGKey(0)
 
     dummy_src_input = jnp.zeros(
