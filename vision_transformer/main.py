@@ -51,8 +51,7 @@ def main():
     # get the manager
     manager = checkpoint_manager.get_manager()
     # restore the state
-    state = checkpoint_manager.restore(state, logging)
-
+    state, step = checkpoint_manager.restore(state, logging)
     logging.info("Training the model")
     train(
         state=state,
@@ -61,6 +60,7 @@ def main():
         epochs=config.EPOCHS,
         manager=manager,
         logger=logging,
+        step=step
     )
 
     logging.info("Saving the final model")

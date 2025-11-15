@@ -64,7 +64,7 @@ class CheckpointManager:
     def get_manager(self) -> ocp.CheckpointManager:
         return self.manager
 
-    def restore(self, state, logging) -> train_state.TrainState:
+    def restore(self, state, logging) -> tuple[train_state.TrainState, int]:
         # restore previous checkpoint
         if self.manager.latest_step():  # check if there is a latest checkpoint
             logging.info("Restoring from latest checkpoint")
@@ -83,4 +83,4 @@ class CheckpointManager:
             state = restored.state
         else:
             logging.info("No checkpoint found, training from scratch")
-        return state
+        return state, self.manager.latest_step() or 0

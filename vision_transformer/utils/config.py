@@ -35,11 +35,11 @@ class Config(BaseModel):
 
 config = Config(
     DEVICE="DEVICE",
-    DATA_PATH="./data/images",
+    DATA_PATH="./data",
     BATCH_SIZE=32,
     NUM_WORKERS=0,
     MODEL_PATH="model.pth",
-    NUM_CLASSES=9,
+    NUM_CLASSES=10,
     D_MODEL=512,
     N=6,
     H=8,
@@ -51,7 +51,7 @@ config = Config(
     IN_CHANNELS=3,
     TRAIN_SPLIT=0.8,
     VAL_SPLIT=0.1,
-    EPOCHS=15,
+    EPOCHS=300,
     LR=0.001,
     CHECKPOINT_PATH=Path("./checkpoints"),
     FINAL_SAVE_PATH=Path("./checkpoints/final"),

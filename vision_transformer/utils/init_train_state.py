@@ -33,6 +33,7 @@ def init_train_state(config: Config) -> train_state.TrainState:
     variables = model.init(
         rng,
         x=dummy_input,
+        is_training=True,
     )
 
     # get the parameters
