@@ -37,6 +37,8 @@ class PatchEmbedding(nn.Module):
             padding="VALID",
         )
 
+
+    @nn.compact
     def __call__(self, x: jnp.ndarray):
         """
         Projects the image into patches
@@ -94,6 +96,7 @@ class PositionalEncoding(nn.Module):
             (1, self.num_patches + 1, self.d_model),
         )
 
+    @nn.compact
     def __call__(self, x: jnp.ndarray, is_training: bool = True):
         """
         Args:
@@ -134,6 +137,7 @@ class LayerNorm(nn.Module):
         self.alpha = self.param("alpha", nn.initializers.ones, (self.d_model))
         self.bias = self.param("bias", nn.initializers.zeros, (self.d_model))
 
+    @nn.compact
     def __call__(self, x):
         # compute mean and std for each patch in the sequence
         # (batch, num_patches, d_model)
@@ -175,6 +179,7 @@ class MultiLayerPerceptron(nn.Module):
         self.dropout = nn.Dropout(rate=self.dropout_rate)
         self.linear_2 = nn.Dense(features=self.d_model)
 
+    @nn.compact
     def __call__(self, x: jnp.ndarray, is_training: bool):
         # simple feed forward network
         x = nn.gelu(self.linear_1(x))
@@ -197,7 +202,6 @@ class MultiHeadAttentionBlock(nn.Module):
     d_model: int
     n_heads: int
     dropout_rate: float
-    training: bool
 
     def setup(self) -> None:
         """
@@ -251,6 +255,7 @@ class MultiHeadAttentionBlock(nn.Module):
         x = jnp.matmul(attention_scores, value)
         return x
 
+    @nn.compact
     def __call__(
         self, q: jnp.ndarray, k: jnp.ndarray, v: jnp.ndarray, is_training: bool
     ):
@@ -296,6 +301,7 @@ class MultiHeadAttentionBlock(nn.Module):
             key=key,
             value=value,
             dropout=self.dropout,
+            training=is_training,
         )
 
         # reshape back to (seq_len, d_model)
@@ -348,7 +354,8 @@ class EncoderBlock(nn.Module):
         self.dropout = nn.Dropout(rate=self.dropout_rate)
         self.norm1 = LayerNorm(d_model=self.d_model)
         self.norm2 = LayerNorm(d_model=self.d_model)
-
+    
+    @nn.compact
     def __call__(self, x, is_training: bool):
         multi_head_attention_output = self.multi_head_attention_block(
             q=x, k=x, v=x, is_training=is_training
@@ -376,7 +383,7 @@ class Encoder(nn.Module):
         d_model: dimension of model
     """
 
-    encoder_blocks: nn.Sequential
+    encoder_blocks: list[EncoderBlock]
     d_model: int
 
     def setup(self) -> None:
@@ -391,7 +398,8 @@ class Encoder(nn.Module):
         self.blocks = self.encoder_blocks
         self.norm = LayerNorm(d_model=self.d_model)
 
-    def __call__(self, x):
+    @nn.compact
+    def __call__(self, x, *, is_training: bool):
         """
         Goes through all the encoder blocks
 
@@ -401,8 +409,8 @@ class Encoder(nn.Module):
         Returns:
             None
         """
-
-        x = self.blocks(x)
+        for block in self.blocks:
+            x = block(x, is_training=is_training)
         return self.norm(x)
 
 
@@ -427,6 +435,7 @@ class ProjectionLayer(nn.Module):
         """
         self.linear = nn.Dense(features=self.num_classes)
 
+    @nn.compact
     def __call__(self, x):
         cls_token = x[:, 0]  # shape: (batch_size, d_model) get the cls token
         logits = self.linear(
@@ -484,23 +493,22 @@ class VisionTransformer(nn.Module):
         self.projection_layer = ProjectionLayer(num_classes=self.num_classes)
 
         self.encoder = Encoder(
-            encoder_blocks=nn.Sequential(
-                layers=[
-                    EncoderBlock(
-                        d_model=self.d_model,
-                        n_heads=self.n_heads,
-                        d_ff=self.d_ff,
-                        dropout_rate=self.dropout,
+            encoder_blocks=[
+                EncoderBlock(
+                    d_model=self.d_model,
+                    n_heads=self.n_heads,
+                    d_ff=self.d_ff,
+                    dropout_rate=self.dropout,
                     )
-                    for _ in range(self.N)
-                ]
-            ),
-            d_model=self.d_model,
+                    for _ in range(self.N)],
+                
+            d_model=self.d_model
         )
 
+    @nn.compact
     def __call__(self, x: jnp.ndarray, is_training: bool):
-        x = self.patch_embedding(x)
-        x = self.positional_encoding(x, is_training)
-        x = self.encoder(x, is_training)
+        x = self.patch_embedding(x=x)
+        x = self.positional_encoding(x=x, is_training=is_training)
+        x = self.encoder(x=x, is_training=is_training)
         x = self.projection_layer(x)
         return x

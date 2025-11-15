@@ -21,6 +21,7 @@ def train(
     epochs: int,
     manager: ocp.CheckpointManager,
     logger,
+    step: int
 ):
     """
     train the model
@@ -38,7 +39,7 @@ def train(
     # initialize the random number generator for dropout
     rng = jax.random.PRNGKey(0)
     # loop over the dataset for num_epochs
-    for epoch in range(epochs):
+    for epoch in range(step, epochs):
         # create a tqdm progress bar
         progress_bar = tqdm(
             train_loader, desc=f"Epoch {epoch + 1}/{epochs}", leave=False
@@ -138,6 +139,7 @@ def eval(state: train_state.TrainState, val_loader: DataLoader):
     num_correct = 0
     # loop over the dataset
     for batch in val_loader:
+        # print(batch.shape)
         # evaluate on batch
         res, loss = eval_step(state=state, batch=batch)
         # get total number of examples
@@ -159,25 +161,20 @@ def eval_step(state: train_state.TrainState, batch):
     Returns:
         predictions
     """
+    # label shape is (batch_size,)
     image, label = batch  # unpack the batch
     # pass batch through the model in training state
-    print(f"IMAGE SHAPE: {image.shape}")
+    # logits shape is (batch_size, output_size)
     logits = state.apply_fn(
         {"params": state.params},
         image,
         is_training=False,
-        rngs={"dropout": jax.random.PRNGKey(0)},
+        
     )
-    print(f"LOGITS: {logits}")
-    print(f"LABEL: {label}")
-    print(f"LOGITS SHAPE: {logits.shape}")
-    print(f"LABEL SHAPE: {label.shape}")
     loss = optax.softmax_cross_entropy_with_integer_labels(
         logits=logits, labels=label
     ).mean()
-    # logits = logits.squeeze()
-    # get predictions from logits
-
+    # get predictions from logits using argmax 
     preditcions = jnp.argmax(logits, axis=1)
-    # return number of correct predictions
-    return preditcions == label, loss
+    correct = preditcions == label
+    return correct, loss
