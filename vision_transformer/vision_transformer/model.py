@@ -37,7 +37,6 @@ class PatchEmbedding(nn.Module):
             padding="VALID",
         )
 
-
     @nn.compact
     def __call__(self, x: jnp.ndarray):
         """
@@ -95,6 +94,7 @@ class PositionalEncoding(nn.Module):
             nn.initializers.zeros,
             (1, self.num_patches + 1, self.d_model),
         )
+        nn.LayerNorm(d_model=self.d_model)
 
     @nn.compact
     def __call__(self, x: jnp.ndarray, is_training: bool = True):
@@ -145,9 +145,9 @@ class LayerNorm(nn.Module):
         # (batch_size, num_patches, 1) this holds mean of each feature
         mean = jnp.mean(x, axis=-1, keepdims=True)
         # (batch_size, num_patches, 1) holds std of each feature
-        std = jnp.std(x, axis=-1, keepdims=True)
+        var = jnp.var(x, axis=-1, keepdims=True)
         # all elements in x are normalized by mean and std
-        return (self.alpha * (x - mean) / (std + self.eps) ** 0.5) + self.bias
+        return (self.alpha * (x - mean) / jnp.sqrt(var + self.eps)) + self.bias
 
 
 class MultiLayerPerceptron(nn.Module):
@@ -354,7 +354,7 @@ class EncoderBlock(nn.Module):
         self.dropout = nn.Dropout(rate=self.dropout_rate)
         self.norm1 = LayerNorm(d_model=self.d_model)
         self.norm2 = LayerNorm(d_model=self.d_model)
-    
+
     @nn.compact
     def __call__(self, x, is_training: bool):
         multi_head_attention_output = self.multi_head_attention_block(
@@ -499,10 +499,10 @@ class VisionTransformer(nn.Module):
                     n_heads=self.n_heads,
                     d_ff=self.d_ff,
                     dropout_rate=self.dropout,
-                    )
-                    for _ in range(self.N)],
-                
-            d_model=self.d_model
+                )
+                for _ in range(self.N)
+            ],
+            d_model=self.d_model,
         )
 
     @nn.compact
