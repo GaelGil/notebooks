@@ -94,7 +94,6 @@ class PositionalEncoding(nn.Module):
             nn.initializers.zeros,
             (1, self.num_patches + 1, self.d_model),
         )
-        nn.LayerNorm(d_model=self.d_model)
 
     @nn.compact
     def __call__(self, x: jnp.ndarray, is_training: bool = True):
