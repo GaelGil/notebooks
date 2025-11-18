@@ -21,7 +21,7 @@ def train(
     epochs: int,
     manager: ocp.CheckpointManager,
     logger,
-    step: int
+    step: int,
 ):
     """
     train the model
@@ -45,6 +45,7 @@ def train(
             train_loader, desc=f"Epoch {epoch + 1}/{epochs}", leave=False
         )
         for batch in progress_bar:
+            rng, dropout_rng = jax.random.split(rng)
             # train on batch
             state, _ = train_step(state=state, batch=batch, dropout_rng=rng)
 
@@ -137,17 +138,23 @@ def eval(state: train_state.TrainState, val_loader: DataLoader):
     """
     total = 0
     num_correct = 0
+    total_loss = 0
+    num_batches = 0
     # loop over the dataset
     for batch in val_loader:
-        # print(batch.shape)
         # evaluate on batch
         res, loss = eval_step(state=state, batch=batch)
         # get total number of examples
         total += res.shape[0]
         # get number of correct predictions (will be boolean so we can sum)
         num_correct += res.sum()
+        # get total loss
+        total_loss += loss
+        num_batches += 1
 
-    return num_correct / total, loss
+    accuracy = num_correct / total
+    avg_loss = total_loss / num_batches
+    return accuracy, avg_loss
 
 
 @jax.jit
@@ -169,12 +176,11 @@ def eval_step(state: train_state.TrainState, batch):
         {"params": state.params},
         image,
         is_training=False,
-        
     )
     loss = optax.softmax_cross_entropy_with_integer_labels(
         logits=logits, labels=label
     ).mean()
-    # get predictions from logits using argmax 
+    # get predictions from logits using argmax
     preditcions = jnp.argmax(logits, axis=1)
     correct = preditcions == label
     return correct, loss
