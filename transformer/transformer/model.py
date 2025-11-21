@@ -103,9 +103,9 @@ class LayerNorm(nn.Module):
         # (batch_size, num_patches, 1) this holds mean of each feature
         mean = jnp.mean(x, axis=-1, keepdims=True)
         # (batch_size, num_patches, 1) holds std of each feature
-        std = jnp.std(x, axis=-1, keepdims=True)
+        var = jnp.var(x, axis=-1, keepdims=True)
         # all elements in x are normalized by mean and std
-        return (self.alpha * (x - mean) / (std + self.eps) ** 0.5) + self.bias
+        return (self.alpha * (x - mean) / jnp.sqrt(var + self.eps)) + self.bias
 
 
 class FeedForwardBlock(nn.Module):
