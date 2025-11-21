@@ -24,6 +24,7 @@ class InputEmbeddings(nn.Module):
         # These are learned.
         self.embedding = nn.Embed(num_embeddings=self.vocab_size, features=self.d_model)
 
+    @nn.compact
     def __call__(self, x):
         # Get the embedding for each word in x
         # multiply by the square root of d_model for normalization and stability during training
@@ -80,6 +81,7 @@ class LayerNorm(nn.Module):
         self.alpha = self.param("alpha", nn.initializers.ones, (self.d_model))
         self.bias = self.param("bias", nn.initializers.zeros, (self.d_model))
 
+    @nn.compact
     def __call__(self, x):
         # compute mean and std for each patch in the sequence
         # (batch, seq_len, d_model)
@@ -112,6 +114,7 @@ class FeedForwardBlock(nn.Module):
         self.dropout = nn.Dropout(rate=self.dropout_rate)
         self.linear_2 = nn.Dense(features=self.d_model)
 
+    @nn.compact
     def __call__(self, x, is_training: bool):
         # simple feed forward network
         # (seq_len, d_model) --> (dff, d_model) --> (seq_len, d_model)
@@ -172,6 +175,7 @@ class MultiHeadAttentionBlock(nn.Module):
         x = jnp.matmul(attention_scores, value)
         return x
 
+    @nn.compact
     def __call__(
         self, q: jnp.ndarray, k: jnp.ndarray, v: jnp.ndarray, is_training: bool, mask
     ):
@@ -271,6 +275,7 @@ class EncoderBlock(nn.Module):
         self.norm1 = LayerNorm()
         self.norm2 = LayerNorm()
 
+    @nn.compact
     def __call__(self, x, src_mask, is_training):
         # attention block output
         multi_head_attention_output = self.multi_head_attention_block(
@@ -294,7 +299,7 @@ class EncoderBlock(nn.Module):
 
 
 class Encoder(nn.Module):
-    encoder_blocks: nn.Sequential
+    encoder_blocks: list[EncoderBlock]
 
     def setup(self) -> None:
         """
@@ -304,12 +309,13 @@ class Encoder(nn.Module):
         Returns:
             None
         """
-        self.blocks: nn.Sequential = self.encoder_blocks
-        self.norm = LayerNorm()
+        self.blocks: list[EncoderBlock] = self.encoder_blocks
+        self.norm: LayerNorm = LayerNorm()
 
-    def __call__(self, x, mask):
+    @nn.compact
+    def __call__(self, x: jnp.ndarray, mask: jnp.ndarray, is_training: bool):
         for block in self.blocks:
-            x = block(x, mask)
+            x = block(x=x, src_mask=mask, is_training=is_training)
         return self.norm(x)
 
 
@@ -336,6 +342,7 @@ class DecoderBlock(nn.Module):
         self.norm2 = LayerNorm()
         self.norm3 = LayerNorm()
 
+    @nn.compact
     def __call__(self, x, encoder_output, src_mask, target_mask, is_training: bool):
         # masked multi head attention block output
         masked_multi_head_attention_output = self.masked_multi_head_attention_block(
@@ -370,7 +377,7 @@ class DecoderBlock(nn.Module):
 
 
 class Decoder(nn.Module):
-    decoder_blocks: nn.Sequential
+    decoder_blocks: list[DecoderBlock]
 
     def setup(self) -> None:
         """
@@ -380,12 +387,19 @@ class Decoder(nn.Module):
         Returns:
             None
         """
-        self.blocks: nn.Sequential = self.decoder_blocks
-        self.norm = LayerNorm()
+        self.blocks: list[DecoderBlock] = self.decoder_blocks
+        self.norm: LayerNorm = LayerNorm()
 
-    def __call__(self, x, encoder_output, src_mask, target_mask):
+    @nn.compact
+    def __call__(self, x, encoder_output, src_mask, target_mask, is_training: bool):
         for block in self.blocks:
-            x = block(x, encoder_output, src_mask, target_mask)
+            x = block(
+                x=x,
+                encoder_output=encoder_output,
+                src_mask=src_mask,
+                target_mask=target_mask,
+                is_training=is_training,
+            )
         return self.norm(x)
 
 
@@ -406,6 +420,7 @@ class ProjectionLayer(nn.Module):
     def setup(self) -> None:
         self.linear = nn.Dense(features=self.vocab_size)
 
+    @nn.compact
     def __call__(self, x):
         # (seq_len, d_model) --> (seq_len, vocab_size)
         return nn.log_softmax(self.linear(x))
@@ -454,43 +469,38 @@ class Transformer(nn.Module):
             d_model=d_model, seq_len=seq_len, dropout=dropout
         )
 
-        self.encoder = Encoder(
-            nn.Sequential(
-                layers=[
-                    EncoderBlock(
-                        d_model=d_model, n_heads=n_heads, d_ff=d_ff, dropout=dropout
-                    )
-                    for _ in range(N)
-                ]
-            )
-        )
+        self.encoder = [
+            EncoderBlock(d_model=d_model, n_heads=n_heads, d_ff=d_ff, dropout=dropout)
+            for _ in range(N)
+        ]
 
-        self.decoder = Decoder(
-            nn.Sequential(
-                layers=[
-                    DecoderBlock(
-                        d_model=d_model, n_heads=n_heads, d_ff=d_ff, dropout=dropout
-                    )
-                    for _ in range(N)
-                ]
-            )
-        )
+        self.decoder = [
+            DecoderBlock(d_model=d_model, n_heads=n_heads, d_ff=d_ff, dropout=dropout)
+            for _ in range(N)
+        ]
 
         self.projection = ProjectionLayer(d_model=d_model, vocab_size=target_vocab_size)
 
-    def __call__(self, src, src_mask, target, target_mask):
+    def __call__(
+        self,
+        src: jnp.ndarray,
+        src_mask: jnp.ndarray,
+        target: jnp.ndarray,
+        target_mask: jnp.ndarray,
+        is_training: bool,
+    ):
         # get the embeddings for the src
         src_embeddings = self.src_embeddings(x=src)
         # apply positional encoding to the src embeddings
-        src_pos = self.src_pe(x=src_embeddings)
+        src_pos = self.src_pe(x=src_embeddings, is_training=is_training)
 
         # get the embeddings for the target
         target_embeddings = self.target_embeddings(x=target)
         # apply positonal encoding to the target embeddings
-        target_pos = self.src_pe(x=target_embeddings)
+        target_pos = self.src_pe(x=target_embeddings, is_training=is_training)
 
         # pass the input embeddings with positinal encoding through the encoder
-        encoder_output = self.encoder(x=src_pos, mask=src_mask)
+        encoder_output = self.encoder(x=src_pos, mask=src_mask, is_training=is_training)
 
         # pass the target input embeddings with positional encoding
         # and the encoder output through the decoder
@@ -499,6 +509,7 @@ class Transformer(nn.Module):
             encoder_output=encoder_output,
             src_mask=src_mask,
             target_mask=target_mask,
+            is_training=is_training,
         )
 
         # project the decoder output into vocab size and get outputs
