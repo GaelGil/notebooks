@@ -3,12 +3,33 @@ import jax.numpy as jnp
 import optax
 from flax.training import train_state
 
+from transformer.model import Transformer
 from utils.config import Config
 
 
-def init_train_state(model, config: Config) -> train_state.TrainState:
+def init_train_state(config: Config) -> train_state.TrainState:
+    """
+    Initialize the train state
+    Args:
+        config: Config
+
+    Returns:
+        train_state.TrainState
+    """
+    model: Transformer = Transformer(
+        d_model=config.D_MODEL,
+        N=config.N,
+        n_heads=config.H,
+        d_ff=config.D_FF,
+        dropout=config.DROPOUT,
+        seq_len=config.SEQ_LEN,
+        src_vocab_size=config.SRC_VOCAB_SIZE,
+        target_vocab_size=config.TARGET_VOCAB_SIZE,
+    )
+
     rng: jax.random.PRNGKey = jax.random.PRNGKey(0)
 
+    # create dummy inputs
     dummy_src_input = jnp.zeros(
         (
             config.BATCH_SIZE,
@@ -40,6 +61,7 @@ def init_train_state(model, config: Config) -> train_state.TrainState:
         src_mask=dummy_src_mask,
         target=dummy_target_input,
         target_mask=dummy_target_mask,
+        is_training=True,
     )
 
     params = variables["params"]
