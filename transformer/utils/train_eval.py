@@ -9,7 +9,6 @@ import jax
 import jax.numpy as jnp
 import optax
 import orbax.checkpoint as ocp
-from flax import linen as nn
 from flax.training import train_state
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -45,9 +44,11 @@ def train(
         )
         # iterate through each batch in the dataset
         for batch in progress_bar:
+            rng, dropout_rng = jax.random.split(rng)
             # train on batch
             state, _ = train_step(state=state, batch=batch, dropout_rng=rng)
 
+        # train and val accuracy and loss
         eval_accuracy, eval_loss = eval(state=state, val_loader=val_loader)
         train_accuracy, train_loss = eval(state=state, val_loader=train_loader)
 
@@ -58,10 +59,10 @@ def train(
         )
 
         metrics = {
-            "train_loss": train_loss,
-            "eval_loss": eval_loss,
-            "train_accuracy": train_accuracy,
-            "eval_accuracy": eval_accuracy,
+            "train_loss": float(train_loss),
+            "eval_loss": float(eval_loss),
+            "train_accuracy": float(train_accuracy),
+            "eval_accuracy": float(eval_accuracy),
         }
         # log the metrics
         logger.info(metrics)
@@ -70,7 +71,7 @@ def train(
             step=epoch,
             args=ocp.args.Composite(
                 state=ocp.args.StandardSave(state),
-                metrics=ocp.args.StandardSave(metrics),
+                metrics=ocp.args.JsonSave(metrics),
             ),
         )
 
@@ -107,9 +108,13 @@ def train_step(
         Compute the loss function for a single batch
         """
         # pass batch through the model in training state
-        logits = state.apply_fn({"params": params}, seq, rngs={"dropout": dropout_rng})
+        logits = state.apply_fn(
+            {"params": params}, seq, is_training=True, rngs={"dropout": dropout_rng}
+        )
         # calculate mean loss for the batch
-        loss = optax.softmax_cross_entropy(logits=logits.squeeze(), labels=label).mean()
+        loss = optax.softmax_cross_entropy_with_integer_labels(
+            logits=logits, labels=label
+        ).mean()
         return loss
 
     # compute loss and gradients
@@ -130,18 +135,25 @@ def eval(state: train_state.TrainState, val_loader: DataLoader):
     Returns:
         accuracy
     """
-    total = 0
-    num_correct = 0
+    total_batch = 0
+    num_correct_batch = 0
+    total_loss = 0
+    num_bathces = 0
     # loop over the dataset
     for batch in val_loader:
         # evaluate on batch
         res, loss = eval_step(state=state, batch=batch)
         # get num of examples in current batch and add to total
-        total += res.shape[0]
+        total_batch += res.shape[0]
         # get number of correct predictions for current batch (will be boolean so we can sum)
-        num_correct += res.sum()
+        num_correct_batch += res.sum()
+        total_loss += loss
+        num_bathces += 1
 
-    return num_correct / total, loss
+    accuracy = num_correct_batch / total_batch
+    avg_loss = total_loss / num_bathces
+
+    return accuracy, avg_loss
 
 
 @jax.jit
@@ -158,11 +170,17 @@ def eval_step(state: train_state.TrainState, batch):
     seq, label = batch  # unpack the batch
     # pass batch through the model in training state
     logits = state.apply_fn(
-        {"params": state.params}, seq, rngs={"dropout": jax.random.PRNGKey(0)}
+        {"params": state.params},
+        seq,
+        is_training=False,
+        rngs={"dropout": jax.random.PRNGKey(0)},
     )
-    loss = optax.softmax_cross_entropy(logits=logits.squeeze(), labels=label).mean()
-    logits = logits.squeeze()
-    # get predictions from logits
-    preditcions = jnp.round(nn.softmax(logits))
-    # return number of correct predictions
-    return preditcions == label, loss
+    # calculate mean loss for the batch
+    loss = optax.softmax_cross_entropy_with_integer_labels(
+        logits=logits, labels=label
+    ).mean()
+    # get predictions from logits using argmax
+    preditcions = jnp.argmax(logits, axis=-1)
+    # check if predictions are correct
+    correct = preditcions == label
+    return correct, loss
