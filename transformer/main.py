@@ -1,6 +1,8 @@
 import jax
+import orbax.checkpoint as ocp
 from absl import logging
 
+from utils.CheckPointManager import CheckpointManager
 from utils.config import config
 from utils.init_train_state import init_train_state
 
@@ -14,7 +16,26 @@ def main():
 
     # initialize the train state
     logging.info("Initializing the train state ...")
-    train_state = init_train_state(config)
+    state = init_train_state(config=config)
+
+    # initialize the checkpoint manager
+    logging.info("Initializing the checkpoint manager ...")
+    checkpoint_manager = CheckpointManager(config=config)
+
+    checkpoint_manager.add_to_register(
+        "state", ocp.args.StandardSave, ocp.args.StandardRestore
+    )
+    checkpoint_manager.add_to_register(
+        "metrics", ocp.args.JsonSave, ocp.args.JsonRestore
+    )
+
+    # create the checkpoint manager
+    logging.info("Creating the checkpoint manager ...")
+    checkpoint_manager.create_manager()
+
+    manager = checkpoint_manager.get_manager()
+
+    state, step = checkpoint_manager.restore(state=state, logging=logging)
 
     # load the dataset
     # logging.info(f"Loading Dataset from: {config.DATA_PATH}")
