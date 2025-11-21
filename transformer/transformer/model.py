@@ -45,37 +45,21 @@ class PositionalEncoding(nn.Module):
 
         self.dropout = nn.Dropout(rate=self.dropout_rate)
 
-        # create positon vector
-        # for example, if seq_len = 5, then position = [0, 1, 2, 3, 4]
-        # in our case we create a vector of size seq_len
-        position = jnp.arange(self.seq_len)[:, None]  # (seq_len, 1)
-
-        # create a vector of size d_model/2
-        div_term = jnp.exp(
-            jnp.arange(0, self.d_model, 2) * (-jnp.log(10000.0) / self.d_model)
+        self.pe = self.param(
+            "positional_encoding",
+            nn.initializers.zeros,
+            (1, self.seq_len, self.d_model),
         )
 
-        # create a matrix of size (seq_len, d_model) which is
-        # the same as embeddings and fill with zeros
-        pe = jnp.zeros((self.seq_len, self.d_model))
-
-        # apply sin and cos to even and odd indices in pe matrix
-        pe = pe.at[:, 0::2].set(jnp.sin(position * div_term))
-        pe = pe.at[:, 1::2].set(jnp.cos(position * div_term))
-
-        # Register as constant buffer (not learned)
-        self.pe = pe[None, :, :]  # shape (1, seq_len, d_model)
-
-    def __call__(self, x, *, training: bool):
+    def __call__(self, x, is_training: bool):
         """
         Args:
             x: input tensor of shape (batch_size, seq_len, d_model)
             training: whether in training mode for dropout
         """
-        seq_len = x.shape[1]
 
-        x = x + self.pe[:, :seq_len, :]
-        return self.dropout(x, deterministic=not training)
+        x = x + self.pe
+        return self.dropout(x, deterministic=not is_training)
 
 
 class LayerNorm(nn.Module):
@@ -98,11 +82,11 @@ class LayerNorm(nn.Module):
 
     def __call__(self, x):
         # compute mean and std for each patch in the sequence
-        # (batch, num_patches, d_model)
+        # (batch, seq_len, d_model)
         # axis=-1 means along the last dimension which is d_model
-        # (batch_size, num_patches, 1) this holds mean of each feature
+        # (batch_size, seq_len, 1) this holds mean of each token in the sequence
         mean = jnp.mean(x, axis=-1, keepdims=True)
-        # (batch_size, num_patches, 1) holds std of each feature
+        # (batch_size, seq_len, 1) var of each token in the sequence
         var = jnp.var(x, axis=-1, keepdims=True)
         # all elements in x are normalized by mean and std
         return (self.alpha * (x - mean) / jnp.sqrt(var + self.eps)) + self.bias
@@ -112,7 +96,6 @@ class FeedForwardBlock(nn.Module):
     d_model: int
     d_ff: int
     dropout_rate: float
-    training: bool
 
     def setup(self) -> None:
         """
@@ -129,11 +112,11 @@ class FeedForwardBlock(nn.Module):
         self.dropout = nn.Dropout(rate=self.dropout_rate)
         self.linear_2 = nn.Dense(features=self.d_model)
 
-    def __call__(self, x):
+    def __call__(self, x, is_training: bool):
         # simple feed forward network
         # (seq_len, d_model) --> (dff, d_model) --> (seq_len, d_model)
         x = nn.leaky_relu(self.linear_1(x))
-        x = self.dropout(x)
+        x = self.dropout(x, deterministic=not is_training)
         x = self.linear_2(x)
         return x
 
@@ -174,6 +157,7 @@ class MultiHeadAttentionBlock(nn.Module):
         value: jnp.ndarray,
         mask,
         dropout: nn.Dropout,
+        is_training: bool,
     ) -> jnp.ndarray:
         d_k = query.shape[-1]  # get dimension of last axis
         # (Q * K^T)/sqrt(d_k)
@@ -183,12 +167,14 @@ class MultiHeadAttentionBlock(nn.Module):
         # softmax(Q * K^T/sqrt(d_k))
         attention_scores = nn.softmax(attention_scores, axis=-1)
         if dropout:
-            attention_scores = dropout(attention_scores, dropout)
+            attention_scores = dropout(attention_scores, deterministic=not is_training)
         # (Q * K^T)/sqrt(d_k) * V
         x = jnp.matmul(attention_scores, value)
         return x
 
-    def __call__(self, q: jnp.ndarray, k: jnp.ndarray, v: jnp.ndarray, mask):
+    def __call__(
+        self, q: jnp.ndarray, k: jnp.ndarray, v: jnp.ndarray, is_training: bool, mask
+    ):
         """
 
         Args:
@@ -232,11 +218,10 @@ class MultiHeadAttentionBlock(nn.Module):
             key=key,
             value=value,
             dropout=self.dropout,
-            training=self.training,
+            training=is_training,
         )
 
         # reshape back to (seq_len, d_model)
-        # x = x.transpose(1, 2).contiguous().reshape(x.shape[0], -1, self.d_model)
         x = jnp.transpose(x, (0, 2, 1, 3)).reshape(x.shape[0], -1, self.d_model)
         x = self.w_o(x)
         return x
@@ -256,7 +241,6 @@ class EncoderBlock(nn.Module):
     n_heads: int
     d_ff: int
     dropout_rate: float
-    training: bool
 
     def setup(self) -> None:
         """
@@ -274,14 +258,12 @@ class EncoderBlock(nn.Module):
             d_model=self.d_model,
             n_heads=self.n_heads,
             dropout_rate=self.dropout_rate,
-            training=self.training,
         )
         # and one feed forward block
-        self.multi_layer_perceptron_block = FeedForwardBlock(
+        self.feed_forward_block = FeedForwardBlock(
             d_model=self.d_model,
             d_ff=self.d_ff,
             dropout_rate=self.dropout_rate,
-            training=self.training,
         )
         # Lastly there are two residual connections in the encoder block
         # that connect the multi head attention block and the feed forward block
@@ -289,20 +271,24 @@ class EncoderBlock(nn.Module):
         self.norm1 = LayerNorm()
         self.norm2 = LayerNorm()
 
-    def __call__(self, x, src_mask):
+    def __call__(self, x, src_mask, is_training):
         # attention block output
         multi_head_attention_output = self.multi_head_attention_block(
-            q=x, k=x, v=x, mask=src_mask
+            q=x, k=x, v=x, mask=src_mask, is_training=is_training
         )
 
         # add and norm output
-        x = self.dropout(self.norm1(multi_head_attention_output + x))
+        x = self.dropout(
+            self.norm1(multi_head_attention_output + x), deterministic=not is_training
+        )
 
         # pass in new x into feed forward and get output
         feed_forward_output = self.feed_forward_block(x)
 
         # add and norm ff output
-        output = self.dropout(self.norm2(feed_forward_output + x))
+        output = self.dropout(
+            self.norm2(feed_forward_output + x), deterministic=not is_training
+        )
 
         return output
 
@@ -350,14 +336,17 @@ class DecoderBlock(nn.Module):
         self.norm2 = LayerNorm()
         self.norm3 = LayerNorm()
 
-    def __call__(self, x, encoder_output, src_mask, target_mask):
+    def __call__(self, x, encoder_output, src_mask, target_mask, is_training: bool):
         # masked multi head attention block output
         masked_multi_head_attention_output = self.masked_multi_head_attention_block(
             q=x, k=x, v=x, mask=target_mask
         )
 
         # add and norm the masked multi head attention
-        x = self.dropout(self.norm1(masked_multi_head_attention_output + x))
+        x = self.dropout(
+            self.norm1(masked_multi_head_attention_output + x),
+            deterministic=not is_training,
+        )
 
         # cross attention
         cross_attention_output = self.cross_attention_block(
@@ -365,13 +354,17 @@ class DecoderBlock(nn.Module):
         )
 
         # add and norm the cross attention
-        x = self.dropout(self.norm2(cross_attention_output + x))
+        x = self.dropout(
+            self.norm2(cross_attention_output + x), deterministic=not is_training
+        )
 
         # feed forward
         feed_forward_output = self.feed_forward_block(x)
 
         # final add and norm
-        output = self.dropout(self.norm3(feed_forward_output + x))
+        output = self.dropout(
+            self.norm3(feed_forward_output + x), deterministic=not is_training
+        )
 
         return output
 
