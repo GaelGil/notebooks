@@ -26,10 +26,10 @@ class LangDataset:
         self.dataset: dict = load_dataset(dataset_name)
         self.src_lang: str = src_lang
         self.target_lang: str = target_lang
-        self.src_data = None
-        self.target_data = None
         self.src_file = src_file
         self.target_file = target_file
+        self.src_data = None
+        self.target_data = None
 
     def load_data(self):
         if self.src_file:
@@ -44,12 +44,13 @@ class LangDataset:
 
             assert len(src) == len(tgt), "src and tgt sizes mismatch"
 
-            if self.shuffle:
-                combined = list(zip(src, tgt))
-                random.shuffle(combined)
-                src, tgt = zip(*combined)
+            combined = list(zip(src, tgt))
+            random.shuffle(combined)
+            src, tgt = zip(*combined)
 
-            return list(src), list(tgt)
+            self.src_data = list(src)
+            self.target_data = list(tgt)
+            return self.src_data, self.target_data
         else:
             self.src_data = self.dataset["train"][self.src_lang]
             self.target_data = self.dataset["train"][self.target_lang]

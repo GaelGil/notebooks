@@ -5,7 +5,7 @@ import sentencepiece as spm
 from utils.config import Config
 
 
-class JointTokenizer:
+class Tokenizer:
     def __init__(self, config: Config):
         self.config = config
         self.sp = spm.SentencePieceProcessor()
@@ -14,29 +14,19 @@ class JointTokenizer:
     def vocab_size(self):
         return self.sp.get_piece_size()
 
-    def train_tokenizer(self):
+    def train_tokenizer(self, data: list):
         os.makedirs(self.config.TOKENIZER_PATH, exist_ok=True)
 
-        # collect all text files from config
-        input_files = [
-            self.config["spa_en_src"],
-            self.config["spa_en_tgt"],
-            self.config["spa_l2_src"],
-            self.config["spa_l2_tgt"],
-        ]
-
-        merged_path = os.path.join(self.config.TOKENIZER_PATH, "all_text.txt")
-
         # combine text into one file
-        with open(merged_path, "w", encoding="utf8") as out:
-            for f in input_files:
-                with open(f, "r", encoding="utf8") as inp:
-                    for line in inp:
-                        out.write(line.strip() + "\n")
+        temp_file = self.config.TOKENIZER_PATH + "_train.txt"
+        with open(temp_file, "w", encoding="utf-8") as f:
+            for s, t in zip(self.src_texts, self.tgt_texts):
+                f.write(s + "\n")
+                f.write(t + "\n")
 
         # Train SentencePiece Unigram (T5 style)
         self.sp = spm.SentencePieceTrainer.train(
-            input=merged_path,
+            input=temp_file,
             model_prefix=os.path.join(self.config.TOKENIZER_PATH, "joint"),
             vocab_size=self.config["vocab_size"],
             model_type="unigram",
