@@ -20,4 +20,5 @@ dependencies = [
     "datasets>=4.3.0",
     "tokenizers>=0.22.1",
     "transformers>=4.57.1",
+    "sentencepiece>=0.2.1",
 ]

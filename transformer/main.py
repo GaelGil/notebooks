@@ -5,6 +5,7 @@ from absl import logging
 from utils.CheckPointManager import CheckpointManager
 from utils.config import config
 from utils.init_train_state import init_train_state
+from utils.JointTokenizer import JointTokenizer
 
 logging.set_verbosity(logging.INFO)
 
@@ -13,6 +14,10 @@ def main():
     # set the device
     device = jax.devices("gpu")[0]
     logging.info(f"Using device: {device}")
+
+    tokenizer = JointTokenizer(config=config)
+
+    tokenizer = tokenizer.load_tokenizer()
 
     # initialize the train state
     logging.info("Initializing the train state ...")
