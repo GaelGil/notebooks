@@ -14,7 +14,7 @@ class Tokenizer:
     def vocab_size(self):
         return self.sp.get_piece_size()
 
-    def train_tokenizer(self, data: list):
+    def train_tokenizer(self, src_one, target_one, src_two, target_two):
         os.makedirs(self.config.TOKENIZER_PATH, exist_ok=True)
 
         # combine text into one file

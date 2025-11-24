@@ -1,3 +1,5 @@
+import os
+
 from absl import logging
 
 from utils.config import config
@@ -27,16 +29,20 @@ def main():
         target_lang=config.LANG_TARGET_TWO,
     )
 
-    print(config.SRC_FILE)
-    raw_dataset_one = dataset_one.load_data()
-    raw_dataset_two = dataset_two.load_data()
+    raw_src_one, raw_target_one = dataset_one.load_data()
+    raw_src_two, raw_target_two = dataset_two.load_data()
 
-    # if os.path.exists(config.TOKENIZER_MODEL_PATH):
-    #     logging.info("Loading the tokenizer ...")
-    #     tokenizer = tokenizer.load_tokenizer()
-    # else:
-    #     logging.info("Training the tokenizer ...")
-    #     tokenizer = tokenizer.train_tokenizer(data=raw_dataset_one + raw_dataset_two)
+    if os.path.exists(config.TOKENIZER_MODEL_PATH):
+        logging.info("Loading the tokenizer ...")
+        tokenizer = tokenizer.load_tokenizer()
+    else:
+        logging.info("Training the tokenizer ...")
+        tokenizer = tokenizer.train_tokenizer(
+            src_one=raw_src_one,
+            tgt_one=raw_target_one,
+            src_two=raw_src_two,
+            tgt_two=raw_target_two,
+        )
 
     # initialize the train state
     # logging.info("Initializing the train state ...")

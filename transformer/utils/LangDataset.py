@@ -55,6 +55,7 @@ class LangDataset:
         else:
             self.src_data = self.dataset["train"][self.src_lang]
             self.target_data = self.dataset["train"][self.target_lang]
+            return list(self.src_data), (self.target_data)
 
     def valid_pair(self, example):
         src = example.get(self.src_lang)
