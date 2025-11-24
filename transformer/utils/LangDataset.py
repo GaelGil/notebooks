@@ -1,7 +1,10 @@
 import os
 import random
 
+import jax.numpy as jnp
 from datasets import load_dataset
+
+from utils.Tokenizer import Tokenizer
 
 
 class LangDataset:
@@ -27,8 +30,6 @@ class LangDataset:
         self.target_lang: str = target_lang
         self.src_file = src_file
         self.target_file = target_file
-        self.src_data = None
-        self.target_data = None
         if dataset_name:
             self.dataset: dict = load_dataset(dataset_name)
 
@@ -49,14 +50,14 @@ class LangDataset:
             random.shuffle(combined)
             src, target = zip(*combined)
 
-            self.src_data = list(src)
-            self.target_data = list(target)
-            return self.src_data, self.target_data
+            src_data = list(src)
+            target_data = list(target)
+            return src_data, target_data
         else:
             self.handle_null()
-            self.src_data = self.dataset["train"][self.src_lang]
-            self.target_data = self.dataset["train"][self.target_lang]
-            return list(self.src_data), (self.target_data)
+            src_data = self.dataset["train"][self.src_lang]
+            target_data = self.dataset["train"][self.target_lang]
+            return list(src_data), (target_data)
 
     def valid_pair(self, example):
         src = example.get(self.src_lang)
@@ -88,3 +89,32 @@ class LangDataset:
             None
         """
         self.dataset = self.dataset.filter(self.valid_pair)
+
+    def pad_sequences(self, sequences, pad_id=0, max_len=None):
+        """
+        sequences: list of list of token ids
+        pad_id: integer used for padding
+        max_len: if None, pad to the length of the longest sequence
+        """
+        padded = []
+        for seq in sequences:
+            seq = seq[:max_len]  # truncate if too long
+            padding = [pad_id] * (max_len - len(seq))
+            padded.append(seq + padding)
+        return jnp.array(padded, dtype=jnp.int32)
+
+    def prep_data(self, src_data, target_data, tokenizer: Tokenizer):
+        src_ids = []
+        target_ids = []
+
+        for src, target in zip(src_data, target_data):
+            src_ids.append(tokenizer.encode(src, add_bos=True, add_eos=True))
+            target_ids.append(tokenizer.encode(target, add_bos=True, add_eos=True))
+
+        src_ids_padded = self.pad_sequences(
+            src_ids, pad_id=tokenizer.sp.pad_id(), max_len=tokenizer.config.SEQ_LEN
+        )
+        target_ids_padded = self.pad_sequences(
+            target_ids, pad_id=tokenizer.sp.pad_id(), max_len=tokenizer.config.SEQ_LEN
+        )
+        return src_ids_padded, target_ids_padded
