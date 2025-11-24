@@ -34,6 +34,7 @@ class Config(BaseModel):
     ASYNC_CHECKPOINTING: bool
     TOKENIZER_PATH: str
     TOKENIZER_MODEL_PATH: str
+    JOINT_CORPUS_PATH: str
 
 
 config = Config(
@@ -67,6 +68,7 @@ config = Config(
     SRC_FILE="./data/TED2013.en-es.es",
     TARGET_FILE="./data/TED2013.en-es.en",
     TOKENIZER_PATH="./tokenizer",
-    TOKENIZER_MODEL_PATH="./tokenizer/model",
+    TOKENIZER_MODEL_PATH="./tokenizer/joint.model",
     ASYNC_CHECKPOINTING=True,
+    JOINT_CORPUS_PATH="./data/joint_corpus.txt",
 )
