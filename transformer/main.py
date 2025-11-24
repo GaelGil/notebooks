@@ -50,7 +50,6 @@ def main():
     src_two, target_two = dataset_two.prep_data(
         raw_src_two, raw_target_two, tokenizer=tokenizer
     )
-    print(src_two[0])
     # initialize the train state
     # logging.info("Initializing the train state ...")
     # state = init_train_state(config=config)

@@ -117,4 +117,15 @@ class LangDataset:
         target_ids_padded = self.pad_sequences(
             target_ids, pad_id=tokenizer.sp.pad_id(), max_len=tokenizer.config.SEQ_LEN
         )
+
         return src_ids_padded, target_ids_padded
+
+    def split(
+        self,
+        src,
+        target,
+        train_size: float = 0.8,
+        test_size: float = 0.1,
+        val_size: float = 0.1,
+    ):
+        pass
