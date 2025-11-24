@@ -21,7 +21,8 @@ def main():
     tokenizer = JointTokenizer(config=config)
 
     dataset_one = LangDataset(
-        dataset_name=config.DATA_PATH,
+        src_file=config.SRC_FILE,
+        target_file=config.TARGET_FILE,
         src_lang=config.LANG_SRC_ONE,
         target_lang=config.LANG_TARGET_ONE,
     )
@@ -31,6 +32,9 @@ def main():
         src_lang=config.LANG_SRC_TWO,
         target_lang=config.LANG_TARGET_TWO,
     )
+
+    raw_dataset_one = dataset_one.load_data()
+    raw_dataset_two = dataset_two.load_data()
 
     dataset_one.prepare_dataset(tokenizer=tokenizer)
     dataset_two.prepare_dataset(tokenizer=tokenizer)
