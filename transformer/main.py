@@ -34,16 +34,23 @@ def main():
 
     if os.path.exists(config.TOKENIZER_MODEL_PATH):
         logging.info("Loading the tokenizer ...")
-        tokenizer = tokenizer.load_tokenizer()
+        tokenizer.load_tokenizer()
     else:
         logging.info("Training the tokenizer ...")
-        tokenizer = tokenizer.train_tokenizer(
+        tokenizer.train_tokenizer(
             src_one=raw_src_one,
             target_one=raw_target_one,
             src_two=raw_src_two,
             target_two=raw_target_two,
         )
 
+    src_one, target_one = dataset_one.prep_data(
+        raw_src_one, raw_target_one, tokenizer=tokenizer
+    )
+    src_two, target_two = dataset_two.prep_data(
+        raw_src_two, raw_target_two, tokenizer=tokenizer
+    )
+    print(src_two[0])
     # initialize the train state
     # logging.info("Initializing the train state ...")
     # state = init_train_state(config=config)

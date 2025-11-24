@@ -45,11 +45,9 @@ class Tokenizer:
         )
         # Load the trained tokenizer
         self.sp.Load(self.config.TOKENIZER_MODEL_PATH)
-        return self.sp
 
     def load_tokenizer(self):
         self.sp.Load(self.config.TOKENIZER_MODEL_PATH)
-        return self.sp
 
     def encode(self, text: str, add_bos=True, add_eos=True):
         ids = self.sp.Encode(text, out_type=int)
