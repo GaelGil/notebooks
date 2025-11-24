@@ -27,6 +27,7 @@ def main():
         target_lang=config.LANG_TARGET_TWO,
     )
 
+    print(config.SRC_FILE)
     raw_dataset_one = dataset_one.load_data()
     raw_dataset_two = dataset_two.load_data()
 
