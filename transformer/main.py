@@ -1,3 +1,5 @@
+import os
+
 import jax
 import orbax.checkpoint as ocp
 from absl import logging
@@ -6,6 +8,7 @@ from utils.CheckPointManager import CheckpointManager
 from utils.config import config
 from utils.init_train_state import init_train_state
 from utils.JointTokenizer import JointTokenizer
+from utils.LangDataset import LangDataset
 
 logging.set_verbosity(logging.INFO)
 
@@ -17,7 +20,44 @@ def main():
 
     tokenizer = JointTokenizer(config=config)
 
-    tokenizer = tokenizer.load_tokenizer()
+    dataset_one = LangDataset(
+        dataset_name=config.DATA_PATH,
+        src_lang=config.LANG_SRC_ONE,
+        target_lang=config.LANG_TARGET_ONE,
+    )
+
+    dataset_two = LangDataset(
+        dataset_name=config.DATA_PATH,
+        src_lang=config.LANG_SRC_TWO,
+        target_lang=config.LANG_TARGET_TWO,
+    )
+
+    dataset_one.prepare_dataset(tokenizer=tokenizer)
+    dataset_two.prepare_dataset(tokenizer=tokenizer)
+
+    (
+        src_train_one,
+        src_test_one,
+        src_eval_one,
+        target_train_one,
+        target_test_one,
+        target_eval_one,
+    ) = dataset_one.split_dataset()
+    (
+        src_train_one,
+        src_test_one,
+        src_eval_one,
+        target_train_one,
+        target_test_one,
+        target_eval_one,
+    ) = dataset_two.split_dataset()
+
+    if os.path.exists(config.TOKENIZER_MODEL_PATH):
+        logging.info("Loading the tokenizer ...")
+        tokenizer = tokenizer.load_tokenizer()
+    else:
+        logging.info("Training the tokenizer ...")
+        tokenizer = tokenizer.train_tokenizer()
 
     # initialize the train state
     logging.info("Initializing the train state ...")
