@@ -23,33 +23,34 @@ class LangDataset:
         Returns:
             None
         """
-        self.dataset: dict = load_dataset(dataset_name)
         self.src_lang: str = src_lang
         self.target_lang: str = target_lang
         self.src_file = src_file
         self.target_file = target_file
         self.src_data = None
         self.target_data = None
+        if dataset_name:
+            self.dataset: dict = load_dataset(dataset_name)
 
     def load_data(self):
         if self.src_file:
             assert os.path.exists(self.src_file)
-            assert os.path.exists(self.tgt_file)
+            assert os.path.exists(self.target_file)
 
             with open(self.src_file, "r", encoding="utf-8") as f:
                 src = [line.strip() for line in f]
 
-            with open(self.tgt_file, "r", encoding="utf-8") as f:
-                tgt = [line.strip() for line in f]
+            with open(self.target_file, "r", encoding="utf-8") as f:
+                target = [line.strip() for line in f]
 
-            assert len(src) == len(tgt), "src and tgt sizes mismatch"
+            assert len(src) == len(target), "src and tgt sizes mismatch"
 
-            combined = list(zip(src, tgt))
+            combined = list(zip(src, target))
             random.shuffle(combined)
-            src, tgt = zip(*combined)
+            src, target = zip(*combined)
 
             self.src_data = list(src)
-            self.target_data = list(tgt)
+            self.target_data = list(target)
             return self.src_data, self.target_data
         else:
             self.src_data = self.dataset["train"][self.src_lang]
