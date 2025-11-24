@@ -50,12 +50,8 @@ class JointTokenizer:
         return self.sp
 
     def load_tokenizer(self):
-        if os.path.exists(self.config.TOKENIZER_PATH):
-            self.sp.load(self.config.TOKENIZER_PATH)
-            return self.sp
-
-        else:
-            return self.train_tokenizer()
+        self.sp.load(self.config.TOKENIZER_MODEL_PATH)
+        return self.sp
 
     def encode(self, text: str, add_bos=True, add_eos=True):
         ids = self.sp.encode(text, out_type=int)
