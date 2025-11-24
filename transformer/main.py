@@ -1,24 +1,18 @@
-import os
-
-import jax
-import orbax.checkpoint as ocp
 from absl import logging
 
-from utils.CheckPointManager import CheckpointManager
 from utils.config import config
-from utils.init_train_state import init_train_state
-from utils.JointTokenizer import JointTokenizer
 from utils.LangDataset import LangDataset
+from utils.Tokenizer import Tokenizer
 
 logging.set_verbosity(logging.INFO)
 
 
 def main():
     # set the device
-    device = jax.devices("gpu")[0]
-    logging.info(f"Using device: {device}")
+    # device = jax.devices("gpu")[0]
+    # logging.info(f"Using device: {device}")
 
-    tokenizer = JointTokenizer(config=config)
+    tokenizer = Tokenizer(config=config)
 
     dataset_one = LangDataset(
         src_file=config.SRC_FILE,
@@ -36,55 +30,35 @@ def main():
     raw_dataset_one = dataset_one.load_data()
     raw_dataset_two = dataset_two.load_data()
 
-    dataset_one.prepare_dataset(tokenizer=tokenizer)
-    dataset_two.prepare_dataset(tokenizer=tokenizer)
-
-    (
-        src_train_one,
-        src_test_one,
-        src_eval_one,
-        target_train_one,
-        target_test_one,
-        target_eval_one,
-    ) = dataset_one.split_dataset()
-    (
-        src_train_one,
-        src_test_one,
-        src_eval_one,
-        target_train_one,
-        target_test_one,
-        target_eval_one,
-    ) = dataset_two.split_dataset()
-
-    if os.path.exists(config.TOKENIZER_MODEL_PATH):
-        logging.info("Loading the tokenizer ...")
-        tokenizer = tokenizer.load_tokenizer()
-    else:
-        logging.info("Training the tokenizer ...")
-        tokenizer = tokenizer.train_tokenizer()
+    # if os.path.exists(config.TOKENIZER_MODEL_PATH):
+    #     logging.info("Loading the tokenizer ...")
+    #     tokenizer = tokenizer.load_tokenizer()
+    # else:
+    #     logging.info("Training the tokenizer ...")
+    #     tokenizer = tokenizer.train_tokenizer(data=raw_dataset_one + raw_dataset_two)
 
     # initialize the train state
-    logging.info("Initializing the train state ...")
-    state = init_train_state(config=config)
+    # logging.info("Initializing the train state ...")
+    # state = init_train_state(config=config)
 
-    # initialize the checkpoint manager
-    logging.info("Initializing the checkpoint manager ...")
-    checkpoint_manager = CheckpointManager(config=config)
+    # # initialize the checkpoint manager
+    # logging.info("Initializing the checkpoint manager ...")
+    # checkpoint_manager = CheckpointManager(config=config)
 
-    checkpoint_manager.add_to_register(
-        "state", ocp.args.StandardSave, ocp.args.StandardRestore
-    )
-    checkpoint_manager.add_to_register(
-        "metrics", ocp.args.JsonSave, ocp.args.JsonRestore
-    )
+    # checkpoint_manager.add_to_register(
+    #     "state", ocp.args.StandardSave, ocp.args.StandardRestore
+    # )
+    # checkpoint_manager.add_to_register(
+    #     "metrics", ocp.args.JsonSave, ocp.args.JsonRestore
+    # )
 
-    # create the checkpoint manager
-    logging.info("Creating the checkpoint manager ...")
-    checkpoint_manager.create_manager()
+    # # create the checkpoint manager
+    # logging.info("Creating the checkpoint manager ...")
+    # checkpoint_manager.create_manager()
 
-    manager = checkpoint_manager.get_manager()
+    # manager = checkpoint_manager.get_manager()
 
-    state, step = checkpoint_manager.restore(state=state, logging=logging)
+    # state, step = checkpoint_manager.restore(state=state, logging=logging)
 
     # load the dataset
     # logging.info(f"Loading Dataset from: {config.DATA_PATH}")

@@ -12,8 +12,10 @@ class Config(BaseModel):
     D_FF: int
     H: int
     N: int
-    LANG_SRC: str
-    LANG_TARGET: str
+    LANG_SRC_ONE: str
+    LANG_TARGET_ONE: str
+    LANG_SRC_TWO: str
+    LANG_TARGET_TWO: str
     PRELOAD: None
     TOKENIZER_FILE: str
     EXPERIMENT_NAME: str
@@ -27,6 +29,11 @@ class Config(BaseModel):
     TEST_SPLIT: float
     NUM_WORKERS: int
     BEST_FN: str
+    SRC_FILE: str
+    TARGET_FILE: str
+    ASYNC_CHECKPOINTING: bool
+    TOKENIZER_PATH: str
+    TOKENIZER_MODEL_PATH: str
 
 
 config = Config(
@@ -40,8 +47,10 @@ config = Config(
     D_FF=2048,
     H=8,
     N=6,
-    LANG_SRC="sp",
-    LANG_TARGET="nah",
+    LANG_SRC_ONE="en",
+    LANG_TARGET_ONE="es",
+    LANG_SRC_TWO="sp",
+    LANG_TARGET_TWO="nah",
     PRELOAD=None,
     TOKENIZER_FILE="tokenizer_{}.json",
     EXPERIMENT_NAME="runs/model",
@@ -55,4 +64,9 @@ config = Config(
     TEST_SPLIT=0.05,
     NUM_WORKERS=0,
     BEST_FN="val_accuracy",
+    SRC_FILE="./data/es.txt",
+    TARGET_FILE="./data/en.txt",
+    TOKENIZER_PATH="./tokenizer",
+    TOKENIZER_MODEL_PATH="./tokenizer/model",
+    ASYNC_CHECKPOINTING=True,
 )
