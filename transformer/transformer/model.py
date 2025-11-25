@@ -52,7 +52,7 @@ class PositionalEncoding(nn.Module):
             (1, self.seq_len, self.d_model),
         )
 
-    def __call__(self, x, is_training: bool):
+    def __call__(self, x: jnp.ndarray, is_training: bool):
         """
         Args:
             x: input tensor of shape (batch_size, seq_len, d_model)
@@ -82,7 +82,7 @@ class LayerNorm(nn.Module):
         self.bias = self.param("bias", nn.initializers.zeros, (self.d_model))
 
     @nn.compact
-    def __call__(self, x):
+    def __call__(self, x: jnp.ndarray):
         # compute mean and std for each patch in the sequence
         # (batch, seq_len, d_model)
         # axis=-1 means along the last dimension which is d_model
@@ -115,7 +115,7 @@ class FeedForwardBlock(nn.Module):
         self.linear_2 = nn.Dense(features=self.d_model)
 
     @nn.compact
-    def __call__(self, x, is_training: bool):
+    def __call__(self, x: jnp.ndarray, is_training: bool):
         # simple feed forward network
         # (seq_len, d_model) --> (dff, d_model) --> (seq_len, d_model)
         x = nn.leaky_relu(self.linear_1(x))
@@ -158,7 +158,7 @@ class MultiHeadAttentionBlock(nn.Module):
         query: jnp.ndarray,
         key: jnp.ndarray,
         value: jnp.ndarray,
-        mask,
+        mask: jnp.ndarray | None,
         dropout: nn.Dropout,
         is_training: bool,
     ) -> jnp.ndarray:
@@ -179,7 +179,12 @@ class MultiHeadAttentionBlock(nn.Module):
 
     @nn.compact
     def __call__(
-        self, q: jnp.ndarray, k: jnp.ndarray, v: jnp.ndarray, is_training: bool, mask
+        self,
+        q: jnp.ndarray,
+        k: jnp.ndarray,
+        v: jnp.ndarray,
+        is_training: bool,
+        mask: jnp.ndarray,
     ):
         """
 
@@ -279,7 +284,7 @@ class EncoderBlock(nn.Module):
         self.norm2 = LayerNorm(d_model=self.d_model)
 
     @nn.compact
-    def __call__(self, x, src_mask, is_training):
+    def __call__(self, x: jnp.ndarray, src_mask: jnp.ndarray, is_training: bool):
         # attention block output
         multi_head_attention_output = self.multi_head_attention_block(
             q=x, k=x, v=x, mask=src_mask, is_training=is_training
@@ -347,7 +352,14 @@ class DecoderBlock(nn.Module):
         self.norm3 = LayerNorm(d_model=self.d_model)
 
     @nn.compact
-    def __call__(self, x, encoder_output, src_mask, target_mask, is_training: bool):
+    def __call__(
+        self,
+        x: jnp.ndarray,
+        encoder_output: jnp.ndarray,
+        src_mask: jnp.ndarray,
+        target_mask: jnp.ndarray,
+        is_training: bool,
+    ):
         # masked multi head attention block output
         masked_multi_head_attention_output = self.masked_multi_head_attention_block(
             q=x, k=x, v=x, mask=target_mask, is_training=is_training
@@ -400,7 +412,14 @@ class Decoder(nn.Module):
         self.norm: LayerNorm = LayerNorm(d_model=self.d_model)
 
     @nn.compact
-    def __call__(self, x, encoder_output, src_mask, target_mask, is_training: bool):
+    def __call__(
+        self,
+        x,
+        encoder_output: jnp.ndarray,
+        src_mask: jnp.ndarray,
+        target_mask: jnp.ndarray,
+        is_training: bool,
+    ):
         for block in self.blocks:
             x = block(
                 x=x,
@@ -430,7 +449,7 @@ class ProjectionLayer(nn.Module):
         self.linear = nn.Dense(features=self.vocab_size)
 
     @nn.compact
-    def __call__(self, x):
+    def __call__(self, x: jnp.ndarray):
         # (seq_len, d_model) --> (seq_len, vocab_size)
         return nn.log_softmax(self.linear(x))
 
