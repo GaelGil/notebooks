@@ -51,6 +51,7 @@ def main():
     # get the manager
     manager = checkpoint_manager.get_manager()
     # restore the state
+    logging.info("Restoring the model")
     state, step = checkpoint_manager.restore(state, logging)
     logging.info("Training the model")
     train(
