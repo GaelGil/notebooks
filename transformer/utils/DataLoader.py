@@ -5,7 +5,7 @@ import itertools
 
 
 class DataLoader:
-    def __init__(self, src, target, batch_size, seq_len, shuffle=True, n_prefetch=2):
+    def __init__(self, src, target, batch_size, seq_len, shuffle=True, n_prefetch=10):
         """
         Args:
             src: source sequences (numpy/jnp array, shape [N, seq_len])

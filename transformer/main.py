@@ -162,7 +162,7 @@ def main():
         seq_len=config.SEQ_LEN,
         shuffle=True,
     )
-    val_batch = dataset_one.create_batches(
+    val_batch = DataLoader(
         src=src_two_val,
         target=target_two_val,
         batch_size=config.BATCH_SIZE,
