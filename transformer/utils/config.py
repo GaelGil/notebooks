@@ -36,10 +36,10 @@ class Config(BaseModel):
 
 
 config = Config(
-    BATCH_SIZE=16,
+    BATCH_SIZE=8,
     EPOCHS=10,
     LR=10e-4,
-    SEQ_LEN=350,
+    SEQ_LEN=192,
     D_MODEL=512,
     D_FF=2048,
     H=8,
