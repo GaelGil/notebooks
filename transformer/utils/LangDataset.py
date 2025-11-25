@@ -15,7 +15,7 @@ class LangDataset:
         dataset_name: str = None,
         src_file: str = None,
         target_file: str = None,
-        seq_len: int = 128,
+        seq_len: int = None,
     ):
         """
         Load the dataset from the Hugging Face Hub
@@ -166,6 +166,26 @@ class LangDataset:
 
         return train_src, val_src, test_src, train_target, val_target, test_target
 
+    def create_src_mask(self, src):
+        # src: (batch, seq_len)
+        return (src != 0).astype(jnp.float32)  # 1 for tokens, 0 for pad
+
+    def prepare_encoder_mask(self, mask):
+        # reshape to (batch, 1, 1, seq_len) for multi-head attention
+        return mask[:, None, None, :]
+
+    # Decoder mask (padding + causal)
+    def create_tgt_mask(sel, target: jnp.ndarray):
+        batch_size, seq_len = target.shape
+
+        padding_mask = (target != 0).astype(jnp.float32)  # (B, L)
+        padding_mask = padding_mask[:, None, None, :]  # (B, 1, 1, L)
+
+        causal_mask = jnp.tril(jnp.ones((seq_len, seq_len)))  # (L, L)
+        causal_mask = causal_mask[None, None, :, :]  # (1, 1, L, L)
+
+        return padding_mask * causal_mask
+
     def create_batches(
         self,
         src: jnp.ndarray,
@@ -189,7 +209,20 @@ class LangDataset:
             if len(batch_idx) < batch_size:
                 break
 
+            batch_src = src[batch_idx]
+            batch_target = target[batch_idx]
+
+            src_mask = self.prepare_encoder_mask(
+                self.create_src_mask(batch_src)
+            )  # (B, 1, 1, seq_len)
+            target_mask = self.create_tgt_mask(batch_target)  # (B, 1, seq_len, seq_len)
+
             yield {
-                "src": src[batch_idx],
-                "target": target[batch_idx],
+                "src": batch_src,
+                "src_mask": src_mask,
+                "target_input": batch_target[:, :-1],  # decoder input (shifted right)
+                "target_output": batch_target[:, 1:],  # expected output
+                "target_mask": target_mask[
+                    :, :, :-1, :-1
+                ],  # align mask to decoder input
             }
