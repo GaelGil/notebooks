@@ -126,22 +126,22 @@ def train_step(
     return state, loss
 
 
-def eval(state: train_state.TrainState, val_loader: DataLoader):
+def eval(state: train_state.TrainState, loader: DataLoader):
     """
-    evaluate the model on the validation set
+    evaluate the model on the given dataset
     Args:
         state: train_state.TrainState
-        val_loader: DataLoader
+        loader: DataLoader
 
     Returns:
-        accuracy
+        accuracy, avg_loss
     """
     total = 0
     num_correct = 0
     total_loss = 0
     num_batches = 0
     # loop over the dataset
-    for batch in val_loader:
+    for batch in loader:
         # evaluate on batch
         res, loss = eval_step(state=state, batch=batch)
         # get total number of examples

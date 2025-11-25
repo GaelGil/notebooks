@@ -65,6 +65,16 @@ class CheckpointManager:
         return self.manager
 
     def restore(self, state, logging) -> tuple[train_state.TrainState, int]:
+        """
+        Restores the model from the latest checkpoint
+
+        Args:
+            state: train_state.TrainState
+            logging: logger
+
+        Returns:
+            tupple[train_state.TrainState, step]
+        """
         # restore previous checkpoint
         if self.manager.latest_step():  # check if there is a latest checkpoint
             logging.info("Restoring from latest checkpoint")

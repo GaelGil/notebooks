@@ -8,7 +8,16 @@ from vision_transformer.model import VisionTransformer
 
 
 def init_train_state(config: Config) -> train_state.TrainState:
-    # initialize the model
+    """
+    Initializes the train state
+
+    Args:
+        config: Config
+
+    Returns:
+        train_state.TrainState
+    """
+    # initialize the model instance
     model: VisionTransformer = VisionTransformer(
         num_classes=config.NUM_CLASSES,
         patch_size=config.PATCH_SIZE,
@@ -29,14 +38,12 @@ def init_train_state(config: Config) -> train_state.TrainState:
         dtype=jnp.float32,
     )
 
-    # Initialize with dummy inputs
+    # get the parameters of the model
     variables = model.init(
         rng,
         x=dummy_input,
         is_training=True,
     )
-
-    # get the parameters
     params = variables["params"]
 
     # initliaze the optimizer
