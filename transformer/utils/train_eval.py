@@ -34,6 +34,11 @@ def train(
     Returns:
         None
     """
+    print(f"TRAIN SAMPLE: {train_loader[0]['src']}")
+    print(f"TRAIN SAMPLE: {train_loader[0]['src_mask']}")
+    print(f"TRAIN SAMPLE: {train_loader[0]['target_input']}")
+    print(f"TRAIN SAMPLE: {train_loader[0]['target_mask']}")
+
     rng = jax.random.PRNGKey(0)
     # loop over the dataset for num_epochs
     for epoch in range(step, epochs):
@@ -166,10 +171,10 @@ def eval_step(state: train_state.TrainState, batch):
     Returns:
         predictions
     """
-    src = (batch["src"],)
-    src_mask = (batch["src_mask"],)
-    target_input = (batch["target_input"],)
-    target_mask = (batch["target_mask"],)
+    src = batch["src"]
+    src_mask = batch["src_mask"]
+    target_input = batch["target_input"]
+    target_mask = batch["target_mask"]
     # pass batch through the model in training state
     logits = state.apply_fn(
         {"params": state.params},

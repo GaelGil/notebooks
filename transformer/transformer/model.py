@@ -458,8 +458,8 @@ class ProjectionLayer(nn.Module):
 
     @nn.compact
     def __call__(self, x: jnp.ndarray):
-        # (seq_len, d_model) --> (seq_len, vocab_size)
-        return nn.log_softmax(self.linear(x))
+        # (batch_size, seq_len, d_model) --> (batch_size, seq_len, vocab_size)
+        return self.linear(x)
 
 
 class Transformer(nn.Module):
