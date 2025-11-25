@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from pathlib import Path
 
 
 class Config(BaseModel):
@@ -23,19 +24,20 @@ class Config(BaseModel):
     DEVICE: str
     DATA_PATH: str
     MAX_TO_KEEP: int
-    CHECKPOINT_PATH: str
+    CHECKPOINT_PATH: Path
     TRAIN_SPLIT: float
     VAL_SPLIT: float
     TEST_SPLIT: float
     NUM_WORKERS: int
     BEST_FN: str
-    SRC_FILE: str
-    TARGET_FILE: str
+    SRC_FILE: Path
+    TARGET_FILE: Path
     ASYNC_CHECKPOINTING: bool
     TOKENIZER_PATH: str
     TOKENIZER_MODEL_PATH: str
-    JOINT_CORPUS_PATH: str
+    JOINT_CORPUS_PATH: Path
     SPLITS_PATH: str
+    SAVE_INTERVAL: int
 
 
 config = Config(
@@ -60,17 +62,18 @@ config = Config(
     DEVICE="CUDA",
     DATA_PATH="somosnlp-hackathon-2022/Axolotl-Spanish-Nahuatl",
     MAX_TO_KEEP=5,
-    CHECKPOINT_PATH="./checkpoints",
+    CHECKPOINT_PATH=Path("./checkpoints"),
     TRAIN_SPLIT=0.9,
     VAL_SPLIT=0.05,
     TEST_SPLIT=0.05,
     NUM_WORKERS=0,
     BEST_FN="val_accuracy",
-    SRC_FILE="./data/TED2013.en-es.es",
-    TARGET_FILE="./data/TED2013.en-es.en",
+    SRC_FILE=Path("./data/TED2013.en-es.es"),
+    TARGET_FILE=Path("./data/TED2013.en-es.en"),
     TOKENIZER_PATH="./tokenizer",
     TOKENIZER_MODEL_PATH="./tokenizer/joint.model",
     ASYNC_CHECKPOINTING=True,
-    JOINT_CORPUS_PATH="./tokenizer/joint_corpus.txt",
+    JOINT_CORPUS_PATH=Path("./tokenizer/joint_corpus.txt"),
     SPLITS_PATH="./data/splits",
+    SAVE_INTERVAL=1,
 )
