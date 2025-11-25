@@ -125,19 +125,18 @@ class LangDataset:
 
     def split(
         self,
-        src,
-        target,
+        src: list,
+        target: list,
         train_size: float,
         val_size: float,
         src_name: str,
         target_name: str,
         splits_path: str,
     ):
-        jax.random.PRNGKey(0)
-        indicies = jnp.arange(len(src))
-        indicies = jax.random.permutation(key=jax.random.PRNGKey(0), x=indicies)
-        src = src[indicies]
-        target = target[indicies]
+        indices = jnp.arange(len(src))
+        indices = jax.random.permutation(key=jax.random.PRNGKey(0), x=indices)
+        src = src[indices]
+        target = target[indices]
 
         n_total = len(src)
         n_train = int(train_size * n_total)
@@ -170,3 +169,31 @@ class LangDataset:
         test_tgt = jnp.load(f"{splits_path}/test_{target_name}.npy")
 
         return train_src, train_tgt, val_src, val_tgt, test_src, test_tgt
+
+    def create_batches(
+        self,
+        src: jnp.ndarray,
+        target: jnp.ndarray,
+        batch_size: int,
+        shuffle: bool = True,
+    ):
+        N = src.shape[0]
+        if shuffle:
+            indices = jax.random.permutation(
+                key=jax.random.PRNGKey(0), x=jnp.arange(len(src))
+            )
+        else:
+            indices = jnp.arange(len(src))
+
+        # Split into batches of size "batch_size"
+        for start in range(0, N, batch_size):
+            end = start + batch_size
+            batch_idx = indices[start:end]
+
+            if len(batch_idx) < batch_size:
+                break  # optional: drop last incomplete batch
+
+            yield {
+                "src": src[batch_idx],
+                "tgt": target[batch_idx],
+            }
