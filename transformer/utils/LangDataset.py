@@ -16,6 +16,7 @@ class LangDataset:
         dataset_name: str = None,
         src_file: str = None,
         target_file: str = None,
+        seq_len: int = 128,
     ):
         """
         Load the dataset from the Hugging Face Hub
@@ -31,6 +32,7 @@ class LangDataset:
         self.target_lang: str = target_lang
         self.src_file = src_file
         self.target_file = target_file
+        self.seq_len: int = seq_len
         if dataset_name:
             self.dataset: dict = load_dataset(dataset_name)
 
@@ -113,10 +115,10 @@ class LangDataset:
             target_ids.append(tokenizer.encode(target, add_bos=True, add_eos=True))
 
         src_ids_padded = self.pad_sequences(
-            src_ids, pad_id=tokenizer.sp.pad_id(), max_len=tokenizer.config.SEQ_LEN
+            src_ids, pad_id=tokenizer.sp.pad_id(), max_len=self.seq_len
         )
         target_ids_padded = self.pad_sequences(
-            target_ids, pad_id=tokenizer.sp.pad_id(), max_len=tokenizer.config.SEQ_LEN
+            target_ids, pad_id=tokenizer.sp.pad_id(), max_len=self.seq_len
         )
 
         return src_ids_padded, target_ids_padded
@@ -127,6 +129,9 @@ class LangDataset:
         target,
         train_size: float,
         val_size: float,
+        src_name: str,
+        target_name: str,
+        splits_path: str,
     ):
         jax.random.PRNGKey(0)
         indicies = jnp.arange(len(src))
@@ -138,25 +143,30 @@ class LangDataset:
         n_train = int(train_size * n_total)
         n_val = int(val_size * n_total)
 
-        train_src, train_tgt = src[:n_train], target[:n_train]
-        val_src, val_tgt = (
+        train_src, train_target = src[:n_train], target[:n_train]
+        val_src, val_target = (
             src[n_train : n_train + n_val],
             target[n_train : n_train + n_val],
         )
-        test_src, test_tgt = src[n_train + n_val :], target[n_train + n_val :]
-        jnp.save("train_src.npy", train_src)
-        jnp.save("train_tgt.npy", train_tgt)
-        jnp.save("val_src.npy", val_src)
-        jnp.save("val_tgt.npy", val_tgt)
-        jnp.save("test_src.npy", test_src)
-        jnp.save("test_tgt.npy", test_tgt)
-        pass
+        test_src, test_target = src[n_train + n_val :], target[n_train + n_val :]
 
-    def load_splits(self):
-        train_src = jnp.load("train_src.npy")
-        train_tgt = jnp.load("train_tgt.npy")
-        val_src = jnp.load("val_src.npy")
-        val_tgt = jnp.load("val_tgt.npy")
-        test_src = jnp.load("test_src.npy")
-        test_tgt = jnp.load("test_tgt.npy")
+        jnp.save(f"{splits_path}/train_{src_name}.npy", train_src)
+        jnp.save(f"{splits_path}/val_{src_name}.npy", val_src)
+        jnp.save(f"{splits_path}/test_{src_name}.npy", test_src)
+
+        jnp.save(f"{splits_path}/train_{target_name}.npy", train_target)
+        jnp.save(f"{splits_path}/val_{target_name}.npy", val_target)
+        jnp.save(f"{splits_path}/test_{target_name}.npy", test_target)
+
+        return train_src, train_target, val_src, val_target, test_src, test_target
+
+    def load_splits(self, splits_path: str, src_name: str, target_name: str):
+        train_src = jnp.load(f"{splits_path}/train_{src_name}.npy")
+        val_src = jnp.load(f"{splits_path}/val_{src_name}.npy")
+        test_src = jnp.load(f"{splits_path}/test_{src_name}.npy")
+
+        train_tgt = jnp.load(f"{splits_path}/train_{target_name}.npy")
+        val_tgt = jnp.load(f"{splits_path}/val_{target_name}.npy")
+        test_tgt = jnp.load(f"{splits_path}/test_{target_name}.npy")
+
         return train_src, train_tgt, val_src, val_tgt, test_src, test_tgt

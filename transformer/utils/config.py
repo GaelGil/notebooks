@@ -35,6 +35,7 @@ class Config(BaseModel):
     TOKENIZER_PATH: str
     TOKENIZER_MODEL_PATH: str
     JOINT_CORPUS_PATH: str
+    SPLITS_PATH: str
 
 
 config = Config(
@@ -71,4 +72,5 @@ config = Config(
     TOKENIZER_MODEL_PATH="./tokenizer/joint.model",
     ASYNC_CHECKPOINTING=True,
     JOINT_CORPUS_PATH="./data/joint_corpus.txt",
+    SPLITS_PATH="./data/splits",
 )
