@@ -109,7 +109,7 @@ def main():
 
     # initialize the train state
     logging.info("Initializing the train state ...")
-    state = init_train_state(config=config)
+    state = init_train_state(config=config, vocab_size=tokenizer.vocab_size)
 
     # initialize the checkpoint manager
     logging.info("Initializing the checkpoint manager ...")
