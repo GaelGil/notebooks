@@ -19,6 +19,7 @@ def train(
     num_epochs: int,
     manager: ocp.CheckpointManager,
     logger,
+    step: int = 0,
 ):
     """
     train the model
@@ -35,7 +36,7 @@ def train(
     """
     rng = jax.random.PRNGKey(0)
     # loop over the dataset for num_epochs
-    for epoch in range(num_epochs):
+    for epoch in range(step, num_epochs):
         # iterate through each batch in the dataset
         for batch in train_batches:
             rng, dropout_rng = jax.random.split(rng)

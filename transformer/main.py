@@ -63,15 +63,15 @@ def main():
 
     if os.path.exists(config.SPLITS_PATH):
         logging.info("Loading the splits ...")
-        src_one_train, src_one_val, target_one_train, target_one_val = (
+        src_one_train, src_one_val, target_one_train, target_one_val, _, _ = (
             dataset_one.load_splits()
         )
-        src_two_train, src_two_val, target_two_train, target_two_val = (
+        src_two_train, src_two_val, target_two_train, target_two_val, _, _ = (
             dataset_two.load_splits()
         )
     else:
         logging.info("Splitting the data ...")
-        src_one_train, src_one_val, target_one_train, target_one_val = (
+        src_one_train, src_one_val, target_one_train, target_one_val, _, _ = (
             dataset_one.split(
                 src=src_one,
                 target=target_one,
@@ -82,7 +82,7 @@ def main():
                 splits_path=config.SPLITS_PATH,
             )
         )
-        src_two_train, src_two_val, target_two_train, target_two_val = (
+        src_two_train, src_two_val, target_two_train, target_two_val, _, _ = (
             dataset_two.split(
                 src=src_two,
                 target=target_two,
@@ -180,14 +180,16 @@ def main():
         logging.info("No checkpoint found, training from scratch")
     # train the model
     logging.info("Training the model")
-    train(
-        state=state,
-        train_loader=train_batch,
-        val_loader=val_batch,
-        epochs=config.EPOCHS,
-        manager=manager,
-        logger=logging,
-    )
+    if step != config.EPOCHS:
+        train(
+            state=state,
+            train_loader=train_batch,
+            val_loader=val_batch,
+            epochs=config.EPOCHS,
+            manager=manager,
+            logger=logging,
+            step=step,
+        )
 
     train_batch = dataset_one.create_batches(
         src=src_two_train,
@@ -196,7 +198,7 @@ def main():
         shuffle=True,
     )
     val_batch = dataset_one.create_batches(
-        src=src_one_val,
+        src=src_two_val,
         target=target_two_val,
         batch_size=config.BATCH_SIZE,
         shuffle=False,
