@@ -8,6 +8,7 @@ from utils.init_train_state import init_train_state
 from utils.LangDataset import LangDataset
 from utils.Tokenizer import Tokenizer
 from utils.train_eval import train
+from utils.DataLoader import DataLoader
 
 logging.set_verbosity(logging.INFO)
 
@@ -109,7 +110,16 @@ def main():
         batch_size=config.BATCH_SIZE,
         shuffle=True,
     )
-    val_batch = dataset_one.create_batches(
+
+    train_loader = DataLoader(
+        src=src_one_train,
+        target=target_one_train,
+        batch_size=config.BATCH_SIZE,
+        seq_len=config.SEQ_LEN,
+        shuffle=True,
+    )
+
+    val_loader = DataLoader(
         src=src_one_val,
         target=target_one_val,
         batch_size=config.BATCH_SIZE,
