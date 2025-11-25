@@ -49,7 +49,6 @@ class PatchEmbedding(nn.Module):
             x projected into patches
         """
         x = self.projection(x)
-        # reshape x into (batch_size, num_patches, d_model)
         B, H, W, C = x.shape
         x = x.reshape(B, H * W, C)
         # returns (batch_size, num_patches, d_model)
@@ -58,6 +57,8 @@ class PatchEmbedding(nn.Module):
 
 class PositionalEncoding(nn.Module):
     """
+    Adds positional encoding to the patches
+
     Attributes:
         d_model: dimension of the model
         num_patches: number of patches
@@ -72,7 +73,7 @@ class PositionalEncoding(nn.Module):
     def setup(self):
         """
         Create the positional encoding layer. This is a learnable parameter that we add to the sequence.
-        We also create a cls token that we append to the sequence.
+        We also create a cls token that we append to the beggining of the sequence.
         Args:
             None
 
@@ -119,6 +120,13 @@ class PositionalEncoding(nn.Module):
 
 
 class LayerNorm(nn.Module):
+    """
+    LayerNorm
+
+    Attributes:
+        d_model: dimension of the model
+        eps: epsilon
+    """
     d_model: int
     eps: float = 1e-6  # helps avoid division by zero
 
@@ -137,7 +145,7 @@ class LayerNorm(nn.Module):
         self.bias = self.param("bias", nn.initializers.zeros, (self.d_model))
 
     @nn.compact
-    def __call__(self, x):
+    def __call__(self, x: jnp.ndarray):
         # compute mean and std for each patch in the sequence
         # (batch, num_patches, d_model)
         # axis=-1 means along the last dimension which is d_model
@@ -155,7 +163,6 @@ class MultiLayerPerceptron(nn.Module):
         d_model: dimension of the model
         d_ff: dimension of the feed forward network
         dropout_rate: dropout rate
-        training: whether in training mode
     """
 
     d_model: int
@@ -195,7 +202,6 @@ class MultiHeadAttentionBlock(nn.Module):
         d_model: dimension of the model
         n_heads: number of heads
         dropout_rate: dropout rate
-        training: whether in training mode
     """
 
     d_model: int
@@ -317,7 +323,6 @@ class EncoderBlock(nn.Module):
         n_heads: number of heads
         d_ff: dimension of feed forward network
         dropout_rate: dropout rate
-        training: whether in training mode
     """
 
     d_model: int
@@ -355,7 +360,7 @@ class EncoderBlock(nn.Module):
         self.norm2 = LayerNorm(d_model=self.d_model)
 
     @nn.compact
-    def __call__(self, x, is_training: bool):
+    def __call__(self, x: jnp.ndarray, is_training: bool):
         multi_head_attention_output = self.multi_head_attention_block(
             q=x, k=x, v=x, is_training=is_training
         )
@@ -435,7 +440,7 @@ class ProjectionLayer(nn.Module):
         self.linear = nn.Dense(features=self.num_classes)
 
     @nn.compact
-    def __call__(self, x):
+    def __call__(self, x: jnp.ndarray):
         cls_token = x[:, 0]  # shape: (batch_size, d_model) get the cls token
         logits = self.linear(
             cls_token
