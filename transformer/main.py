@@ -1,10 +1,14 @@
 import os
 
+import orbax.checkpoint as ocp
 from absl import logging
 
+from utils.CheckpointManager import CheckpointManager
 from utils.config import config
+from utils.init_train_state import init_train_state
 from utils.LangDataset import LangDataset
 from utils.Tokenizer import Tokenizer
+from utils.train_eval import train
 
 logging.set_verbosity(logging.INFO)
 
@@ -89,88 +93,124 @@ def main():
                 splits_path=config.SPLITS_PATH,
             )
         )
+
+    train_batch = dataset_one.create_batches(
+        src=src_one_train,
+        target=target_one_train,
+        batch_size=config.BATCH_SIZE,
+        shuffle=True,
+    )
+    val_batch = dataset_one.create_batches(
+        src=src_one_val,
+        target=target_one_val,
+        batch_size=config.BATCH_SIZE,
+        shuffle=False,
+    )
+
     # initialize the train state
-    # logging.info("Initializing the train state ...")
-    # state = init_train_state(config=config)
+    logging.info("Initializing the train state ...")
+    state = init_train_state(config=config)
 
-    # # initialize the checkpoint manager
-    # logging.info("Initializing the checkpoint manager ...")
-    # checkpoint_manager = CheckpointManager(config=config)
+    # initialize the checkpoint manager
+    logging.info("Initializing the checkpoint manager ...")
+    checkpoint_manager = CheckpointManager(config=config)
 
-    # checkpoint_manager.add_to_register(
-    #     "state", ocp.args.StandardSave, ocp.args.StandardRestore
-    # )
-    # checkpoint_manager.add_to_register(
-    #     "metrics", ocp.args.JsonSave, ocp.args.JsonRestore
-    # )
+    checkpoint_manager.add_to_register(
+        "state", ocp.args.StandardSave, ocp.args.StandardRestore
+    )
+    checkpoint_manager.add_to_register(
+        "metrics", ocp.args.JsonSave, ocp.args.JsonRestore
+    )
 
-    # # create the checkpoint manager
-    # logging.info("Creating the checkpoint manager ...")
-    # checkpoint_manager.create_manager()
+    # create the checkpoint manager
+    logging.info("Creating the checkpoint manager ...")
+    checkpoint_manager.create_manager()
 
-    # manager = checkpoint_manager.get_manager()
+    manager = checkpoint_manager.get_manager()
 
-    # state, step = checkpoint_manager.restore(state=state, logging=logging)
+    state, step = checkpoint_manager.restore(state=state, logging=logging)
 
-    # # initialize the model
-    # logger.info("Initializing the model and optimizer")
-    # state = init_train_state(config)
+    # initialize the model
+    logging.info("Initializing the model and optimizer")
+    state = init_train_state(config)
 
-    # # define checkpoint options
     # define checkpoint options
-    # checkpoint_options = ocp.CheckpointManagerOptions(
-    #     max_to_keep=config.MAX_TO_KEEP,
-    #     save_interval_steps=config.SAVE_INTERVAL,
-    #     enable_async_checkpointing=config.ASYNC_CHECKPOINTING,
-    #     best_fn=lambda metrics: metrics[config.BEST_FN],
-    # )
+    checkpoint_options = ocp.CheckpointManagerOptions(
+        max_to_keep=config.MAX_TO_KEEP,
+        save_interval_steps=config.SAVE_INTERVAL,
+        enable_async_checkpointing=config.ASYNC_CHECKPOINTING,
+        best_fn=lambda metrics: metrics[config.BEST_FN],
+    )
 
-    # # Create handler registry
-    # registry = ocp.handlers.DefaultCheckpointHandlerRegistry()
+    # Create handler registry
+    registry = ocp.handlers.DefaultCheckpointHandlerRegistry()
 
-    # # PyTree (model/optimizer state)
-    # registry.add("state", ocp.args.StandardSave)
-    # registry.add("state", ocp.args.StandardRestore)
+    # PyTree (model/optimizer state)
+    registry.add("state", ocp.args.StandardSave)
+    registry.add("state", ocp.args.StandardRestore)
 
-    # # JSON (metrics)
-    # registry.add("metrics", ocp.args.JsonSave)
-    # registry.add("metrics",ocp.args.JsonRestore)
+    # JSON (metrics)
+    registry.add("metrics", ocp.args.JsonSave)
+    registry.add("metrics", ocp.args.JsonRestore)
 
-    # # Define the checkpoint manager
-    # manager = ocp.CheckpointManager(
-    #     directory=config.CHECKPOINT_PATH.resolve(),
-    #     handler_registry=registry,
-    #     options=checkpoint_options,
-    # )
+    # Define the checkpoint manager
+    manager = ocp.CheckpointManager(
+        directory=config.CHECKPOINT_PATH.resolve(),
+        handler_registry=registry,
+        options=checkpoint_options,
+    )
 
-    # # restore previous checkpoint
-    # if manager.latest_step():  # check if there is a latest checkpoint
-    #     logging.info("Restoring from latest checkpoint")
-    #     # get the best step/checkpoint
-    #     # this was deinfed in the checkpoint options
-    #     best_step = manager.best_step()
-    #     # restore from the best step
-    #     restored = manager.restore(
-    #         step=best_step,
-    #         args=ocp.args.Composite(
-    #             state=ocp.args.StandardRestore(state),
-    #             metrics=ocp.args.JsonRestore(),
-    #         ),
-    #     )
-    #     # update state to the restored state
-    #     state = restored.state
-    # else:
-    #     logging.info("No checkpoint found, training from scratch")
-    # # train the model
-    # logging.info("Training the model")
-    # train(
-    #     state=state,
-    #     train_loader=train_loader,
-    #     val_loader=val_loader,
-    #     epochs=config.EPOCHS,
-    #     manager=manager,
-    #     logger=logging,
-    # )
+    # restore previous checkpoint
+    if manager.latest_step():  # check if there is a latest checkpoint
+        logging.info("Restoring from latest checkpoint")
+        # get the best step/checkpoint
+        # this was deinfed in the checkpoint options
+        best_step = manager.best_step()
+        # restore from the best step
+        restored = manager.restore(
+            step=best_step,
+            args=ocp.args.Composite(
+                state=ocp.args.StandardRestore(state),
+                metrics=ocp.args.JsonRestore(),
+            ),
+        )
+        # update state to the restored state
+        state = restored.state
+    else:
+        logging.info("No checkpoint found, training from scratch")
+    # train the model
+    logging.info("Training the model")
+    train(
+        state=state,
+        train_loader=train_batch,
+        val_loader=val_batch,
+        epochs=config.EPOCHS,
+        manager=manager,
+        logger=logging,
+    )
+
+    train_batch = dataset_one.create_batches(
+        src=src_two_train,
+        target=target_two_train,
+        batch_size=config.BATCH_SIZE,
+        shuffle=True,
+    )
+    val_batch = dataset_one.create_batches(
+        src=src_one_val,
+        target=target_two_val,
+        batch_size=config.BATCH_SIZE,
+        shuffle=False,
+    )
+
+    logging.info("Training completed, training with new data")
+    train(
+        state=state,
+        train_loader=train_batch,
+        val_loader=val_batch,
+        epochs=config.EPOCHS,
+        manager=manager,
+        logger=logging,
+    )
 
 
 if __name__ == "__main__":

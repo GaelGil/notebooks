@@ -157,18 +157,18 @@ class LangDataset:
         jnp.save(f"{splits_path}/val_{target_name}.npy", val_target)
         jnp.save(f"{splits_path}/test_{target_name}.npy", test_target)
 
-        return train_src, train_target, val_src, val_target, test_src, test_target
+        return train_src, val_src, test_src, train_target, val_target, test_target
 
     def load_splits(self, splits_path: str, src_name: str, target_name: str):
         train_src = jnp.load(f"{splits_path}/train_{src_name}.npy")
         val_src = jnp.load(f"{splits_path}/val_{src_name}.npy")
         test_src = jnp.load(f"{splits_path}/test_{src_name}.npy")
 
-        train_tgt = jnp.load(f"{splits_path}/train_{target_name}.npy")
-        val_tgt = jnp.load(f"{splits_path}/val_{target_name}.npy")
-        test_tgt = jnp.load(f"{splits_path}/test_{target_name}.npy")
+        train_target = jnp.load(f"{splits_path}/train_{target_name}.npy")
+        val_target = jnp.load(f"{splits_path}/val_{target_name}.npy")
+        test_target = jnp.load(f"{splits_path}/test_{target_name}.npy")
 
-        return train_src, train_tgt, val_src, val_tgt, test_src, test_tgt
+        return train_src, val_src, test_src, train_target, val_target, test_target
 
     def create_batches(
         self,
