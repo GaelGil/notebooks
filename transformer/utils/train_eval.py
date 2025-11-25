@@ -14,8 +14,8 @@ from flax.training import train_state
 
 def train(
     state: train_state.TrainState,
-    train_batches,
-    val_batches,
+    train_loader,
+    val_loader,
     epochs: int,
     manager: ocp.CheckpointManager,
     logger,
@@ -38,14 +38,14 @@ def train(
     # loop over the dataset for num_epochs
     for epoch in range(step, epochs):
         # iterate through each batch in the dataset
-        for batch in train_batches:
+        for batch in train_loader:
             rng, dropout_rng = jax.random.split(rng)
             # train on batch
             state, _ = train_step(state=state, batch=batch, dropout_rng=rng)
 
         # train and val accuracy and loss
-        eval_accuracy, eval_loss = eval(state=state, loader=val_batches)
-        train_accuracy, train_loss = eval(state=state, loader=train_batches)
+        eval_accuracy, eval_loss = eval(state=state, loader=val_loader)
+        train_accuracy, train_loss = eval(state=state, loader=train_loader)
 
         metrics = {
             "train_loss": float(train_loss),
@@ -124,7 +124,7 @@ def train_step(
     return state, loss
 
 
-def eval(state: train_state.TrainState, val):
+def eval(state: train_state.TrainState, loader) -> tuple[float, float]:
     """
     evaluate the model on the validation set
     Args:
@@ -132,14 +132,14 @@ def eval(state: train_state.TrainState, val):
         val_loader: DataLoader
 
     Returns:
-        accuracy
+        accuracy, loss
     """
     total_batch = 0
     num_correct_batch = 0
     total_loss = 0
     num_bathces = 0
     # loop over the dataset
-    for batch in val:
+    for batch in loader:
         # evaluate on batch
         res, loss = eval_step(state=state, batch=batch)
         # get num of examples in current batch and add to total

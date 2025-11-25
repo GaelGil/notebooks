@@ -104,13 +104,6 @@ def main():
             )
         )
 
-    train_batch = dataset_one.create_batches(
-        src=src_one_train,
-        target=target_one_train,
-        batch_size=config.BATCH_SIZE,
-        shuffle=True,
-    )
-
     train_loader = DataLoader(
         src=src_one_train,
         target=target_one_train,
@@ -123,6 +116,7 @@ def main():
         src=src_one_val,
         target=target_one_val,
         batch_size=config.BATCH_SIZE,
+        seq_len=config.SEQ_LEN,
         shuffle=False,
     )
 
@@ -153,31 +147,33 @@ def main():
     if step != config.EPOCHS:
         train(
             state=state,
-            train_batches=train_batch,
-            val_batches=val_batch,
+            train_loader=train_loader,
+            val_loader=val_loader,
             epochs=config.EPOCHS,
             manager=manager,
             logger=logging,
             step=step,
         )
 
-    train_batch = dataset_one.create_batches(
+    train_loader = DataLoader(
         src=src_two_train,
         target=target_two_train,
         batch_size=config.BATCH_SIZE,
+        seq_len=config.SEQ_LEN,
         shuffle=True,
     )
     val_batch = dataset_one.create_batches(
         src=src_two_val,
         target=target_two_val,
         batch_size=config.BATCH_SIZE,
+        seq_len=config.SEQ_LEN,
         shuffle=False,
     )
 
     logging.info("Training completed, training with new data")
     train(
         state=state,
-        train_batches=train_batch,
+        train_batches=train_loader,
         val_batches=val_batch,
         epochs=config.EPOCHS,
         manager=manager,
