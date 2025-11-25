@@ -34,10 +34,6 @@ def train(
     Returns:
         None
     """
-    print(f"TRAIN SAMPLE: {train_loader[0]['src']}")
-    print(f"TRAIN SAMPLE: {train_loader[0]['src_mask']}")
-    print(f"TRAIN SAMPLE: {train_loader[0]['target_input']}")
-    print(f"TRAIN SAMPLE: {train_loader[0]['target_mask']}")
 
     rng = jax.random.PRNGKey(0)
     # loop over the dataset for num_epochs
@@ -139,22 +135,19 @@ def eval(state: train_state.TrainState, loader) -> tuple[float, float]:
     Returns:
         accuracy, loss
     """
-    total_batch = 0
-    num_correct_batch = 0
-    total_loss = 0
+    total_loss = 0.0
+    total_accuracy = 0.0
     num_bathces = 0
     # loop over the dataset
     for batch in loader:
         # evaluate on batch
-        res, loss = eval_step(state=state, batch=batch)
+        accuracy, loss = eval_step(state=state, batch=batch)
         # get num of examples in current batch and add to total
-        total_batch += res.shape[0]
-        # get number of correct predictions for current batch (will be boolean so we can sum)
-        num_correct_batch += res.sum()
+        total_accuracy += accuracy
         total_loss += loss
         num_bathces += 1
 
-    accuracy = num_correct_batch / total_batch
+    accuracy = total_accuracy / num_bathces
     avg_loss = total_loss / num_bathces
 
     return accuracy, avg_loss
@@ -190,7 +183,7 @@ def eval_step(state: train_state.TrainState, batch):
         logits=logits, labels=target_input
     ).mean()
     # get predictions from logits using argmax
-    preditcions = jnp.argmax(logits, axis=-1)
+    predictions = jnp.argmax(logits, axis=-1)
     # check if predictions are correct
-    correct = preditcions == target_input
-    return correct, loss
+    accuracy = (predictions == target_input).mean()
+    return accuracy, loss
