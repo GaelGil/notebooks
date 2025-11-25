@@ -1,6 +1,7 @@
 import os
 import random
 
+import jax
 import jax.numpy as jnp
 from datasets import load_dataset
 
@@ -124,8 +125,38 @@ class LangDataset:
         self,
         src,
         target,
-        train_size: float = 0.8,
-        test_size: float = 0.1,
-        val_size: float = 0.1,
+        train_size: float,
+        val_size: float,
     ):
+        jax.random.PRNGKey(0)
+        indicies = jnp.arange(len(src))
+        indicies = jax.random.permutation(key=jax.random.PRNGKey(0), x=indicies)
+        src = src[indicies]
+        target = target[indicies]
+
+        n_total = len(src)
+        n_train = int(train_size * n_total)
+        n_val = int(val_size * n_total)
+
+        train_src, train_tgt = src[:n_train], target[:n_train]
+        val_src, val_tgt = (
+            src[n_train : n_train + n_val],
+            target[n_train : n_train + n_val],
+        )
+        test_src, test_tgt = src[n_train + n_val :], target[n_train + n_val :]
+        jnp.save("train_src.npy", train_src)
+        jnp.save("train_tgt.npy", train_tgt)
+        jnp.save("val_src.npy", val_src)
+        jnp.save("val_tgt.npy", val_tgt)
+        jnp.save("test_src.npy", test_src)
+        jnp.save("test_tgt.npy", test_tgt)
         pass
+
+    def load_splits(self):
+        train_src = jnp.load("train_src.npy")
+        train_tgt = jnp.load("train_tgt.npy")
+        val_src = jnp.load("val_src.npy")
+        val_tgt = jnp.load("val_tgt.npy")
+        test_src = jnp.load("test_src.npy")
+        test_tgt = jnp.load("test_tgt.npy")
+        return train_src, train_tgt, val_src, val_tgt, test_src, test_tgt
