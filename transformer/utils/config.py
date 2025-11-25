@@ -8,8 +8,6 @@ class Config(BaseModel):
     LR: float
     SEQ_LEN: int
     D_MODEL: int
-    SRC_VOCAB_SIZE: int
-    TARGET_VOCAB_SIZE: int
     D_FF: int
     H: int
     N: int
@@ -17,9 +15,6 @@ class Config(BaseModel):
     LANG_TARGET_ONE: str
     LANG_SRC_TWO: str
     LANG_TARGET_TWO: str
-    PRELOAD: None
-    TOKENIZER_FILE: str
-    EXPERIMENT_NAME: str
     DROPOUT: float
     DEVICE: str
     DATA_PATH: str
@@ -41,13 +36,11 @@ class Config(BaseModel):
 
 
 config = Config(
-    BATCH_SIZE=32,
+    BATCH_SIZE=16,
     EPOCHS=10,
     LR=10e-4,
     SEQ_LEN=350,
     D_MODEL=512,
-    SRC_VOCAB_SIZE=8000,
-    TARGET_VOCAB_SIZE=8000,
     D_FF=2048,
     H=8,
     N=6,
@@ -55,9 +48,6 @@ config = Config(
     LANG_TARGET_ONE="es",
     LANG_SRC_TWO="sp",
     LANG_TARGET_TWO="nah",
-    PRELOAD=None,
-    TOKENIZER_FILE="tokenizer_{}.json",
-    EXPERIMENT_NAME="runs/model",
     DROPOUT=0.1,
     DEVICE="CUDA",
     DATA_PATH="somosnlp-hackathon-2022/Axolotl-Spanish-Nahuatl",

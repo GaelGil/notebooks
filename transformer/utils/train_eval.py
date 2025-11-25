@@ -44,8 +44,8 @@ def train(
             state, _ = train_step(state=state, batch=batch, dropout_rng=rng)
 
         # train and val accuracy and loss
-        eval_accuracy, eval_loss = eval(state=state, val_loader=val_batches)
-        train_accuracy, train_loss = eval(state=state, val_loader=train_batches)
+        eval_accuracy, eval_loss = eval(state=state, loader=val_batches)
+        train_accuracy, train_loss = eval(state=state, loader=train_batches)
 
         metrics = {
             "train_loss": float(train_loss),

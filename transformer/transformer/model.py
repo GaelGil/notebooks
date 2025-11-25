@@ -58,8 +58,10 @@ class PositionalEncoding(nn.Module):
             x: input tensor of shape (batch_size, seq_len, d_model)
             training: whether in training mode for dropout
         """
+        seq_len = x.shape[1]  # actual runtime sequence length
+        pe = self.pe[:, :seq_len, :]  # slice to match
 
-        x = x + self.pe
+        x = x + pe
         return self.dropout(x, deterministic=not is_training)
 
 
@@ -110,9 +112,9 @@ class FeedForwardBlock(nn.Module):
             None
         """
 
-        self.linear_1 = nn.Dense(features=self.d_ff)
+        self.linear_1 = nn.Dense(features=self.d_ff, dtype=jnp.bfloat16)
         self.dropout = nn.Dropout(rate=self.dropout_rate)
-        self.linear_2 = nn.Dense(features=self.d_model)
+        self.linear_2 = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
 
     @nn.compact
     def __call__(self, x: jnp.ndarray, is_training: bool):
@@ -147,10 +149,10 @@ class MultiHeadAttentionBlock(nn.Module):
 
         assert self.d_model % self.n_heads == 0, "d_model must be divisible by n_heads"
         self.d_k = self.d_model // self.n_heads
-        self.w_q = nn.Dense(features=self.d_model)
-        self.w_k = nn.Dense(features=self.d_model)
-        self.w_v = nn.Dense(features=self.d_model)
-        self.w_o = nn.Dense(features=self.d_model)
+        self.w_q = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
+        self.w_k = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
+        self.w_v = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
+        self.w_o = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
         self.dropout = nn.Dropout(rate=self.dropout_rate)
 
     @staticmethod
@@ -166,8 +168,16 @@ class MultiHeadAttentionBlock(nn.Module):
         # (Q * K^T)/sqrt(d_k)
         attention_scores = jnp.matmul(query, key.swapaxes(-2, -1)) / jnp.sqrt(d_k)
         if mask is not None:
-            mask = mask == 0  # convert to boolean "where to mask"
-            mask = mask[:, None, None, :]  # → (batch, 1, 1, seq_len)
+            # mask should be (B, L) OR (B, 1, 1, L)
+            if mask.ndim == 2:
+                # convert (B, L) → (B, 1, 1, L)
+                mask = mask[:, None, None, :]
+            elif mask.ndim == 3:
+                # convert (B, 1, L) → (B, 1, 1, L)
+                mask = mask[:, :, None, :]
+
+            # now mask is (B, 1, 1, L)
+            # where 1 = "valid", 0 = "should be masked"
             attention_scores = jnp.where(mask == 0, -1e10, attention_scores)
         # softmax(Q * K^T/sqrt(d_k))
         attention_scores = nn.softmax(attention_scores, axis=-1)
@@ -192,7 +202,6 @@ class MultiHeadAttentionBlock(nn.Module):
             q: query
             k: key
             v: value
-            mask: mask
 
         Returns:
             None
@@ -213,15 +222,13 @@ class MultiHeadAttentionBlock(nn.Module):
         # 8 Heads where each head contains a matrix of n vectors of dimension 64
         # keep the batch dimension the same and the sequence length the same
         # split the embeddings into 8 heads
-        query = query.reshape(
-            query.shape[0], query.shape[1], self.n_heads, self.d_k
-        ).transpose(0, 2, 1, 3)
-        key = key.reshape(key.shape[0], key.shape[1], self.n_heads, self.d_k).transpose(
-            0, 2, 1, 3
-        )
-        value = value.reshape(
-            value.shape[0], value.shape[1], self.n_heads, self.d_k
-        ).transpose(0, 2, 1, 3)
+
+        B, L_t, _ = query.shape
+        _, L_s, _ = key.shape
+
+        query = query.reshape(B, L_t, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
+        key = key.reshape(B, L_s, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
+        value = value.reshape(B, L_s, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
 
         # apply scaled dot product attention to each head
         x = MultiHeadAttentionBlock.scaled_dot_product_attention(
@@ -229,12 +236,13 @@ class MultiHeadAttentionBlock(nn.Module):
             key=key,
             value=value,
             dropout=self.dropout,
-            mask=mask,
             is_training=is_training,
+            mask=mask,
         )
 
         # reshape back to (seq_len, d_model)
-        x = jnp.transpose(x, (0, 2, 1, 3)).reshape(x.shape[0], -1, self.d_model)
+        # x = x.transpose(1, 2).contiguous().reshape(x.shape[0], -1, self.d_model)
+        x = jnp.transpose(x, (0, 2, 1, 3)).reshape(B, L_t, self.d_model)
         x = self.w_o(x)
         return x
 
@@ -446,7 +454,7 @@ class ProjectionLayer(nn.Module):
     vocab_size: int
 
     def setup(self) -> None:
-        self.linear = nn.Dense(features=self.vocab_size)
+        self.linear = nn.Dense(features=self.vocab_size, dtype=jnp.bfloat16)
 
     @nn.compact
     def __call__(self, x: jnp.ndarray):
