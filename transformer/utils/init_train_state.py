@@ -31,27 +31,23 @@ def init_train_state(config: Config, vocab_size: int) -> train_state.TrainState:
 
     # create dummy inputs
     dummy_src_input = jnp.zeros(
-        (
-            config.BATCH_SIZE,
-            config.SRC_VOCAB_SIZE,
-            config.SEQ_LEN,
-            config.D_MODEL,
-        ),
+        (config.BATCH_SIZE, config.SEQ_LEN),
         dtype=jnp.int32,
     )
-    dummy_src_mask = jnp.zeros((config.BATCH_SIZE, config.SEQ_LEN), dtype=jnp.float32)
+
+    dummy_src_mask = jnp.zeros(
+        (config.BATCH_SIZE, config.SEQ_LEN),
+        dtype=jnp.float32,
+    )
 
     dummy_target_input = jnp.zeros(
-        (
-            config.BATCH_SIZE,
-            config.TARGET_VOCAB_SIZE,
-            config.SEQ_LEN,
-            config.D_MODEL,
-        ),
+        (config.BATCH_SIZE, config.SEQ_LEN),
         dtype=jnp.int32,
     )
+
     dummy_target_mask = jnp.zeros(
-        (config.BATCH_SIZE, config.SEQ_LEN), dtype=jnp.float32
+        (config.BATCH_SIZE, config.SEQ_LEN),
+        dtype=jnp.float32,
     )
 
     # Initialize with dummy inputs

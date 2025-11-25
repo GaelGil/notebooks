@@ -1,8 +1,7 @@
-import os
-
+import jax
 import orbax.checkpoint as ocp
 from absl import logging
-
+from pathlib import Path
 from utils.CheckpointManager import CheckpointManager
 from utils.config import config
 from utils.init_train_state import init_train_state
@@ -15,8 +14,8 @@ logging.set_verbosity(logging.INFO)
 
 def main():
     # set the device
-    # device = jax.devices("gpu")[0]
-    # logging.info(f"Using device: {device}")
+    device = jax.devices("gpu")[0]
+    logging.info(f"Using device: {device}")
 
     tokenizer = Tokenizer(
         joint_corpus_path=config.JOINT_CORPUS_PATH,
@@ -24,6 +23,7 @@ def main():
         tokenizer_path=config.TOKENIZER_PATH,
     )
 
+    logging.info("Initializing the datasets ...")
     dataset_one = LangDataset(
         src_file=config.SRC_FILE,
         target_file=config.TARGET_FILE,
@@ -39,10 +39,11 @@ def main():
         seq_len=config.SEQ_LEN,
     )
 
+    logging.info("Loading the data ...")
     raw_src_one, raw_target_one = dataset_one.load_data()
     raw_src_two, raw_target_two = dataset_two.load_data()
 
-    if os.path.exists(config.TOKENIZER_MODEL_PATH):
+    if Path(config.TOKENIZER_MODEL_PATH).exists():
         logging.info("Loading the tokenizer ...")
         tokenizer.load_tokenizer()
     else:
@@ -54,22 +55,30 @@ def main():
             target_two=raw_target_two,
         )
 
-    src_one, target_one = dataset_one.prep_data(
-        raw_src_one, raw_target_one, tokenizer=tokenizer
-    )
-    src_two, target_two = dataset_two.prep_data(
-        raw_src_two, raw_target_two, tokenizer=tokenizer
-    )
-
-    if os.path.exists(config.SPLITS_PATH):
+    if Path("./data/splits/test_nah.npy").exists():
         logging.info("Loading the splits ...")
         src_one_train, src_one_val, target_one_train, target_one_val, _, _ = (
-            dataset_one.load_splits()
+            dataset_one.load_splits(
+                splits_path=config.SPLITS_PATH,
+                src_name=config.LANG_SRC_ONE,
+                target_name=config.LANG_TARGET_ONE,
+            )
         )
         src_two_train, src_two_val, target_two_train, target_two_val, _, _ = (
-            dataset_two.load_splits()
+            dataset_two.load_splits(
+                splits_path=config.SPLITS_PATH,
+                src_name=config.LANG_SRC_TWO,
+                target_name=config.LANG_TARGET_TWO,
+            )
         )
     else:
+        logging.info("Prepping the data ...")
+        src_one, target_one = dataset_one.prep_data(
+            raw_src_one, raw_target_one, tokenizer=tokenizer
+        )
+        src_two, target_two = dataset_two.prep_data(
+            raw_src_two, raw_target_two, tokenizer=tokenizer
+        )
         logging.info("Splitting the data ...")
         src_one_train, src_one_val, target_one_train, target_one_val, _, _ = (
             dataset_one.split(
@@ -77,8 +86,8 @@ def main():
                 target=target_one,
                 train_size=config.TRAIN_SPLIT,
                 val_size=config.VAL_SPLIT,
-                src_name=config.LANG_SRC_TWO,
-                target_name=config.LANG_TARGET_TWO,
+                src_name=config.LANG_SRC_ONE,
+                target_name=config.LANG_TARGET_ONE,
                 splits_path=config.SPLITS_PATH,
             )
         )
@@ -130,61 +139,12 @@ def main():
 
     state, step = checkpoint_manager.restore(state=state, logging=logging)
 
-    # initialize the model
-    logging.info("Initializing the model and optimizer")
-    state = init_train_state(config)
-
-    # define checkpoint options
-    checkpoint_options = ocp.CheckpointManagerOptions(
-        max_to_keep=config.MAX_TO_KEEP,
-        save_interval_steps=config.SAVE_INTERVAL,
-        enable_async_checkpointing=config.ASYNC_CHECKPOINTING,
-        best_fn=lambda metrics: metrics[config.BEST_FN],
-    )
-
-    # Create handler registry
-    registry = ocp.handlers.DefaultCheckpointHandlerRegistry()
-
-    # PyTree (model/optimizer state)
-    registry.add("state", ocp.args.StandardSave)
-    registry.add("state", ocp.args.StandardRestore)
-
-    # JSON (metrics)
-    registry.add("metrics", ocp.args.JsonSave)
-    registry.add("metrics", ocp.args.JsonRestore)
-
-    # Define the checkpoint manager
-    manager = ocp.CheckpointManager(
-        directory=config.CHECKPOINT_PATH.resolve(),
-        handler_registry=registry,
-        options=checkpoint_options,
-    )
-
-    # restore previous checkpoint
-    if manager.latest_step():  # check if there is a latest checkpoint
-        logging.info("Restoring from latest checkpoint")
-        # get the best step/checkpoint
-        # this was deinfed in the checkpoint options
-        best_step = manager.best_step()
-        # restore from the best step
-        restored = manager.restore(
-            step=best_step,
-            args=ocp.args.Composite(
-                state=ocp.args.StandardRestore(state),
-                metrics=ocp.args.JsonRestore(),
-            ),
-        )
-        # update state to the restored state
-        state = restored.state
-    else:
-        logging.info("No checkpoint found, training from scratch")
-    # train the model
     logging.info("Training the model")
     if step != config.EPOCHS:
         train(
             state=state,
-            train_loader=train_batch,
-            val_loader=val_batch,
+            train_batches=train_batch,
+            val_batches=val_batch,
             epochs=config.EPOCHS,
             manager=manager,
             logger=logging,
@@ -207,8 +167,8 @@ def main():
     logging.info("Training completed, training with new data")
     train(
         state=state,
-        train_loader=train_batch,
-        val_loader=val_batch,
+        train_batches=train_batch,
+        val_batches=val_batch,
         epochs=config.EPOCHS,
         manager=manager,
         logger=logging,

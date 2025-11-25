@@ -1,4 +1,3 @@
-import os
 import random
 
 import jax
@@ -38,9 +37,6 @@ class LangDataset:
 
     def load_data(self):
         if self.src_file:
-            assert os.path.exists(self.src_file)
-            assert os.path.exists(self.target_file)
-
             with open(self.src_file, "r", encoding="utf-8") as f:
                 src = [line.strip() for line in f]
 
