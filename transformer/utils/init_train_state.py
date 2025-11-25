@@ -7,7 +7,7 @@ from transformer.model import Transformer
 from utils.config import Config
 
 
-def init_train_state(config: Config) -> train_state.TrainState:
+def init_train_state(config: Config, vocab_size: int) -> train_state.TrainState:
     """
     Initialize the train state
     Args:
@@ -23,8 +23,8 @@ def init_train_state(config: Config) -> train_state.TrainState:
         d_ff=config.D_FF,
         dropout=config.DROPOUT,
         seq_len=config.SEQ_LEN,
-        src_vocab_size=config.SRC_VOCAB_SIZE,
-        target_vocab_size=config.TARGET_VOCAB_SIZE,
+        src_vocab_size=vocab_size,
+        target_vocab_size=vocab_size,
     )
 
     rng: jax.random.PRNGKey = jax.random.PRNGKey(0)

@@ -10,14 +10,12 @@ import jax.numpy as jnp
 import optax
 import orbax.checkpoint as ocp
 from flax.training import train_state
-from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 
 def train(
     state: train_state.TrainState,
-    train_loader: DataLoader,
-    val_loader: DataLoader,
+    train_batches,
+    val_batches,
     num_epochs: int,
     manager: ocp.CheckpointManager,
     logger,
@@ -38,25 +36,15 @@ def train(
     rng = jax.random.PRNGKey(0)
     # loop over the dataset for num_epochs
     for epoch in range(num_epochs):
-        # create a tqdm progress bar
-        progress_bar = tqdm(
-            train_loader, desc=f"Epoch {epoch + 1}/{num_epochs}", leave=False
-        )
         # iterate through each batch in the dataset
-        for batch in progress_bar:
+        for batch in train_batches:
             rng, dropout_rng = jax.random.split(rng)
             # train on batch
             state, _ = train_step(state=state, batch=batch, dropout_rng=rng)
 
         # train and val accuracy and loss
-        eval_accuracy, eval_loss = eval(state=state, val_loader=val_loader)
-        train_accuracy, train_loss = eval(state=state, val_loader=train_loader)
-
-        # after each epoch, evaluate on train and val set
-        progress_bar.set_postfix(
-            train_accuracy=train_accuracy,
-            eval_accuracy=eval_accuracy,
-        )
+        eval_accuracy, eval_loss = eval(state=state, val_loader=val_batches)
+        train_accuracy, train_loss = eval(state=state, val_loader=train_batches)
 
         metrics = {
             "train_loss": float(train_loss),
@@ -125,7 +113,7 @@ def train_step(
     return state, loss
 
 
-def eval(state: train_state.TrainState, val_loader: DataLoader):
+def eval(state: train_state.TrainState, val):
     """
     evaluate the model on the validation set
     Args:
@@ -140,7 +128,7 @@ def eval(state: train_state.TrainState, val_loader: DataLoader):
     total_loss = 0
     num_bathces = 0
     # loop over the dataset
-    for batch in val_loader:
+    for batch in val:
         # evaluate on batch
         res, loss = eval_step(state=state, batch=batch)
         # get num of examples in current batch and add to total
