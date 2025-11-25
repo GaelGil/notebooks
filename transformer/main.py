@@ -14,19 +14,25 @@ def main():
     # device = jax.devices("gpu")[0]
     # logging.info(f"Using device: {device}")
 
-    tokenizer = Tokenizer(config=config)
+    tokenizer = Tokenizer(
+        joint_corpus_path=config.JOINT_CORPUS_PATH,
+        tokenizer_model_path=config.TOKENIZER_MODEL_PATH,
+        tokenizer_path=config.TOKENIZER_PATH,
+    )
 
     dataset_one = LangDataset(
         src_file=config.SRC_FILE,
         target_file=config.TARGET_FILE,
         src_lang=config.LANG_SRC_ONE,
         target_lang=config.LANG_TARGET_ONE,
+        seq_len=config.SEQ_LEN,
     )
 
     dataset_two = LangDataset(
         dataset_name=config.DATA_PATH,
         src_lang=config.LANG_SRC_TWO,
         target_lang=config.LANG_TARGET_TWO,
+        seq_len=config.SEQ_LEN,
     )
 
     raw_src_one, raw_target_one = dataset_one.load_data()
@@ -50,6 +56,39 @@ def main():
     src_two, target_two = dataset_two.prep_data(
         raw_src_two, raw_target_two, tokenizer=tokenizer
     )
+
+    if os.path.exists(config.SPLITS_PATH):
+        logging.info("Loading the splits ...")
+        src_one_train, src_one_val, target_one_train, target_one_val = (
+            dataset_one.load_splits()
+        )
+        src_two_train, src_two_val, target_two_train, target_two_val = (
+            dataset_two.load_splits()
+        )
+    else:
+        logging.info("Splitting the data ...")
+        src_one_train, src_one_val, target_one_train, target_one_val = (
+            dataset_one.split(
+                src=src_one,
+                target=target_one,
+                train_size=config.TRAIN_SPLIT,
+                val_size=config.VAL_SPLIT,
+                src_name=config.LANG_SRC_TWO,
+                target_name=config.LANG_TARGET_TWO,
+                splits_path=config.SPLITS_PATH,
+            )
+        )
+        src_two_train, src_two_val, target_two_train, target_two_val = (
+            dataset_two.split(
+                src=src_two,
+                target=target_two,
+                train_size=config.TRAIN_SPLIT,
+                val_size=config.VAL_SPLIT,
+                src_name=config.LANG_SRC_TWO,
+                target_name=config.LANG_TARGET_TWO,
+                splits_path=config.SPLITS_PATH,
+            )
+        )
     # initialize the train state
     # logging.info("Initializing the train state ...")
     # state = init_train_state(config=config)
