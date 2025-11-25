@@ -88,7 +88,9 @@ def train_step(
     Returns:
         train_state.TrainState and loss
     """
-    seq, label = batch  # unpack the batch
+
+    seq = batch["src"]
+    target = batch["target"]
 
     # define loss function
     def loss_fn(params):
@@ -101,7 +103,7 @@ def train_step(
         )
         # calculate mean loss for the batch
         loss = optax.softmax_cross_entropy_with_integer_labels(
-            logits=logits, labels=label
+            logits=logits, labels=target
         ).mean()
         return loss
 
@@ -155,7 +157,8 @@ def eval_step(state: train_state.TrainState, batch):
     Returns:
         predictions
     """
-    seq, label = batch  # unpack the batch
+    seq = batch["src"]
+    target = batch["target"]
     # pass batch through the model in training state
     logits = state.apply_fn(
         {"params": state.params},
@@ -165,10 +168,10 @@ def eval_step(state: train_state.TrainState, batch):
     )
     # calculate mean loss for the batch
     loss = optax.softmax_cross_entropy_with_integer_labels(
-        logits=logits, labels=label
+        logits=logits, labels=target
     ).mean()
     # get predictions from logits using argmax
     preditcions = jnp.argmax(logits, axis=-1)
     # check if predictions are correct
-    correct = preditcions == label
+    correct = preditcions == target
     return correct, loss

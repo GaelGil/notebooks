@@ -71,6 +71,6 @@ config = Config(
     TOKENIZER_PATH="./tokenizer",
     TOKENIZER_MODEL_PATH="./tokenizer/joint.model",
     ASYNC_CHECKPOINTING=True,
-    JOINT_CORPUS_PATH="./data/joint_corpus.txt",
+    JOINT_CORPUS_PATH="./tokenizer/joint_corpus.txt",
     SPLITS_PATH="./data/splits",
 )

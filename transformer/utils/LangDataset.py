@@ -191,9 +191,9 @@ class LangDataset:
             batch_idx = indices[start:end]
 
             if len(batch_idx) < batch_size:
-                break  # optional: drop last incomplete batch
+                break
 
             yield {
                 "src": src[batch_idx],
-                "tgt": target[batch_idx],
+                "target": target[batch_idx],
             }
