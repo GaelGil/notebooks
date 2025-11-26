@@ -28,16 +28,40 @@ class Tokenizer:
                 f.write(line + "\n")
 
     def create_joint_corpus(self, src_one, target_one, src_two, target_two):
+        """
+        Creates a joint corpus of source and target data
+
+        Args:
+            src_one: list of strings
+            target_one: list of strings
+            src_two: list of strings
+            target_two: list of strings
+
+        Returns:
+            None
+        """
         # Combine into one file for tokenizer
         with open(self.joint_corpus_path, "w", encoding="utf-8") as f:
             for sentence_list in [src_one + src_two, target_one, target_two]:
                 self.write_txt(data=sentence_list, f=f)
 
     def train_tokenizer(self, src_one, target_one, src_two, target_two):
+        """
+        Trains a sentencepiece tokenizer on the joint corpus
+
+        Args:
+            src_one: list of strings
+            target_one: list of strings
+            src_two: list of strings
+            target_two: list of strings
+
+        Returns:
+            None
+        """
         os.makedirs(self.tokenizer_path, exist_ok=True)
-
+        # Create joint corpus
         self.create_joint_corpus(src_one, target_one, src_two, target_two)
-
+        # Train tokenizer
         spm.SentencePieceTrainer.Train(
             input=self.joint_corpus_path,
             model_prefix=os.path.join(self.tokenizer_path, "joint"),
@@ -55,6 +79,15 @@ class Tokenizer:
         self.sp.Load(self.tokenizer_model_path)
 
     def encode(self, text: str, add_bos=True, add_eos=True):
+        """
+        Args:
+            text: string
+            add_bos: boolean
+            add_eos: boolean
+
+        Returns:
+            ids: list of integers
+        """
         ids = self.sp.Encode(text, out_type=int)
         if add_bos:
             ids = [self.sp.bos_id()] + ids

@@ -89,11 +89,15 @@ class LangDataset:
         """
         self.dataset = self.dataset.filter(self.valid_pair)
 
-    def pad_sequences(self, sequences, pad_id=0, max_len=None):
+    def pad_sequences(self, sequences: list, pad_id: int = 0, max_len: int = None):
         """
-        sequences: list of list of token ids
-        pad_id: integer used for padding
-        max_len: if None, pad to the length of the longest sequence
+        Args:
+            sequences: list of list of token ids
+            pad_id: integer used for padding
+            max_len: if None, pad to the length of the longest sequence
+
+        Returns:
+            padded: numpy array of shape [N, max_len]
         """
         padded = []
         for seq in sequences:
@@ -103,11 +107,21 @@ class LangDataset:
         return jnp.array(padded, dtype=jnp.int32)
 
     def prep_data(self, src_data, target_data, tokenizer: Tokenizer):
+        """
+        Args:
+            src_data: list of source sentences
+            target_data: list of target sentences
+            tokenizer: Tokenizer object
+
+        Returns:
+            src_ids_padded: numpy array of shape [N, max_len]
+            target_ids_padded: numpy array of shape [N, max_len]
+        """
         src_ids = []
         target_ids = []
 
         for src, target in zip(src_data, target_data):
-            # add bos and eos
+            # encode and add bos and eos
             src_ids.append(tokenizer.encode(src, add_bos=True, add_eos=True))
             target_ids.append(tokenizer.encode(target, add_bos=True, add_eos=True))
 
