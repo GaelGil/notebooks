@@ -15,8 +15,8 @@ class DataLoader:
             shuffle: shuffle dataset
             n_prefetch: number of batches to prefetch to device
         """
-        self.src = src
-        self.target = target
+        self.src = jnp.array(src)
+        self.target = jnp.array(target)
         self.batch_size = batch_size
         self.seq_len = seq_len
         self.shuffle = shuffle
@@ -51,8 +51,8 @@ class DataLoader:
             if len(batch_idx) < self.batch_size:
                 break
 
-            batch_src = self.src[batch_idx]
-            batch_target = self.target[batch_idx]
+            batch_src = jnp.array(self.src[batch_idx])
+            batch_target = jnp.array(self.target[batch_idx])
 
             src_mask = self.prepare_encoder_mask(self.create_src_mask(batch_src))
             target_mask = self.create_tgt_mask(batch_target)
