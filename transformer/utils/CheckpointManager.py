@@ -83,4 +83,4 @@ class CheckpointManager:
             state = restored.state
         else:
             logging.info("No checkpoint found, training from scratch")
-        return state, self.manager.latest_step() or 0
+        return state, self.manager.latest_step() if self.manager.latest_step() else 0

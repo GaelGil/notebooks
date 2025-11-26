@@ -23,28 +23,50 @@ class DataLoader:
         self.n_prefetch = n_prefetch
 
     def create_src_mask(self, src):
-        return (src != 0).astype(jnp.float32)  # 1 for tokens, 0 for padding
+        """
+        Create source mask for encoder. Fill with 1 for tokens and 0 for padding
+        Changes shape from (b, seq_len) to (b, 1, 1, seq_len)
+        Args:
+            src: source sequence
+        Returns:
+            source mask
+        """
+        return (src != 0).astype(jnp.bfloat16)[
+            :, None, None, :
+        ]  # 1 for tokens, 0 for padding
 
-    def prepare_encoder_mask(self, mask):
-        return mask[:, None, None, :]  # (B, 1, 1, seq_len)
-
-    def create_tgt_mask(self, target):
+    def create_target_mask(self, target):
+        """
+        Create target mask for encoder. Fill padding mask with 1 for tokens and 0 for padding
+        Changes shape from (b, seq_len) to (b, 1, 1, seq_len)
+        We then create a lower triangular matrix where future tokens are masked.
+        Multiply this with the source mask to ignore padding tokens and we get final mask.
+        Args:
+            target: target sequence
+        Returns:
+            source mask
+        """
         batch_size, seq_len = target.shape
-        padding_mask = (target != 0).astype(jnp.float32)[:, None, None, :]  # (B,1,1,L)
-        causal_mask = jnp.tril(jnp.ones((seq_len, seq_len), dtype=jnp.float32))[
+        padding_mask = (target != 0).astype(jnp.bfloat16)[:, None, None, :]  # (B,1,1,L)
+        # create causal mask (1,L,L) (lower triangular matrix)
+        causal_mask = jnp.tril(jnp.ones((seq_len, seq_len), dtype=jnp.bfloat16))[
             None, None, :, :
         ]
+        # create final mask where future tokens are masked and padding tokens are ignored
         return padding_mask * causal_mask  # (B,1,L,L)
 
-    def __iter__(self):
-        return self._prefetch_to_device(self._batch_generator())
+    def __iter__(self, rng=None):
+        return self._prefetch_to_device(self._batch_generator(rng))
 
-    def _batch_generator(self):
+    def _batch_generator(self, rng):
         N = self.src.shape[0]
         indices = jnp.arange(N)
-        if self.shuffle:
-            indices = jax.random.permutation(jax.random.PRNGKey(0), indices)
 
+        # Use provided RNG for shuffling
+        if self.shuffle:
+            if rng is None:
+                rng = jax.random.PRNGKey(0)
+            indices = jax.random.permutation(rng, indices)
         for start in range(0, N, self.batch_size):
             end = start + self.batch_size
             batch_idx = indices[start:end]
@@ -54,15 +76,21 @@ class DataLoader:
             batch_src = jnp.array(self.src[batch_idx])
             batch_target = jnp.array(self.target[batch_idx])
 
-            src_mask = self.prepare_encoder_mask(self.create_src_mask(batch_src))
-            target_mask = self.create_tgt_mask(batch_target)
+            src_mask = self.create_src_mask(batch_src)
+            target_mask = self.create_target_mask(batch_target)
 
             batch = {
-                "src": batch_src,
-                "src_mask": src_mask,
-                "target_input": batch_target[:, :-1],
-                "target_output": batch_target[:, 1:],
-                "target_mask": target_mask[:, :, :-1, :-1],
+                "src": batch_src,  # (b, seq_len)
+                "src_mask": src_mask,  # (b, 1, 1, seq_len)
+                "target_input": batch_target[
+                    :, :-1
+                ],  # exclude last token (b, seq_len-1)
+                "target_output": batch_target[
+                    :, 1:
+                ],  # exclude first token (b, seq_len-1)
+                "target_mask": target_mask[
+                    :, :, :-1, :-1
+                ],  # (b, 1, seq_len-1, seq_len-1)
             }
             yield batch
 
