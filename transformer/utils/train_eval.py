@@ -42,7 +42,7 @@ def train(
         for batch in train_loader:
             rng, dropout_rng = jax.random.split(rng)
             # train on batch
-            state, _ = train_step(state=state, batch=batch, dropout_rng=rng)
+            state, _ = train_step(state=state, batch=batch, dropout_rng=dropout_rng)
 
         # train and val accuracy and loss
         eval_accuracy, eval_loss = eval(state=state, loader=val_loader)
@@ -172,6 +172,9 @@ def eval_step(state: train_state.TrainState, batch):
     target_input = batch["target_input"]
     target_output = batch["target_output"]
     target_mask = batch["target_mask"]
+    jax.debug.print(
+        "TARGET_MASK SHAPE: {}", target_mask.shape
+    )  # This will print during runtime
     # pass batch through the model in training state
     logits = state.apply_fn(
         {"params": state.params},
