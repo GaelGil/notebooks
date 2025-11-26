@@ -47,7 +47,7 @@ def train(
         for batch in progress_bar:
             rng, dropout_rng = jax.random.split(rng)
             # train on batch
-            state, _ = train_step(state=state, batch=batch, dropout_rng=rng)
+            state, _ = train_step(state=state, batch=batch, dropout_rng=dropout_rng)
 
         # get eval/train accuracy and loss
         eval_accuracy, eval_loss = eval(state=state, val_loader=val_loader)
