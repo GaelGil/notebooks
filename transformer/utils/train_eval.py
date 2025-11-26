@@ -38,15 +38,20 @@ def train(
     rng = jax.random.PRNGKey(0)
     # loop over the dataset for num_epochs
     for epoch in range(step, epochs):
+        rng, epoch_rng = jax.random.split(rng)
         # iterate through each batch in the dataset
-        for batch in train_loader:
-            rng, dropout_rng = jax.random.split(rng)
+        for batch in train_loader.__iter__(rng=epoch_rng):
+            epoch_rng, dropout_rng = jax.random.split(epoch_rng)
             # train on batch
-            state, _ = train_step(state=state, batch=batch, dropout_rng=dropout_rng)
+            state, train_loss = train_step(
+                state=state, batch=batch, dropout_rng=dropout_rng
+            )
 
         # train and val accuracy and loss
-        eval_accuracy, eval_loss = eval(state=state, loader=val_loader)
-        train_accuracy, train_loss = eval(state=state, loader=train_loader)
+        eval_accuracy, eval_loss = eval(state=state, loader=val_loader, rng=epoch_rng)
+        train_accuracy, _ = eval(
+            state=state, loader=train_loader, rng=epoch_rng, is_train=True
+        )
 
         metrics = {
             "train_loss": float(train_loss),
@@ -112,11 +117,11 @@ def train_step(
             rngs={"dropout": dropout_rng},
         )
 
-        mask = (target_output != 0).astype(jnp.float32)
         per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
             logits=logits,
             labels=target_output,
         )
+        mask = jnp.diagonal(target_mask, axis1=-2, axis2=-1)  # shape (batch, seq_len)
         loss = (per_token_loss * mask).sum() / mask.sum()
         return loss
 
@@ -128,7 +133,12 @@ def train_step(
     return state, loss
 
 
-def eval(state: train_state.TrainState, loader) -> tuple[float, float]:
+def eval(
+    state: train_state.TrainState,
+    loader,
+    rng: jax.random.PRNGKey,
+    is_train: bool = False,
+) -> tuple[float, float]:
     """
     evaluate the model on the validation set
     Args:
@@ -142,9 +152,9 @@ def eval(state: train_state.TrainState, loader) -> tuple[float, float]:
     total_accuracy = 0.0
     num_bathces = 0
     # loop over the dataset
-    for batch in loader:
+    for batch in loader.__iter__(rng=rng):
         # evaluate on batch
-        accuracy, loss = eval_step(state=state, batch=batch)
+        accuracy, loss = eval_step(state=state, batch=batch, is_train=is_train)
         # get num of examples in current batch and add to total
         total_accuracy += accuracy
         total_loss += loss
@@ -157,7 +167,7 @@ def eval(state: train_state.TrainState, loader) -> tuple[float, float]:
 
 
 @jax.jit
-def eval_step(state: train_state.TrainState, batch):
+def eval_step(state: train_state.TrainState, batch, is_train: bool = False):
     """
     evaluate the model on a single batch
     Args:
@@ -172,9 +182,7 @@ def eval_step(state: train_state.TrainState, batch):
     target_input = batch["target_input"]
     target_output = batch["target_output"]
     target_mask = batch["target_mask"]
-    jax.debug.print(
-        "TARGET_MASK SHAPE: {}", target_mask.shape
-    )  # This will print during runtime
+
     # pass batch through the model in training state
     logits = state.apply_fn(
         {"params": state.params},
@@ -183,18 +191,18 @@ def eval_step(state: train_state.TrainState, batch):
         target_input,
         target_mask,
         is_training=False,
-        rngs={"dropout": jax.random.PRNGKey(0)},
     )
-    mask = (target_output != 0).astype(jnp.float32)
     per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
         logits=logits,
         labels=target_output,
     )
-    loss = (per_token_loss * mask).sum() / mask.sum()
+    target_mask = jnp.diagonal(target_mask, axis1=-2, axis2=-1)
+    loss = (per_token_loss * target_mask).sum() / target_mask.sum()
 
     predictions = jnp.argmax(logits, axis=-1)
-    correct = ((predictions == target_output) * mask).sum()
-    total = mask.sum()
+
+    correct = ((predictions == target_output) * target_mask).sum()
+    total = target_mask.sum()
     accuracy = correct / total
 
     return accuracy, loss

@@ -63,7 +63,7 @@ def init_train_state(config: Config, vocab_size: int) -> train_state.TrainState:
     params = variables["params"]
 
     # initliaze the optimizer
-    optimizer = optax.adam(learning_rate=config.LR)
+    optimizer = optax.adamw(learning_rate=config.LR)
 
     # define the train state
     # apply_fn tells flax how to run a forward pass
