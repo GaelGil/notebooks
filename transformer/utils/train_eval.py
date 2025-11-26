@@ -102,7 +102,6 @@ def train_step(
         """
         Compute the loss function for a single batch
         """
-        # pass batch through the model in training state
         logits = state.apply_fn(
             {"params": params},
             src,
@@ -112,10 +111,13 @@ def train_step(
             is_training=True,
             rngs={"dropout": dropout_rng},
         )
-        # calculate mean loss for the batch
-        loss = optax.softmax_cross_entropy_with_integer_labels(
-            logits=logits, labels=target_output
-        ).mean()
+
+        mask = (target_output != 0).astype(jnp.float32)
+        per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
+            logits=logits,
+            labels=target_output,
+        )
+        loss = (per_token_loss * mask).sum() / mask.sum()
         return loss
 
     # compute loss and gradients
@@ -180,12 +182,16 @@ def eval_step(state: train_state.TrainState, batch):
         is_training=False,
         rngs={"dropout": jax.random.PRNGKey(0)},
     )
-    # calculate mean loss for the batch
-    loss = optax.softmax_cross_entropy_with_integer_labels(
-        logits=logits, labels=target_output
-    ).mean()
-    # get predictions from logits using argmax
+    mask = (target_output != 0).astype(jnp.float32)
+    per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
+        logits=logits,
+        labels=target_output,
+    )
+    loss = (per_token_loss * mask).sum() / mask.sum()
+
     predictions = jnp.argmax(logits, axis=-1)
-    # check if predictions are correct
-    accuracy = (predictions == target_output).mean()
+    correct = ((predictions == target_output) * mask).sum()
+    total = mask.sum()
+    accuracy = correct / total
+
     return accuracy, loss
