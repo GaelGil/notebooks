@@ -81,7 +81,7 @@ class Tokenizer:
     def encode(
         self,
         text: str,
-        prefix: str = None,
+        prefix: list = [],
         add_bos: bool = True,
         add_eos: bool = True,
     ):

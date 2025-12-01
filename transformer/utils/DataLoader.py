@@ -74,7 +74,7 @@ class DataLoader:
             batch_target = jnp.array(self.target[batch_idx])
 
             src_mask = self.create_src_mask(batch_src)
-            target_attention_mask = self.create_tgt_mask(batch_target)
+            target_attention_mask = self.create_target_mask(batch_target)
             token_mask = (batch_target[:, 1:] != 0).astype(
                 jnp.bfloat16
             )  # (b, seq_len-1)
