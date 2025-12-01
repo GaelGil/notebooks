@@ -96,6 +96,7 @@ def train_step(
     target_input = batch["target_input"]
     target_output = batch["target_output"]
     target_mask = batch["target_mask"]
+    token_mask = batch["token_mask"]
 
     # define loss function
     def loss_fn(params):
@@ -112,12 +113,11 @@ def train_step(
             rngs={"dropout": dropout_rng},
         )
 
-        mask = (target_output != 0).astype(jnp.float32)
         per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
             logits=logits,
             labels=target_output,
         )
-        loss = (per_token_loss * mask).sum() / mask.sum()
+        loss = (per_token_loss * token_mask).sum() / token_mask.sum()
         return loss
 
     # compute loss and gradients
@@ -172,6 +172,7 @@ def eval_step(state: train_state.TrainState, batch):
     target_input = batch["target_input"]
     target_output = batch["target_output"]
     target_mask = batch["target_mask"]
+    token_mask = batch["token_mask"]
     # pass batch through the model in training state
     logits = state.apply_fn(
         {"params": state.params},
@@ -182,16 +183,15 @@ def eval_step(state: train_state.TrainState, batch):
         is_training=False,
         rngs={"dropout": jax.random.PRNGKey(0)},
     )
-    mask = (target_output != 0).astype(jnp.float32)
     per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
         logits=logits,
         labels=target_output,
     )
-    loss = (per_token_loss * mask).sum() / mask.sum()
+    loss = (per_token_loss * token_mask).sum() / token_mask.sum()
 
     predictions = jnp.argmax(logits, axis=-1)
-    correct = ((predictions == target_output) * mask).sum()
-    total = mask.sum()
+    correct = ((predictions == target_output) * token_mask).sum()
+    total = token_mask.sum()
     accuracy = correct / total
 
     return accuracy, loss
