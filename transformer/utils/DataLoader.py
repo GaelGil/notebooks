@@ -46,12 +46,11 @@ class DataLoader:
         Returns:
             source mask
         """
-        batch_size, seq_len = target.shape
         padding_mask = (target != 0).astype(jnp.bfloat16)[:, None, None, :]  # (B,1,1,L)
         # create causal mask (1,L,L) (lower triangular matrix)
-        causal_mask = jnp.tril(jnp.ones((seq_len, seq_len), dtype=jnp.bfloat16))[
-            None, None, :, :
-        ]
+        causal_mask = jnp.tril(
+            jnp.ones((self.seq_len, self.seq_len), dtype=jnp.bfloat16)
+        )[None, None, :, :]
         # create final mask where future tokens are masked and padding tokens are ignored
         return padding_mask * causal_mask  # (B,1,L,L)
 
