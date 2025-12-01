@@ -101,6 +101,7 @@ def train_step(
     target_input = batch["target_input"]
     target_output = batch["target_output"]
     target_mask = batch["target_mask"]
+    token_mask = batch["token_mask"]
 
     # define loss function
     def loss_fn(params):
@@ -121,8 +122,7 @@ def train_step(
             logits=logits,
             labels=target_output,
         )
-        mask = jnp.diagonal(target_mask, axis1=-2, axis2=-1)  # shape (batch, seq_len)
-        loss = (per_token_loss * mask).sum() / mask.sum()
+        loss = (per_token_loss * token_mask).sum() / token_mask.sum()
         return loss
 
     # compute loss and gradients
@@ -182,7 +182,7 @@ def eval_step(state: train_state.TrainState, batch, is_train: bool = False):
     target_input = batch["target_input"]
     target_output = batch["target_output"]
     target_mask = batch["target_mask"]
-
+    token_mask = batch["token_mask"]
     # pass batch through the model in training state
     logits = state.apply_fn(
         {"params": state.params},
@@ -196,13 +196,11 @@ def eval_step(state: train_state.TrainState, batch, is_train: bool = False):
         logits=logits,
         labels=target_output,
     )
-    target_mask = jnp.diagonal(target_mask, axis1=-2, axis2=-1)
-    loss = (per_token_loss * target_mask).sum() / target_mask.sum()
+    loss = (per_token_loss * token_mask).sum() / token_mask.sum()
 
     predictions = jnp.argmax(logits, axis=-1)
-
-    correct = ((predictions == target_output) * target_mask).sum()
-    total = target_mask.sum()
+    correct = ((predictions == target_output) * token_mask).sum()
+    total = token_mask.sum()
     accuracy = correct / total
 
     return accuracy, loss

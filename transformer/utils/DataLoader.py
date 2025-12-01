@@ -1,7 +1,5 @@
 import jax
 import jax.numpy as jnp
-from flax.training.common_utils import shard
-import itertools
 
 
 class DataLoader:
@@ -76,20 +74,17 @@ class DataLoader:
             batch_target = jnp.array(self.target[batch_idx])
 
             src_mask = self.create_src_mask(batch_src)
-            target_mask = self.create_target_mask(batch_target)
-
+            target_attention_mask = self.create_tgt_mask(batch_target)
+            token_mask = (batch_target[:, 1:] != 0).astype(
+                jnp.bfloat16
+            )  # (b, seq_len-1)
             batch = {
-                "src": batch_src,  # (b, seq_len)
-                "src_mask": src_mask,  # (b, 1, 1, seq_len)
-                "target_input": batch_target[
-                    :, :-1
-                ],  # exclude last token (b, seq_len-1)
-                "target_output": batch_target[
-                    :, 1:
-                ],  # exclude first token (b, seq_len-1)
-                "target_mask": target_mask[
-                    :, :, :-1, :-1
-                ],  # (b, 1, seq_len-1, seq_len-1)
+                "src": batch_src,
+                "src_mask": src_mask,
+                "target_input": batch_target[:, :-1],
+                "target_output": batch_target[:, 1:],
+                "target_mask": target_attention_mask[:, :, :-1, :-1],
+                "token_mask": token_mask,
             }
             yield batch
 

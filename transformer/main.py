@@ -1,14 +1,16 @@
+from pathlib import Path
+
 import jax
 import orbax.checkpoint as ocp
 from absl import logging
-from pathlib import Path
+
 from utils.CheckpointManager import CheckpointManager
 from utils.config import config
+from utils.DataLoader import DataLoader
 from utils.init_train_state import init_train_state
 from utils.LangDataset import LangDataset
 from utils.Tokenizer import Tokenizer
 from utils.train_eval import train
-from utils.DataLoader import DataLoader
 
 logging.set_verbosity(logging.INFO)
 
@@ -75,10 +77,18 @@ def main():
     else:
         logging.info("Prepping the data ...")
         src_one, target_one = dataset_one.prep_data(
-            raw_src_one, raw_target_one, tokenizer=tokenizer
+            raw_src_one,
+            raw_target_one,
+            tokenizer=tokenizer,
+            src_fname=config.LANG_SRC_ONE,
+            target_fname=config.LANG_TARGET_ONE,
         )
         src_two, target_two = dataset_two.prep_data(
-            raw_src_two, raw_target_two, tokenizer=tokenizer
+            raw_src_two,
+            raw_target_two,
+            tokenizer=tokenizer,
+            src_fname=config.LANG_SRC_TWO,
+            target_fname=config.LANG_TARGET_TWO,
         )
         logging.info("Splitting the data ...")
         src_one_train, src_one_val, target_one_train, target_one_val, _, _ = (

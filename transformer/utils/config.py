@@ -1,5 +1,6 @@
-from pydantic import BaseModel
 from pathlib import Path
+
+from pydantic import BaseModel
 
 
 class Config(BaseModel):
@@ -33,6 +34,10 @@ class Config(BaseModel):
     JOINT_CORPUS_PATH: Path
     SPLITS_PATH: str
     SAVE_INTERVAL: int
+    SRC_ONE_FNAME: str
+    TARGET_ONE_FNAME: str
+    SRC_TWO_FNAME: str
+    TARGET_TWO_FNAME: str
 
 
 config = Config(
@@ -66,4 +71,8 @@ config = Config(
     JOINT_CORPUS_PATH=Path("./tokenizer/joint_corpus.txt"),
     SPLITS_PATH="./data/splits",
     SAVE_INTERVAL=1,
+    SRC_ONE_FNAME="Spanish",
+    TARGET_ONE_FNAME="English",
+    SRC_TWO_FNAME="Spanish",
+    TARGET_TWO_FNAME="Nahuatl",
 )

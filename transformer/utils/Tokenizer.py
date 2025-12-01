@@ -78,7 +78,13 @@ class Tokenizer:
     def load_tokenizer(self):
         self.sp.Load(self.tokenizer_model_path)
 
-    def encode(self, text: str, add_bos=True, add_eos=True):
+    def encode(
+        self,
+        text: str,
+        prefix: str = None,
+        add_bos: bool = True,
+        add_eos: bool = True,
+    ):
         """
         Args:
             text: string
@@ -90,7 +96,7 @@ class Tokenizer:
         """
         ids = self.sp.Encode(text, out_type=int)
         if add_bos:
-            ids = [self.sp.bos_id()] + ids
+            ids = prefix + [self.sp.bos_id()] + ids
         if add_eos:
             ids = ids + [self.sp.eos_id()]
         return ids
