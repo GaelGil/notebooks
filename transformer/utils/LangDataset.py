@@ -120,10 +120,16 @@ class LangDataset:
         src_ids = []
         target_ids = []
 
+        prefix = f"Translate {self.src_lang} to {self.target_lang} "
+        prefix = tokenizer.encode(text=prefix, add_bos=False, add_eos=False)
         for src, target in zip(src_data, target_data):
             # encode and add bos and eos
-            src_ids.append(tokenizer.encode(src, add_bos=True, add_eos=True))
-            target_ids.append(tokenizer.encode(target, add_bos=True, add_eos=True))
+            src_ids.append(
+                tokenizer.encode(text=src, prefix=prefix, add_bos=True, add_eos=True)
+            )
+            target_ids.append(
+                tokenizer.encode(text=target, add_bos=True, add_eos=True, name="")
+            )
 
         # pad sequences up to seq_len
         src_ids_padded = self.pad_sequences(
