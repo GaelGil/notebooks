@@ -106,7 +106,14 @@ class LangDataset:
             padded.append(seq + padding)
         return jnp.array(padded, dtype=jnp.int32)
 
-    def prep_data(self, src_data, target_data, tokenizer: Tokenizer):
+    def prep_data(
+        self,
+        src_data,
+        target_data,
+        tokenizer: Tokenizer,
+        src_fname: str,
+        target_fname: str,
+    ):
         """
         Args:
             src_data: list of source sentences
@@ -120,7 +127,7 @@ class LangDataset:
         src_ids = []
         target_ids = []
 
-        prefix = f"Translate {self.src_lang} to {self.target_lang} "
+        prefix = f"Translate {src_fname} to {target_fname} "
         prefix = tokenizer.encode(text=prefix, add_bos=False, add_eos=False)
         for src, target in zip(src_data, target_data):
             # encode and add bos and eos
