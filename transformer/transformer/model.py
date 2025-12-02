@@ -225,7 +225,7 @@ class MultiHeadAttentionBlock(nn.Module):
                     # mask slice: (B,1,1,Kb) or broadcastable
                     mask_block = mask[:, :, :, k_start:k_end]  # (B,1,1,Kb)
                     # mask == 0 should be blocked; set to -inf
-                    scores = jnp.where(mask_block, scores, -1e9)
+                    scores = jnp.where(mask_block, scores, -jnp.inf)
 
                 # per-query-row max in this new tile
                 m_block = jnp.max(scores, axis=-1)  # (B,H,Qb)
