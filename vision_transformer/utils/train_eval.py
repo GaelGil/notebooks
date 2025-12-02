@@ -102,6 +102,7 @@ def train_step(
         train_state.TrainState and loss
     """
     image, label = batch  # unpack the batch
+    dropout_rng, new_dropout_rng = jax.random.split(dropout_rng)
 
     # define loss function
     def loss_fn(params):
@@ -110,7 +111,10 @@ def train_step(
         """
         # pass batch through the model in training state
         logits = state.apply_fn(
-            {"params": params}, image, is_training=True, rngs={"dropout": dropout_rng}
+            {"params": params},
+            image,
+            is_training=True,
+            rngs={"dropout": new_dropout_rng},
         )
         # calculate mean loss for the batch
         loss = optax.softmax_cross_entropy_with_integer_labels(
