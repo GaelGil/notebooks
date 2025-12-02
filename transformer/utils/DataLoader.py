@@ -81,7 +81,7 @@ class DataLoader:
                 "src_input": batch_src,
                 "src_mask": src_mask,
                 "target_input": batch_target[:, :-1],
-                "target_mask": target_mask[:, :, : self.seq_len, : self.seq_len],
+                "target_mask": target_mask,
                 "target_output": batch_target[:, 1:],
             }
 
