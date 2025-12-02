@@ -127,6 +127,7 @@ class LayerNorm(nn.Module):
         d_model: dimension of the model
         eps: epsilon
     """
+
     d_model: int
     eps: float = 1e-6  # helps avoid division by zero
 
@@ -236,6 +237,7 @@ class MultiHeadAttentionBlock(nn.Module):
         key: jnp.ndarray,
         value: jnp.ndarray,
         dropout: nn.Dropout,
+        d_k: int,
         training: bool,
     ) -> jnp.ndarray:
         """
@@ -249,7 +251,7 @@ class MultiHeadAttentionBlock(nn.Module):
         Returns:
             None
         """
-        d_k = query.shape[-1]  # get dimension of last axis
+
         # (Q * K^T)/sqrt(d_k)
         attention_scores = jnp.matmul(query, key.swapaxes(-2, -1)) / jnp.sqrt(d_k)
         # softmax(Q * K^T/sqrt(d_k))
@@ -290,15 +292,13 @@ class MultiHeadAttentionBlock(nn.Module):
         # 8 Heads where each head contains a matrix of n vectors of dimension 64
         # keep the batch dimension the same and the sequence length the same
         # split the embeddings into 8 heads
-        query = query.reshape(
-            query.shape[0], query.shape[1], self.n_heads, self.d_k
-        ).transpose(0, 2, 1, 3)
-        key = key.reshape(key.shape[0], key.shape[1], self.n_heads, self.d_k).transpose(
-            0, 2, 1, 3
-        )
-        value = value.reshape(
-            value.shape[0], value.shape[1], self.n_heads, self.d_k
-        ).transpose(0, 2, 1, 3)
+
+        # (batch_size, seq_len, d_model), since we are only using encoder
+        # we only use the query
+        B, L, _, _ = query.shape
+        query = query.reshape(B, L, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
+        key = key.reshape(B, L, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
+        value = value.reshape(B, L, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
 
         # apply scaled dot product attention to each head
         x = MultiHeadAttentionBlock.scaled_dot_product_attention(
@@ -306,11 +306,11 @@ class MultiHeadAttentionBlock(nn.Module):
             key=key,
             value=value,
             dropout=self.dropout,
+            d_k=self.d_k,
             training=is_training,
         )
 
         # reshape back to (seq_len, d_model)
-        # x = x.transpose(1, 2).contiguous().reshape(x.shape[0], -1, self.d_model)
         x = jnp.transpose(x, (0, 2, 1, 3)).reshape(x.shape[0], -1, self.d_model)
         x = self.w_o(x)
         return x
