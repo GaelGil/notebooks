@@ -219,7 +219,6 @@ class MultiHeadAttentionBlock(nn.Module):
 
                 # compute scores for this tile: (B,H,Qb,Kb)
                 # einsum is clear: q @ k^T
-                scores = jnp.einsum("bhqd,bhkd->bhqk", q_block, k_block) * scale
                 scores = jnp.matmul(q_block, k_block.swapaxes(-2, -1)) * scale
                 # apply mask for the keys in this block (if provided)
                 if mask is not None:
@@ -248,7 +247,8 @@ class MultiHeadAttentionBlock(nn.Module):
                 # weighted value: sum_k exp(S - m_new) * V_block
                 # compute (B,H,Qb,d_k) <- sum_k exp_S * V_block
                 # first expand exp_S to (B,H,Qb,Kb,1) and multiply by V_block (B,H,Kb,d_k)
-                weighted_v = jnp.matmul(exp_scores, v_block)
+                weighted_v = jnp.einsum("bhqk,bhkd->bhqd", exp_scores, v_block)
+                # weighted_v = jnp.matmul(exp_scores, v_block)
 
                 # update acc similarly: acc_new = factor[...,None]*acc + weighted_v
                 running_acc = factor[..., None] * running_acc + weighted_v
@@ -257,7 +257,9 @@ class MultiHeadAttentionBlock(nn.Module):
                 running_max = m_new
 
             # After all key blocks processed: normalize acc / l[...,None]
-            out_block = running_acc / (running_sum[..., None] + 1e-9)  # (B,H,Qb,d_k)
+            out_block = running_acc / (
+                running_sum[..., None] + -jnp.inf
+            )  # (B,H,Qb,d_k)
             out_blocks.append(out_block)
 
         # concatenate along query length axis
@@ -272,7 +274,7 @@ class MultiHeadAttentionBlock(nn.Module):
         v: jnp.ndarray,
         mask: jnp.ndarray,
         is_training: bool,
-    ):
+    ) -> jnp.ndarray:
         """
 
         Args:
@@ -281,7 +283,7 @@ class MultiHeadAttentionBlock(nn.Module):
             v: value
 
         Returns:
-            None
+            jnp.ndarray
         """
         # (seq_len, d_model) * (d_model, d_model) -> (seq_len, d_model)
         query: jnp.ndarray = self.w_q(q)
@@ -304,6 +306,8 @@ class MultiHeadAttentionBlock(nn.Module):
         B, L_target, _ = query.shape
         _, L_src, _ = key.shape
 
+        # (b, seq_len, d_model) -> (b, n_heads, seq_len, d_k)
+        # split into n_heads then order axes as (b, h, seq_len, d_k)
         query = query.reshape(B, L_target, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
         key = key.reshape(B, L_src, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
         value = value.reshape(B, L_src, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
@@ -319,6 +323,7 @@ class MultiHeadAttentionBlock(nn.Module):
         )
 
         # reshape back to (seq_len, d_model)
+        # order axis as (b, seq_len, h, d_k) then reshape (b, seq_len, d_model)
         x = jnp.transpose(x, (0, 2, 1, 3)).reshape(B, L_target, self.d_model)
         x = self.w_o(x)
         return x
