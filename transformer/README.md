@@ -1,89 +1,63 @@
-Skip to content
-You said:
-Traceback (most recent call last):
-  File "/home/gg/git_repos/notebooks/transformer/.venv/lib/python3.13/site-packages/jax/_src/lax/lax.py", line 221, in _broadcast_shapes_uncached
-    return _try_broadcast_shapes(*rank_promoted_shapes, name='broadcast_shapes')
-  File "/home/gg/git_repos/notebooks/transformer/.venv/lib/python3.13/site-packages/jax/_src/lax/lax.py", line 136, in _try_broadcast_shapes
-    raise TypeError(f'{name} got incompatible shapes for broadcasting: '
-                    f'{", ".join(map(str, map(tuple, shapes)))}.')
-TypeError: broadcast_shapes got incompatible shapes for broadcasting: (8, 1, 191, 64), (8, 8, 64, 64), (1, 1, 1, 1).
+I am trying to train a transformer model, This is my init "import jax
+import jax.numpy as jnp
+import optax
+from flax.training import train_state
 
-The above exception was the direct cause of the following exception:
+from transformer.model import Transformer
+from utils.config import Config
 
-Traceback (most recent call last):
-  File "/home/gg/git_repos/notebooks/transformer/.venv/lib/python3.13/site-packages/jax/_src/lax/lax.py", line 199, in broadcast_shapes
-    return _broadcast_shapes_cached(*shapes)
-  File "/home/gg/git_repos/notebooks/transformer/.venv/lib/python3.13/site-packages/jax/_src/util.py", line 300, in wrapper
-    return cached(trace_context(), *args, **kwargs)
-  File "/home/gg/git_repos/notebooks/transformer/.venv/lib/python3.13/site-packages/jax/_src/util.py", line 294, in cached
-    return f(*args, **kwargs)
-  File "/home/gg/git_repos/notebooks/transformer/.venv/lib/python3.13/site-packages/jax/_src/lax/lax.py", line 205, in _broadcast_shapes_cached
-    return _broadcast_shapes_uncached(*shapes)
-  File "/home/gg/git_repos/notebooks/transformer/.venv/lib/python3.13/site-packages/jax/_src/lax/lax.py", line 224, in _broadcast_shapes_uncached
-    raise ValueError(f"Incompatible shapes for broadcasting: shapes={list(shapes)}") from err
-ValueError: Incompatible shapes for broadcasting: shapes=[(8, 1, 191, 64), (8, 8, 64, 64), ()]
 
-During handling of the above exception, another exception occurred:
+def init_train_state(config: Config, vocab_size: int) -> train_state.TrainState:
+    """
+    Initialize the train state
+    Args:
+        config: Config
 
-Traceback (most recent call last):
-  File "/home/gg/git_repos/notebooks/transformer/.venv/lib/python3.13/site-packages/jax/_src/lax/lax.py", line 221, in _broadcast_shapes_uncached
-    return _try_broadcast_shapes(*rank_promoted_shapes, name='broadcast_shapes')
-  File "/home/gg/git_repos/notebooks/transformer/.venv/lib/python3.13/site-packages/jax/_src/lax/lax.py", line 136, in _try_broadcast_shapes
-    raise TypeError(f'{name} got incompatible shapes for broadcasting: '
-                    f'{", ".join(map(str, map(tuple, shapes)))}.')
-TypeError: broadcast_shapes got incompatible shapes for broadcasting: (8, 1, 191, 64), (8, 8, 64, 64), (1, 1, 1, 1).
+    Returns:
+        train_state.TrainState
+    """
+    model: Transformer = Transformer(
+        d_model=config.D_MODEL,
+        N=config.N,
+        n_heads=config.H,
+        d_ff=config.D_FF,
+        dropout=config.DROPOUT,
+        seq_len=config.SEQ_LEN,
+        src_vocab_size=vocab_size,
+        target_vocab_size=vocab_size,
+    )
 
-The above exception was the direct cause of the following exception:
+    rng: jax.random.PRNGKey = jax.random.PRNGKey(0)
 
-Traceback (most recent call last):
-  File "/home/gg/git_repos/notebooks/transformer/main.py", line 195, in <module>
-    main()
-    ~~~~^^
-  File "/home/gg/git_repos/notebooks/transformer/main.py", line 135, in main
-    state = init_train_state(config=config, vocab_size=tokenizer.vocab_size)
-  File "/home/gg/git_repos/notebooks/transformer/utils/init_train_state.py", line 53, in init_train_state
+    # create dummy inputs
+    dummy_src_input = jnp.zeros(
+        (config.BATCH_SIZE, config.SEQ_LEN),
+        dtype=jnp.int32,
+    )
+
+    dummy_src_mask = jnp.ones(
+        (config.BATCH_SIZE, 1, 1, config.SEQ_LEN), dtype=jnp.float32
+    )
+
+    dummy_target_input = jnp.zeros(
+        (config.BATCH_SIZE, config.SEQ_LEN - 1),
+        dtype=jnp.int32,
+    )
+
+    dummy_target_mask = jnp.ones(
+        (config.BATCH_SIZE, 1, 1, config.SEQ_LEN), dtype=jnp.float32
+    )
+    # Initialize with dummy inputs
     variables = model.init(
         rng,
-    ...<4 lines>...
+        src=dummy_src_input,
+        src_mask=dummy_src_mask,
+        target=dummy_target_input,
+        target_mask=dummy_target_mask,
         is_training=True,
     )
-  File "/home/gg/git_repos/notebooks/transformer/transformer/model.py", line 642, in __call__
-    decoder_output = self.decoder(
-        x=target_pos,
-    ...<3 lines>...
-        is_training=is_training,
-    )
-  File "/home/gg/git_repos/notebooks/transformer/transformer/model.py", line 514, in __call__
-    x = block(
-        x=x,
-    ...<3 lines>...
-        is_training=is_training,
-    )
-  File "/home/gg/git_repos/notebooks/transformer/transformer/model.py", line 454, in __call__
-    masked_multi_head_attention_output = self.masked_multi_head_attention_block(
-        q=x, k=x, v=x, mask=target_mask, is_training=is_training
-    )
-  File "/home/gg/git_repos/notebooks/transformer/transformer/model.py", line 316, in __call__
-    x = MultiHeadAttentionBlock.flash_attention(
-        query=query,
-    ...<4 lines>...
-        mask=mask,
-    )
-  File "/home/gg/git_repos/notebooks/transformer/transformer/model.py", line 228, in flash_attention
-    scores = jnp.where(mask_block, scores, -1e9)
-  File "/home/gg/git_repos/notebooks/transformer/.venv/lib/python3.13/site-packages/jax/_src/numpy/lax_numpy.py", line 2782, in where
-    return util._where(condition, x, y)
-           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^
-  File "/home/gg/git_repos/notebooks/transformer/.venv/lib/python3.13/site-packages/jax/_src/numpy/util.py", line 307, in _where
-    condition, x_arr, y_arr = _broadcast_arrays(condition, x, y)
-                              ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
-  File "/home/gg/git_repos/notebooks/transformer/.venv/lib/python3.13/site-packages/jax/_src/numpy/util.py", line 259, in _broadcast_arrays
-    result_shape = lax.broadcast_shapes(*shapes)
-ValueError: Incompatible shapes for broadcasting: shapes=[(8, 1, 191, 64), (8, 8, 64, 64), ()]
---------------------
-For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
 
-class MultiHeadAttentionBlock(nn.Module):
+    params = variables["params"]" and this is my multi head attention that implements flash attention "class MultiHeadAttentionBlock(nn.Module):
     """
     Multi Head Attention Block
     """
@@ -284,29 +258,7 @@ class MultiHeadAttentionBlock(nn.Module):
         x = jnp.transpose(x, (0, 2, 1, 3)).reshape(B, L_target, self.d_model)
         x = self.w_o(x)
         return x
-import jax
-import jax.numpy as jnp
-
-
-class DataLoader:
-    def __init__(self, src, target, batch_size, seq_len, shuffle=True, n_prefetch=10):
-        """
-        Args:
-            src: source sequences (numpy/jnp array, shape [N, seq_len])
-            target: target sequences (numpy/jnp array, shape [N, seq_len])
-            batch_size: batch size
-            seq_len: maximum sequence length
-            shuffle: shuffle dataset
-            n_prefetch: number of batches to prefetch to device
-        """
-        self.src = jnp.array(src)
-        self.target = jnp.array(target)
-        self.batch_size = batch_size
-        self.seq_len = seq_len
-        self.shuffle = shuffle
-        self.n_prefetch = n_prefetch
-
-    def create_src_mask(self, src):
+" and this is my data loader "    def create_src_mask(self, src):
         """
         Create source mask for encoder. Fill with 1 for tokens and 0 for padding
         Changes shape from (b, seq_len) to (b, 1, 1, seq_len)
@@ -363,529 +315,18 @@ class DataLoader:
             src_mask = self.create_src_mask(batch_src)
             target_attention_mask = self.create_target_mask(batch_target)
             token_mask = (batch_target[:, 1:] != 0).astype(jnp.float32)
+            # target_key_mask = (batch_target[:, 1:] != 0).astype(jnp.float32)[
+            #     :, None, None, :
+            # ]
 
             yield {
                 "src": batch_src,
                 "src_mask": src_mask,
                 "target_input": batch_target[:, :-1],
+                # "target_key_mask": target_key_mask,
                 "target_output": batch_target[:, 1:],
-                "target_mask": target_attention_mask[:, :, :-1, :-1],
+                "target_mask": target_attention_mask[
+                    :, :, : self.seq_len, : self.seq_len
+                ],
                 "token_mask": token_mask,
-            }
-
-    def _prefetch_to_device(self, iterator):
-        """
-        Prefetch n_prefetch batches to device asynchronously.
-        """
-        it = iter(iterator)
-        prefetch_buffer = []
-
-        # Move first n_prefetch batches to GPU
-        for _ in range(self.n_prefetch):
-            try:
-                batch = next(it)
-                batch_device = {k: jax.device_put(v) for k, v in batch.items()}
-                prefetch_buffer.append(batch_device)
-            except StopIteration:
-                break
-
-        while prefetch_buffer:
-            # yield oldest batch
-            yield prefetch_buffer.pop(0)
-
-            # fetch next batch from CPU
-            try:
-                batch = next(it)
-                batch_device = {k: jax.device_put(v) for k, v in batch.items()}
-                prefetch_buffer.append(batch_device)
-            except StopIteration:
-                continue
-ChatGPT said:
-
-You're extremely close — the error is caused by one exact shape mismatch between the mask you're passing into FlashAttention and the scores tensor inside the attention loop.
-✅ The actual problem
-
-Inside FlashAttention you compute:
-
-scores: (B, H, Qb, Kb)
-
-But your mask_slice has shape:
-
-mask_block: (B, 1, 1, Kb)
-
-So when you apply:
-
-scores = jnp.where(mask_block, scores, -jnp.inf)
-
-JAX tries to broadcast:
-
-scores:      (8, 8, 191, 64)
-mask_block:  (8, 1, 1, 64)
-
-These broadcast fine.
-
-But your mask passed by the dataloader is NOT that shape.
-
-The DataLoader creates:
-Target mask (for decoder)
-
-padding_mask: (B, 1, 1, L)
-causal_mask:  (1, 1, L, L)
-=> target_mask: (B, 1, L, L)
-
-Then later:
-
-"target_mask": target_attention_mask[:, :, :-1, :-1]
-
-So the decoder receives:
-
-target_mask: (B, 1, L-1, L-1)
-
-But in multihead attention you expect:
-
-mask: (B, 1, 1, L)
-
-— a single mask over keys.
-
-But you are passing a full 4D causal mask, which becomes (8, 1, 191, 191).
-
-This is why your error says:
-
-mask: (8, 1, 191, 64)  <-- from cropping
-scores: (8, 8, 64, 64)
-
-JAX cannot broadcast these because:
-
-191 != 8
-
-🎯 The root cause
-
-Your attention implementation is tile-wise FlashAttention, which expects:
-✔️ Mask: (B, 1, 1, L_s) — one boolean per key position
-❌ Mask: (B, 1, L, L) — a full causal mask (does NOT work)
-
-So you must NOT pass the causal mask into FlashAttention.
-FlashAttention handles causality by slicing based on k_start/k_end only if you provide a per-key mask.
-✅ Fix
-Option A — Convert your causal mask to key-only mask (recommended)
-
-For target self-attention:
-
-Your causal_mask is:
-
-(B=1, H=1, L, L)
-
-But FlashAttention needs:
-
-(B, 1, 1, L)
-
-where mask[b, :, :, i] = 1 for allowed keys.
-
-So convert:
-
-target_key_mask = (batch_target[:, 1:] != 0).astype(jnp.float32)[:, None, None, :]
-
-This is identical to encoder src_mask, because FlashAttention internally handles the causal ordering.
-
-Then use:
-
-"target_mask": target_key_mask
-
-Option B — Implement causal masking inside FlashAttention
-
-Replace:
-
-scores = jnp.where(mask_block, scores, -jnp.inf)
-
-with:
-
-# causal mask inside each tile
-causal = (q_start + jnp.arange(Qb)[:, None]) >= (k_start + jnp.arange(Kb)[None, :])
-scores = jnp.where(causal, scores, -jnp.inf)
-
-But this is more complex.
-🧩 Minimal Correct Fix in DataLoader
-
-Replace:
-
-"target_mask": target_attention_mask[:, :, :-1, :-1],
-
-with:
-
-# FlashAttention expects mask over key positions only
-key_mask = (batch_target[:, 1:] != 0).astype(jnp.float32)[:, None, None, :]
-"target_mask": key_mask,
-
-🚀 After this, shapes will match:
-
-scores:     (B, H, Qb, Kb)
-mask_block: (B, 1, 1, Kb)
-
-Everything broadcasts correctly.
-If you want, I can rewrite your FlashAttention function to include causal masking natively.
-
-Just tell me "add causal masking inside FlashAttention".
-You said:
-"""
-This training and evaluation file is based on the implementation from
-https://wandb.ai/jax-series/simple-training-loop/reports/Writing-a-Training-Loop-in-JAX-and-Flax--VmlldzoyMzA4ODEy
-"""
-
-from typing import Any
-
-import jax
-import jax.numpy as jnp
-import optax
-import orbax.checkpoint as ocp
-from flax.training import train_state
-
-
-def train(
-    state: train_state.TrainState,
-    train_loader,
-    val_loader,
-    epochs: int,
-    manager: ocp.CheckpointManager,
-    logger,
-    step: int = 0,
-):
-    """
-    train the model
-    Args:
-        state: train_state.TrainState
-        train_loader: DataLoader
-        val_loader: DataLoader
-        epochs: int
-        manager: ocp.CheckpointManager
-        logger: logger
-
-    Returns:
-        None
-    """
-
-    rng = jax.random.PRNGKey(0)
-    # loop over the dataset for num_epochs
-    for epoch in range(step, epochs):
-        # split for this epoch once
-        rng, loader_rng = jax.random.split(rng)
-
-        # split again for dropout
-        rng, dropout_base = jax.random.split(rng)
-        # iterate through each batch in the dataset
-        for batch in train_loader.__iter__(rng=loader_rng):
-            dropout_base, dropout_rng = jax.random.split(dropout_base)
-            # train on batch
-            state, loss = train_step(state=state, batch=batch, dropout_rng=dropout_rng)
-
-        # train and val accuracy and loss
-        eval_accuracy, eval_loss = eval(state=state, loader=val_loader, rng=loader_rng)
-        train_accuracy, train_loss = eval(state=state, loader=train_loader, rng=None)
-
-        # create metrics dictionary
-        metrics = {
-            "train_loss": float(train_loss),
-            "eval_loss": float(eval_loss),
-            "train_accuracy": float(train_accuracy),
-            "eval_accuracy": float(eval_accuracy),
-        }
-        # log the metrics
-        logger.info(f" EPOCH: {epoch} | METRICS: {metrics}")
-        logger.info(f"Saving checkpoint at epoch {epoch}")
-        manager.save(
-            step=epoch,
-            args=ocp.args.Composite(
-                state=ocp.args.StandardSave(state),
-                metrics=ocp.args.JsonSave(metrics),
-            ),
-        )
-
-    manager.wait_until_finished()
-
-    return state
-
-
-@jax.jit
-def train_step(
-    state: train_state.TrainState,
-    batch,
-    dropout_rng: jax.random.PRNGKey,
-) -> tuple[train_state.TrainState, Any]:
-    """
-    handle a single training step
-    get loss
-    get gradients
-    update parameters
-
-    Args:
-        state: train_state.TrainState
-        batch: batch
-        dropout_rng: random number generator
-
-    Returns:
-        train_state.TrainState and loss
-    """
-
-    src = batch["src"]
-    src_mask = batch["src_mask"]
-    target_input = batch["target_input"]
-    target_output = batch["target_output"]
-    target_mask = batch["target_mask"]
-    token_mask = batch["token_mask"]
-
-    # define loss function
-    def loss_fn(params):
-        """
-        Compute the loss function for a single batch
-        """
-        logits = state.apply_fn(
-            {"params": params},
-            src,
-            src_mask,
-            target_input,
-            target_mask,
-            is_training=True,
-            rngs={"dropout": dropout_rng},
-        )
-
-        per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
-            logits=logits,
-            labels=target_output,
-        )
-        loss = (per_token_loss * token_mask).sum() / token_mask.sum()
-        return loss
-
-    # compute loss and gradients
-    grad_fn = jax.value_and_grad(loss_fn)
-    loss, grads = grad_fn(state.params)
-    # update the the training state with the new gradients
-    state = state.apply_gradients(grads=grads)
-    return state, loss
-
-
-def eval(
-    state: train_state.TrainState,
-    loader,
-    rng: jax.random.PRNGKey,
-) -> tuple[float, float]:
-    """
-    evaluate the model on the validation set
-    Args:
-        state: train_state.TrainState
-        val_loader: DataLoader
-
-    Returns:
-        accuracy, loss
-    """
-    total_loss = 0.0
-    total_accuracy = 0.0
-    num_bathces = 0
-    # loop over the dataset
-    for batch in loader.__iter__(rng=rng):
-        # evaluate on batch
-        accuracy, loss = eval_step(state=state, batch=batch)
-        # get num of examples in current batch and add to total
-        total_accuracy += accuracy
-        total_loss += loss
-        num_bathces += 1
-
-    accuracy = total_accuracy / num_bathces
-    avg_loss = total_loss / num_bathces
-
-    return accuracy, avg_loss
-
-
-@jax.jit
-def eval_step(state: train_state.TrainState, batch):
-    """
-    evaluate the model on a single batch
-    Args:
-        state: train_state.TrainState
-        batch: batch
-
-    Returns:
-        predictions
-    """
-    src = batch["src"]
-    src_mask = batch["src_mask"]
-    target_input = batch["target_input"]
-    target_output = batch["target_output"]
-    target_mask = batch["target_mask"]
-    token_mask = batch["token_mask"]
-    # pass batch through the model in training state
-    logits = state.apply_fn(
-        {"params": state.params},
-        src,
-        src_mask,
-        target_input,
-        target_mask,
-        is_training=False,
-    )
-    per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
-        logits=logits,
-        labels=target_output,
-    )
-    loss = (per_token_loss * token_mask).sum() / token_mask.sum()
-
-    predictions = jnp.argmax(logits, axis=-1)
-    correct = ((predictions == target_output) * token_mask).sum()
-    total = token_mask.sum()
-    accuracy = correct / total
-
-    return accuracy, loss
-ChatGPT said:
-
-Great — this training loop is mostly correct, but you now have one additional problem:
-your DataLoader mask output no longer matches what your model expects after the FlashAttention fix.
-
-Let me walk you through exactly what to change so your entire training pipeline becomes consistent, stable, and JIT-compatible.
-✅ 1. FlashAttention Requires a Key-Only Mask
-
-Your model’s MHA expects mask to be a key mask of shape:
-
-(B, 1, 1, L_src)
-
-But your DataLoader currently outputs:
-
-target_mask: (B, 1, L-1, L-1)
-
-This is incompatible.
-✅ Fix the DataLoader
-
-Find:
-
-"target_mask": target_attention_mask[:, :, :-1, :-1],
-
-Replace with:
-
-# FlashAttention expects only key visibility mask
-key_mask = (batch_target[:, 1:] != 0).astype(jnp.float32)[:, None, None, :]
-"target_mask": key_mask,
-
-That’s all.
-Why this works
-
-Fast FlashAttention does not take a causal mask.
-It applies causality internally by chunking key blocks in order.
-
-So your target_mask should only hide padding tokens, not future tokens.
-🧩 2. Model apply_fn Argument Structure
-
-Your call:
-
-logits = state.apply_fn(
-    {"params": params},
-    src,
-    src_mask,
-    target_input,
-    target_mask,
-    is_training=True,
-    rngs={"dropout": dropout_rng},
-)
-
-This fits your model’s signature:
-
-def __call__(self, src, src_mask, tgt, tgt_mask, is_training)
-
-→ No changes needed here.
-🧩 3. train_loader.__iter__(rng=loader_rng) inside JIT
-
-This is safe.
-
-rng is static with donate_argnums, so it won’t break JIT.
-🧩 4. The main (future) issue: eval(train_loader, rng=None)
-
-I caught a future bug:
-
-Your eval loop does:
-
-for batch in loader.__iter__(rng=rng):
-
-But your DataLoader has:
-
-if rng is None:
-    raise ValueError("Shuffle=True but no RNG was provided to DataLoader")
-
-During evaluation:
-
-train_accuracy, train_loss = eval(state=state, loader=train_loader, rng=None)
-
-This will raise an error.
-Fix
-
-Two options:
-Option A — Disable shuffle for training loader during eval
-
-Before training:
-
-train_eval_loader = DataLoader(
-    src=train_loader.src,
-    target=train_loader.target,
-    batch_size=train_loader.batch_size,
-    seq_len=train_loader.seq_len,
-    shuffle=False,
-)
-
-and use this for eval.
-Option B — In the DataLoader, treat rng=None as “do not shuffle”
-
-Modify:
-
-if self.shuffle:
-    if rng is None:
-        raise ValueError(...)
-    indices = jax.random.permutation(rng, indices)
-
-to:
-
-if self.shuffle and rng is not None:
-    indices = jax.random.permutation(rng, indices)
-
-This is cleaner.
-🧩 5. A final suggestion: JIT-unsafe logging inside train loop
-
-Your logger prints on every epoch:
-
-logger.info(...)
-manager.save(...)
-
-No issue — this is outside JIT.
-
-You're safe.
-✅ Final Minimal Fixes
-✔️ Fix DataLoader mask
-
-key_mask = (batch_target[:, 1:] != 0).astype(jnp.float32)[:, None, None, :]
-"target_mask": key_mask,
-
-✔️ Fix DataLoader shuffle condition
-
-Change:
-
-if self.shuffle:
-    if rng is None:
-        raise ValueError(...)
-    indices = jax.random.permutation(rng, indices)
-
-to:
-
-if self.shuffle and rng is not None:
-    indices = jax.random.permutation(rng, indices)
-
-🎉 After these two changes your training loop will run correctly.
-
-If you want, I can:
-
-    rewrite your FlashAttention to include true causal masking
-
-    rewrite data pipeline for pmap or pjit
-
-    write a full benchmark-friendly training loop
-
-    add gradient accumulation for long sequences
-
-    add mixed precision bf16 normalization
-
-Just tell me!
-
-
-ChatGPT can make mistakes. Check important info.
+            }" I am having trouble correctly using the masks. The current loader pads and src and target masks and also creates a lower triangular matrix for the target. Help me implement masks corrcetly

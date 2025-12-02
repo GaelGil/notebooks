@@ -622,6 +622,7 @@ class Transformer(nn.Module):
         src_mask: jnp.ndarray,
         target: jnp.ndarray,
         target_mask: jnp.ndarray,
+        cross_mask: jnp.ndarray,
         is_training: bool,
     ):
         # get the embeddings for the src
@@ -642,7 +643,7 @@ class Transformer(nn.Module):
         decoder_output = self.decoder(
             x=target_pos,
             encoder_output=encoder_output,
-            src_mask=src_mask,
+            src_mask=cross_mask,
             target_mask=target_mask,
             is_training=is_training,
         )
