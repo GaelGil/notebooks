@@ -38,20 +38,20 @@ def train(
     rng = jax.random.PRNGKey(0)
     # loop over the dataset for num_epochs
     for epoch in range(step, epochs):
-        rng, epoch_rng = jax.random.split(rng)
+        # split for this epoch once
+        rng, loader_rng = jax.random.split(rng)
+
+        # split again for dropout
+        rng, dropout_base = jax.random.split(rng)
         # iterate through each batch in the dataset
-        for batch in train_loader.__iter__(rng=epoch_rng):
-            epoch_rng, dropout_rng = jax.random.split(epoch_rng)
+        for batch in train_loader.__iter__(rng=loader_rng):
+            dropout_base, dropout_rng = jax.random.split(dropout_base)
             # train on batch
-            state, train_loss = train_step(
-                state=state, batch=batch, dropout_rng=dropout_rng
-            )
+            state, loss = train_step(state=state, batch=batch, dropout_rng=dropout_rng)
 
         # train and val accuracy and loss
-        eval_accuracy, eval_loss = eval(state=state, loader=val_loader, rng=epoch_rng)
-        train_accuracy, _ = eval(
-            state=state, loader=train_loader, rng=epoch_rng, is_train=True
-        )
+        eval_accuracy, eval_loss = eval(state=state, loader=val_loader, rng=loader_rng)
+        train_accuracy, train_loss = eval(state=state, loader=train_loader, rng=None)
 
         metrics = {
             "train_loss": float(train_loss),
@@ -137,7 +137,6 @@ def eval(
     state: train_state.TrainState,
     loader,
     rng: jax.random.PRNGKey,
-    is_train: bool = False,
 ) -> tuple[float, float]:
     """
     evaluate the model on the validation set
@@ -154,7 +153,7 @@ def eval(
     # loop over the dataset
     for batch in loader.__iter__(rng=rng):
         # evaluate on batch
-        accuracy, loss = eval_step(state=state, batch=batch, is_train=is_train)
+        accuracy, loss = eval_step(state=state, batch=batch)
         # get num of examples in current batch and add to total
         total_accuracy += accuracy
         total_loss += loss
@@ -167,7 +166,7 @@ def eval(
 
 
 @jax.jit
-def eval_step(state: train_state.TrainState, batch, is_train: bool = False):
+def eval_step(state: train_state.TrainState, batch):
     """
     evaluate the model on a single batch
     Args:
