@@ -53,6 +53,7 @@ def train(
         eval_accuracy, eval_loss = eval(state=state, loader=val_loader, rng=loader_rng)
         train_accuracy, train_loss = eval(state=state, loader=train_loader, rng=None)
 
+        # create metrics dictionary
         metrics = {
             "train_loss": float(train_loss),
             "eval_loss": float(eval_loss),
@@ -60,7 +61,7 @@ def train(
             "eval_accuracy": float(eval_accuracy),
         }
         # log the metrics
-        logger.info(metrics)
+        logger.info(f" EPOCH: {epoch} | METRICS: {metrics}")
         logger.info(f"Saving checkpoint at epoch {epoch}")
         manager.save(
             step=epoch,

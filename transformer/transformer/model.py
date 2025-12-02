@@ -156,36 +156,111 @@ class MultiHeadAttentionBlock(nn.Module):
         self.dropout = nn.Dropout(rate=self.dropout_rate)
 
     @staticmethod
-    def scaled_dot_product_attention(
-        query: jnp.ndarray,
-        key: jnp.ndarray,
-        value: jnp.ndarray,
-        mask: jnp.ndarray | None,
-        dropout: nn.Dropout,
-        is_training: bool,
+    def flash_attention(
+        query: jnp.ndarray,  # (B, H, L_t, d_k)
+        key: jnp.ndarray,  # (B, H, L_s, d_k)
+        value: jnp.ndarray,  # (B, H, L_s, d_k)
+        mask: jnp.ndarray,  # None or (B, 1, 1, L_s) or broadcastable
+        is_training: bool = False,
+        dropout: nn.Dropout = None,
+        q_block_size: int = 64,
+        k_block_size: int = 64,
     ) -> jnp.ndarray:
-        d_k = query.shape[-1]  # get dimension of last axis
-        # (Q * K^T)/sqrt(d_k)
-        attention_scores = jnp.matmul(query, key.swapaxes(-2, -1)) / jnp.sqrt(d_k)
-        if mask is not None:
-            # mask should be (B, L) OR (B, 1, 1, L)
-            if mask.ndim == 2:
-                # convert (B, L) → (B, 1, 1, L)
-                mask = mask[:, None, None, :]
-            elif mask.ndim == 3:
-                # convert (B, 1, L) → (B, 1, 1, L)
-                mask = mask[:, :, None, :]
+        """
+        Streaming (tiled) exact attention — FlashAttention style.
 
-            # now mask is (B, 1, 1, L)
-            # where 1 = "valid", 0 = "should be masked"
-            attention_scores = jnp.where(mask == 0, -1e10, attention_scores)
-        # softmax(Q * K^T/sqrt(d_k))
-        attention_scores = nn.softmax(attention_scores, axis=-1)
-        if dropout:
-            attention_scores = dropout(attention_scores, deterministic=not is_training)
-        # (Q * K^T)/sqrt(d_k) * V
-        x = jnp.matmul(attention_scores, value)
-        return x
+        Assumes inputs are shaped (B, H, L, d_k). Returns (B, H, L_t, d_k).
+        All internal math is done in float32 for stability, result cast back.
+        """
+        if k_block_size is None:
+            k_block_size = q_block_size
+
+        B, H, L_t, d_k = query.shape  # batch_size, n_heads, seq_len, d_k
+        _, _, L_s, _ = key.shape  # batch_size, n_heads, seq_len, d_k
+        scale = 1.0 / jnp.sqrt(d_k)  # scale factor
+
+        # work in float32 for stability (inputs may be bfloat16)
+        query = query.astype(jnp.float32)
+        key = key.astype(jnp.float32)
+        value = value.astype(jnp.float32)
+
+        # prepare mask broadcast rules: mask should index keys
+        # Accept mask shapes: (B, L_s), (B, 1, 1, L_s), or None
+        if mask is not None:
+            if mask.ndim == 2:
+                mask = mask[:, None, None, :]  # (B,1,1,L_s)
+            elif mask.ndim == 3:
+                mask = mask[:, :, None, :]  # (B,1,1,L_s) expected
+            # mask now (B, 1, 1, L_s) or broadcastable
+
+        # We'll produce output in blocks of queries
+        out_blocks = []
+
+        # iterate over query blocks
+        for q_start in range(0, L_t, q_block_size):
+            q_end = min(q_start + q_block_size, L_t)
+            q_block = query[:, :, q_start:q_end, :]  # (B, H, Qb, d_k)
+
+            # initialize accumulators for this q_block
+            # m = running max of scores for each (B,H,Qb)
+            running_max = jnp.full((B, H, q_end - q_start), -jnp.inf, dtype=jnp.float32)
+            # l = running sum of exp(scores - m) for normalization, shape (B,H,Qb)
+            running_sum = jnp.zeros((B, H, q_end - q_start), dtype=jnp.float32)
+            # acc = running weighted sum of V, shape (B,H,Qb,d_k)
+            running_acc = jnp.zeros((B, H, q_end - q_start, d_k), dtype=jnp.float32)
+
+            # iterate over key/value blocks
+            for k_start in range(0, L_s, k_block_size):
+                k_end = min(k_start + k_block_size, L_s)
+                k_block = key[:, :, k_start:k_end, :]  # (B,H,Kb,d_k)
+                v_block = value[:, :, k_start:k_end, :]  # (B,H,Kb,d_k)
+
+                # compute scores for this tile: (B,H,Qb,Kb)
+                # einsum is clear: q @ k^T
+                S = jnp.einsum("bhqd,bhkd->bhqk", q_block, k_block) * scale
+
+                # apply mask for the keys in this block (if provided)
+                if mask is not None:
+                    # mask slice: (B,1,1,Kb) or broadcastable
+                    mask_block = mask[:, :, :, k_start:k_end]  # (B,1,1,Kb)
+                    # mask == 0 should be blocked; set to -inf
+                    S = jnp.where(mask_block, S, -1e9)
+
+                # per-query-row max in this new tile
+                m_block = jnp.max(S, axis=-1)  # (B,H,Qb)
+
+                # new running max
+                m_new = jnp.maximum(running_max, m_block)  # (B,H,Qb)
+
+                # compute exp(S - m_new[...,None]) safely
+                exp_S = jnp.exp(S - m_new[..., None])  # (B,H,Qb,Kb)
+
+                # sum over keys in block
+                exp_sum = jnp.sum(exp_S, axis=-1)  # (B,H,Qb)
+
+                # update l: l_new = exp(m - m_new)*l + exp_sum
+                # factor = exp(m - m_new) (<= 1)
+                factor = jnp.exp(running_max - m_new)
+                running_sum = factor * running_sum + exp_sum  # (B,H,Qb)
+
+                # weighted value: sum_k exp(S - m_new) * V_block
+                # compute (B,H,Qb,d_k) <- sum_k exp_S * V_block
+                # first expand exp_S to (B,H,Qb,Kb,1) and multiply by V_block (B,H,Kb,d_k)
+                weighted_v = jnp.einsum("bhqk,bhkd->bhqd", exp_S, v_block)
+
+                # update acc similarly: acc_new = factor[...,None]*acc + weighted_v
+                acc = factor[..., None] * running_acc + weighted_v
+
+                # set m <- m_new for next iteration
+                running_max = m_new
+
+            # After all key blocks processed: normalize acc / l[...,None]
+            out_block = acc / (running_sum[..., None] + 1e-9)  # (B,H,Qb,d_k)
+            out_blocks.append(out_block)
+
+        # concatenate along query length axis
+        out = jnp.concatenate(out_blocks, axis=2)  # (B,H,L_t,d_k)
+        return out.astype(query.dtype)
 
     @nn.compact
     def __call__(
