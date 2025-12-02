@@ -44,11 +44,12 @@ class DataLoader:
         Returns:
             source mask
         """
+        B, L_target = target.shape
         padding_mask = (target != 0).astype(jnp.float32)[:, None, None, :]  # (B,1,1,L)
         # create causal mask (1,L,L) (lower triangular matrix)
-        causal_mask = jnp.tril(
-            jnp.ones((self.seq_len, self.seq_len), dtype=jnp.float32)
-        )[None, None, :, :]
+        causal_mask = jnp.tril(jnp.ones((L_target, L_target), dtype=jnp.float32))[
+            None, None, :, :
+        ]
         # create final mask where future tokens are masked and padding tokens are ignored
         return padding_mask * causal_mask  # (B,1,L,L)
 
@@ -59,7 +60,6 @@ class DataLoader:
         N = self.src.shape[0]
         indices = jnp.arange(N)
 
-        # Only shuffle if RNG provided by trainer
         if self.shuffle:
             if rng is None:
                 raise ValueError("Shuffle=True but no RNG was provided to DataLoader")
@@ -72,23 +72,17 @@ class DataLoader:
                 break
 
             batch_src = jnp.array(self.src[batch_idx])
-            batch_target = jnp.array(self.target[batch_idx])
-
             src_mask = self.create_src_mask(batch_src)
-            target_attention_mask = self.create_target_mask(batch_target)
-            token_mask = (batch_target[:, 1:] != 0).astype(jnp.float32)
-            target_key_mask = (batch_target[:, 1:] != 0).astype(jnp.float32)[
-                :, None, None, :
-            ]
+
+            batch_target = jnp.array(self.target[batch_idx])
+            target_mask = self.create_target_mask(batch_target)
 
             yield {
-                "src": batch_src,
+                "src_input": batch_src,
                 "src_mask": src_mask,
                 "target_input": batch_target[:, :-1],
-                "target_key_mask": target_key_mask,
+                "target_mask": target_mask[:, :, : self.seq_len, : self.seq_len],
                 "target_output": batch_target[:, 1:],
-                "target_mask": target_attention_mask[:, :, :-1, :-1],
-                "token_mask": token_mask,
             }
 
     def _prefetch_to_device(self, iterator):

@@ -47,6 +47,10 @@ def init_train_state(config: Config, vocab_size: int) -> train_state.TrainState:
     dummy_target_mask = jnp.ones(
         (config.BATCH_SIZE, 1, 1, config.SEQ_LEN), dtype=jnp.float32
     )
+
+    dummy_cross_mask = jnp.ones(
+        (config.BATCH_SIZE, 1, config.SEQ_LEN, config.SEQ_LEN), dtype=jnp.float32
+    )
     # Initialize with dummy inputs
     variables = model.init(
         rng,
@@ -54,6 +58,7 @@ def init_train_state(config: Config, vocab_size: int) -> train_state.TrainState:
         src_mask=dummy_src_mask,
         target=dummy_target_input,
         target_mask=dummy_target_mask,
+        cross_mask=dummy_cross_mask,
         is_training=True,
     )
 

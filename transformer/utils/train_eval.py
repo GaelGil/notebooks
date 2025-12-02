@@ -99,12 +99,13 @@ def train_step(
         train_state.TrainState and loss
     """
 
-    src = batch["src"]
+    src_input = batch["src"]
     src_mask = batch["src_mask"]
     target_input = batch["target_input"]
+    target_mask = batch["target_mask"]
     target_output = batch["target_output"]
-    target_mask = batch["target_key_mask"]
     token_mask = batch["token_mask"]
+    cross_mask = batch["cross_mask"]
 
     # define loss function
     def loss_fn(params):
@@ -113,10 +114,11 @@ def train_step(
         """
         logits = state.apply_fn(
             {"params": params},
-            src,
+            src_input,
             src_mask,
             target_input,
             target_mask,
+            cross_mask,
             is_training=True,
             rngs={"dropout": dropout_rng},
         )
@@ -183,8 +185,9 @@ def eval_step(state: train_state.TrainState, batch):
     src_mask = batch["src_mask"]
     target_input = batch["target_input"]
     target_output = batch["target_output"]
-    target_mask = batch["target_key_mask"]
+    target_mask = batch["target_mask"]
     token_mask = batch["token_mask"]
+    cross_mask = batch["cross_mask"]
     # pass batch through the model in training state
     logits = state.apply_fn(
         {"params": state.params},
@@ -192,6 +195,7 @@ def eval_step(state: train_state.TrainState, batch):
         src_mask,
         target_input,
         target_mask,
+        cross_mask,
         is_training=False,
     )
     per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
