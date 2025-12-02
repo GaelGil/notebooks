@@ -50,8 +50,10 @@ def train(
             state, loss = train_step(state=state, batch=batch, dropout_rng=dropout_rng)
 
         # train and val accuracy and loss
-        eval_accuracy, eval_loss = eval(state=state, loader=val_loader, rng=loader_rng)
-        train_accuracy, train_loss = eval(state=state, loader=train_loader, rng=None)
+        eval_accuracy, eval_loss = eval(state=state, loader=val_loader, rng=None)
+        train_accuracy, train_loss = eval(
+            state=state, loader=train_loader, rng=loader_rng
+        )
 
         # create metrics dictionary
         metrics = {
@@ -101,7 +103,7 @@ def train_step(
     src_mask = batch["src_mask"]
     target_input = batch["target_input"]
     target_output = batch["target_output"]
-    target_mask = batch["target_mask"]
+    target_mask = batch["target_key_mask"]
     token_mask = batch["token_mask"]
 
     # define loss function
@@ -181,7 +183,7 @@ def eval_step(state: train_state.TrainState, batch):
     src_mask = batch["src_mask"]
     target_input = batch["target_input"]
     target_output = batch["target_output"]
-    target_mask = batch["target_mask"]
+    target_mask = batch["target_key_mask"]
     token_mask = batch["token_mask"]
     # pass batch through the model in training state
     logits = state.apply_fn(

@@ -77,11 +77,15 @@ class DataLoader:
             src_mask = self.create_src_mask(batch_src)
             target_attention_mask = self.create_target_mask(batch_target)
             token_mask = (batch_target[:, 1:] != 0).astype(jnp.float32)
+            target_key_mask = (batch_target[:, 1:] != 0).astype(jnp.float32)[
+                :, None, None, :
+            ]
 
             yield {
                 "src": batch_src,
                 "src_mask": src_mask,
                 "target_input": batch_target[:, :-1],
+                "target_key_mask": target_key_mask,
                 "target_output": batch_target[:, 1:],
                 "target_mask": target_attention_mask[:, :, :-1, :-1],
                 "token_mask": token_mask,
