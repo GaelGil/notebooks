@@ -35,18 +35,17 @@ def init_train_state(config: Config, vocab_size: int) -> train_state.TrainState:
         dtype=jnp.int32,
     )
 
-    dummy_src_mask = jnp.zeros(
-        (config.BATCH_SIZE, config.SEQ_LEN),
-        dtype=jnp.float32,
+    dummy_src_mask = jnp.ones(
+        (config.BATCH_SIZE, 1, 1, config.SEQ_LEN), dtype=jnp.float32
     )
 
     dummy_target_input = jnp.zeros(
-        (config.BATCH_SIZE, config.SEQ_LEN),
+        (config.BATCH_SIZE, config.SEQ_LEN - 1),
         dtype=jnp.int32,
     )
 
-    dummy_target_mask = jnp.zeros(
-        (config.BATCH_SIZE, config.SEQ_LEN),
+    dummy_target_mask = jnp.ones(
+        (config.BATCH_SIZE, 1, config.SEQ_LEN - 1, config.SEQ_LEN - 1),
         dtype=jnp.float32,
     )
 
