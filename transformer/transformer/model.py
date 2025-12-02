@@ -175,8 +175,8 @@ class MultiHeadAttentionBlock(nn.Module):
         if k_block_size is None:
             k_block_size = q_block_size
 
-        B, H, L_t, d_k = query.shape  # batch_size, n_heads, seq_len, d_k
-        _, _, L_s, _ = key.shape  # batch_size, n_heads, seq_len, d_k
+        B, H, L_target, d_k = query.shape  # batch_size, n_heads, seq_len, d_k
+        _, _, L_src, _ = key.shape  # batch_size, n_heads, seq_len, d_k
         scale = 1.0 / jnp.sqrt(d_k)  # scale factor
 
         # work in float32 for stability (inputs may be bfloat16)
@@ -197,8 +197,8 @@ class MultiHeadAttentionBlock(nn.Module):
         out_blocks = []
 
         # iterate over query blocks
-        for q_start in range(0, L_t, q_block_size):
-            q_end = min(q_start + q_block_size, L_t)
+        for q_start in range(0, L_target, q_block_size):
+            q_end = min(q_start + q_block_size, L_target)
             # get query block
             q_block = query[:, :, q_start:q_end, :]  # (B, H, Qb, d_k)
 
@@ -211,8 +211,8 @@ class MultiHeadAttentionBlock(nn.Module):
             running_acc = jnp.zeros((B, H, q_end - q_start, d_k), dtype=jnp.float32)
 
             # iterate over key/value blocks
-            for k_start in range(0, L_s, k_block_size):
-                k_end = min(k_start + k_block_size, L_s)
+            for k_start in range(0, L_src, k_block_size):
+                k_end = min(k_start + k_block_size, L_src)
                 # get key/value blocks
                 k_block = key[:, :, k_start:k_end, :]  # (B,H,Kb,d_k)
                 v_block = value[:, :, k_start:k_end, :]  # (B,H,Kb,d_k)
@@ -220,7 +220,7 @@ class MultiHeadAttentionBlock(nn.Module):
                 # compute scores for this tile: (B,H,Qb,Kb)
                 # einsum is clear: q @ k^T
                 scores = jnp.einsum("bhqd,bhkd->bhqk", q_block, k_block) * scale
-
+                # scores = jnp.matmul(q_block, k_block, transpose_b=True) * scale
                 # apply mask for the keys in this block (if provided)
                 if mask is not None:
                     # mask slice: (B,1,1,Kb) or broadcastable
@@ -249,6 +249,7 @@ class MultiHeadAttentionBlock(nn.Module):
                 # compute (B,H,Qb,d_k) <- sum_k exp_S * V_block
                 # first expand exp_S to (B,H,Qb,Kb,1) and multiply by V_block (B,H,Kb,d_k)
                 weighted_v = jnp.einsum("bhqk,bhkd->bhqd", exp_scores, v_block)
+                # weighted_v = jnp.matmul(exp_scores, v_block)
 
                 # update acc similarly: acc_new = factor[...,None]*acc + weighted_v
                 running_acc = factor[..., None] * running_acc + weighted_v
@@ -270,8 +271,8 @@ class MultiHeadAttentionBlock(nn.Module):
         q: jnp.ndarray,
         k: jnp.ndarray,
         v: jnp.ndarray,
-        is_training: bool,
         mask: jnp.ndarray,
+        is_training: bool,
     ):
         """
 
@@ -308,7 +309,7 @@ class MultiHeadAttentionBlock(nn.Module):
         value = value.reshape(B, L_src, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
 
         # apply scaled dot product attention to each head
-        x = MultiHeadAttentionBlock.scaled_dot_product_attention(
+        x = MultiHeadAttentionBlock.flash_attention(
             query=query,
             key=key,
             value=value,
@@ -318,7 +319,6 @@ class MultiHeadAttentionBlock(nn.Module):
         )
 
         # reshape back to (seq_len, d_model)
-        # x = x.transpose(1, 2).contiguous().reshape(x.shape[0], -1, self.d_model)
         x = jnp.transpose(x, (0, 2, 1, 3)).reshape(B, L_target, self.d_model)
         x = self.w_o(x)
         return x
@@ -499,7 +499,7 @@ class Decoder(nn.Module):
     @nn.compact
     def __call__(
         self,
-        x,
+        x: jnp.ndarray,
         encoder_output: jnp.ndarray,
         src_mask: jnp.ndarray,
         target_mask: jnp.ndarray,
@@ -627,7 +627,7 @@ class Transformer(nn.Module):
         # get the embeddings for the target
         target_embeddings = self.target_embeddings(x=target)
         # apply positonal encoding to the target embeddings
-        target_pos = self.src_pe(x=target_embeddings, is_training=is_training)
+        target_pos = self.target_pe(x=target_embeddings, is_training=is_training)
 
         # pass the input embeddings with positinal encoding through the encoder
         encoder_output = self.encoder(x=src_pos, mask=src_mask, is_training=is_training)
