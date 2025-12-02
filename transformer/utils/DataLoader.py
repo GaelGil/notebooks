@@ -59,11 +59,12 @@ class DataLoader:
         N = self.src.shape[0]
         indices = jnp.arange(N)
 
-        # Use provided RNG for shuffling
+        # Only shuffle if RNG provided by trainer
         if self.shuffle:
             if rng is None:
-                rng = jax.random.PRNGKey(0)
+                raise ValueError("Shuffle=True but no RNG was provided to DataLoader")
             indices = jax.random.permutation(rng, indices)
+
         for start in range(0, N, self.batch_size):
             end = start + self.batch_size
             batch_idx = indices[start:end]
@@ -75,10 +76,9 @@ class DataLoader:
 
             src_mask = self.create_src_mask(batch_src)
             target_attention_mask = self.create_target_mask(batch_target)
-            token_mask = (batch_target[:, 1:] != 0).astype(
-                jnp.float32
-            )  # (b, seq_len-1)
-            batch = {
+            token_mask = (batch_target[:, 1:] != 0).astype(jnp.float32)
+
+            yield {
                 "src": batch_src,
                 "src_mask": src_mask,
                 "target_input": batch_target[:, :-1],
@@ -86,7 +86,6 @@ class DataLoader:
                 "target_mask": target_attention_mask[:, :, :-1, :-1],
                 "token_mask": token_mask,
             }
-            yield batch
 
     def _prefetch_to_device(self, iterator):
         """
