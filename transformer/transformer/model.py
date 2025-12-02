@@ -199,6 +199,7 @@ class MultiHeadAttentionBlock(nn.Module):
         # iterate over query blocks
         for q_start in range(0, L_t, q_block_size):
             q_end = min(q_start + q_block_size, L_t)
+            # get query block
             q_block = query[:, :, q_start:q_end, :]  # (B, H, Qb, d_k)
 
             # initialize accumulators for this q_block
@@ -212,31 +213,32 @@ class MultiHeadAttentionBlock(nn.Module):
             # iterate over key/value blocks
             for k_start in range(0, L_s, k_block_size):
                 k_end = min(k_start + k_block_size, L_s)
+                # get key/value blocks
                 k_block = key[:, :, k_start:k_end, :]  # (B,H,Kb,d_k)
                 v_block = value[:, :, k_start:k_end, :]  # (B,H,Kb,d_k)
 
                 # compute scores for this tile: (B,H,Qb,Kb)
                 # einsum is clear: q @ k^T
-                S = jnp.einsum("bhqd,bhkd->bhqk", q_block, k_block) * scale
+                scores = jnp.einsum("bhqd,bhkd->bhqk", q_block, k_block) * scale
 
                 # apply mask for the keys in this block (if provided)
                 if mask is not None:
                     # mask slice: (B,1,1,Kb) or broadcastable
                     mask_block = mask[:, :, :, k_start:k_end]  # (B,1,1,Kb)
                     # mask == 0 should be blocked; set to -inf
-                    S = jnp.where(mask_block, S, -1e9)
+                    scores = jnp.where(mask_block, scores, -1e9)
 
                 # per-query-row max in this new tile
-                m_block = jnp.max(S, axis=-1)  # (B,H,Qb)
+                m_block = jnp.max(scores, axis=-1)  # (B,H,Qb)
 
                 # new running max
                 m_new = jnp.maximum(running_max, m_block)  # (B,H,Qb)
 
                 # compute exp(S - m_new[...,None]) safely
-                exp_S = jnp.exp(S - m_new[..., None])  # (B,H,Qb,Kb)
+                exp_scores = jnp.exp(scores - m_new[..., None])  # (B,H,Qb,Kb)
 
                 # sum over keys in block
-                exp_sum = jnp.sum(exp_S, axis=-1)  # (B,H,Qb)
+                exp_sum = jnp.sum(exp_scores, axis=-1)  # (B,H,Qb)
 
                 # update l: l_new = exp(m - m_new)*l + exp_sum
                 # factor = exp(m - m_new) (<= 1)
@@ -246,16 +248,16 @@ class MultiHeadAttentionBlock(nn.Module):
                 # weighted value: sum_k exp(S - m_new) * V_block
                 # compute (B,H,Qb,d_k) <- sum_k exp_S * V_block
                 # first expand exp_S to (B,H,Qb,Kb,1) and multiply by V_block (B,H,Kb,d_k)
-                weighted_v = jnp.einsum("bhqk,bhkd->bhqd", exp_S, v_block)
+                weighted_v = jnp.einsum("bhqk,bhkd->bhqd", exp_scores, v_block)
 
                 # update acc similarly: acc_new = factor[...,None]*acc + weighted_v
-                acc = factor[..., None] * running_acc + weighted_v
+                running_acc = factor[..., None] * running_acc + weighted_v
 
                 # set m <- m_new for next iteration
                 running_max = m_new
 
             # After all key blocks processed: normalize acc / l[...,None]
-            out_block = acc / (running_sum[..., None] + 1e-9)  # (B,H,Qb,d_k)
+            out_block = running_acc / (running_sum[..., None] + 1e-9)  # (B,H,Qb,d_k)
             out_blocks.append(out_block)
 
         # concatenate along query length axis
@@ -298,12 +300,12 @@ class MultiHeadAttentionBlock(nn.Module):
         # keep the batch dimension the same and the sequence length the same
         # split the embeddings into 8 heads
 
-        B, L_t, _ = query.shape
-        _, L_s, _ = key.shape
+        B, L_target, _ = query.shape
+        _, L_src, _ = key.shape
 
-        query = query.reshape(B, L_t, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
-        key = key.reshape(B, L_s, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
-        value = value.reshape(B, L_s, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
+        query = query.reshape(B, L_target, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
+        key = key.reshape(B, L_src, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
+        value = value.reshape(B, L_src, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
 
         # apply scaled dot product attention to each head
         x = MultiHeadAttentionBlock.scaled_dot_product_attention(
@@ -317,7 +319,7 @@ class MultiHeadAttentionBlock(nn.Module):
 
         # reshape back to (seq_len, d_model)
         # x = x.transpose(1, 2).contiguous().reshape(x.shape[0], -1, self.d_model)
-        x = jnp.transpose(x, (0, 2, 1, 3)).reshape(B, L_t, self.d_model)
+        x = jnp.transpose(x, (0, 2, 1, 3)).reshape(B, L_target, self.d_model)
         x = self.w_o(x)
         return x
 
