@@ -99,13 +99,11 @@ def train_step(
         train_state.TrainState and loss
     """
 
-    src_input = batch["src"]
+    src_input = batch["src_input"]
     src_mask = batch["src_mask"]
     target_input = batch["target_input"]
     target_mask = batch["target_mask"]
     target_output = batch["target_output"]
-    token_mask = batch["token_mask"]
-    cross_mask = batch["cross_mask"]
 
     # define loss function
     def loss_fn(params):
@@ -118,7 +116,6 @@ def train_step(
             src_mask,
             target_input,
             target_mask,
-            cross_mask,
             is_training=True,
             rngs={"dropout": dropout_rng},
         )
@@ -127,7 +124,7 @@ def train_step(
             logits=logits,
             labels=target_output,
         )
-        loss = (per_token_loss * token_mask).sum() / token_mask.sum()
+        loss = (per_token_loss * target_mask).sum() / target_mask.sum()
         return loss
 
     # compute loss and gradients
@@ -181,32 +178,29 @@ def eval_step(state: train_state.TrainState, batch):
     Returns:
         predictions
     """
-    src = batch["src"]
+    src_input = batch["src_input"]
     src_mask = batch["src_mask"]
     target_input = batch["target_input"]
-    target_output = batch["target_output"]
     target_mask = batch["target_mask"]
-    token_mask = batch["token_mask"]
-    cross_mask = batch["cross_mask"]
+    target_output = batch["target_output"]
     # pass batch through the model in training state
     logits = state.apply_fn(
         {"params": state.params},
-        src,
+        src_input,
         src_mask,
         target_input,
         target_mask,
-        cross_mask,
         is_training=False,
     )
     per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
         logits=logits,
         labels=target_output,
     )
-    loss = (per_token_loss * token_mask).sum() / token_mask.sum()
+    loss = (per_token_loss * target_mask).sum() / target_mask.sum()
 
     predictions = jnp.argmax(logits, axis=-1)
-    correct = ((predictions == target_output) * token_mask).sum()
-    total = token_mask.sum()
+    correct = ((predictions == target_output) * target_mask).sum()
+    total = target_mask.sum()
     accuracy = correct / total
 
     return accuracy, loss
