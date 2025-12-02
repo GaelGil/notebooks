@@ -148,7 +148,7 @@ class MultiHeadAttentionBlock(nn.Module):
         """
 
         assert self.d_model % self.n_heads == 0, "d_model must be divisible by n_heads"
-        self.d_k = self.d_model // self.n_heads
+        self.d_k = self.d_model // self.n_heads  # size of each head
         self.w_q = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
         self.w_k = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
         self.w_v = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
@@ -220,7 +220,7 @@ class MultiHeadAttentionBlock(nn.Module):
                 # compute scores for this tile: (B,H,Qb,Kb)
                 # einsum is clear: q @ k^T
                 scores = jnp.einsum("bhqd,bhkd->bhqk", q_block, k_block) * scale
-                # scores = jnp.matmul(q_block, k_block, transpose_b=True) * scale
+                scores = jnp.matmul(q_block, k_block.swapaxes(-2, -1)) * scale
                 # apply mask for the keys in this block (if provided)
                 if mask is not None:
                     # mask slice: (B,1,1,Kb) or broadcastable
@@ -248,8 +248,7 @@ class MultiHeadAttentionBlock(nn.Module):
                 # weighted value: sum_k exp(S - m_new) * V_block
                 # compute (B,H,Qb,d_k) <- sum_k exp_S * V_block
                 # first expand exp_S to (B,H,Qb,Kb,1) and multiply by V_block (B,H,Kb,d_k)
-                weighted_v = jnp.einsum("bhqk,bhkd->bhqd", exp_scores, v_block)
-                # weighted_v = jnp.matmul(exp_scores, v_block)
+                weighted_v = jnp.matmul(exp_scores, v_block)
 
                 # update acc similarly: acc_new = factor[...,None]*acc + weighted_v
                 running_acc = factor[..., None] * running_acc + weighted_v
@@ -301,6 +300,7 @@ class MultiHeadAttentionBlock(nn.Module):
         # keep the batch dimension the same and the sequence length the same
         # split the embeddings into 8 heads
 
+        # with the encoder these will be the same
         B, L_target, _ = query.shape
         _, L_src, _ = key.shape
 
