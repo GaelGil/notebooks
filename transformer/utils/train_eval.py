@@ -57,8 +57,8 @@ def train(
 
         # create metrics dictionary
         metrics = {
-            "train_loss": float(train_loss),
-            "eval_loss": float(eval_loss),
+            "train_perplexity": float(train_loss),
+            "eval_perplexity": float(eval_loss),
             "train_accuracy": float(train_accuracy),
             "eval_accuracy": float(eval_accuracy),
         }

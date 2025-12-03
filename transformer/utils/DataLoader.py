@@ -92,10 +92,7 @@ class DataLoader:
             target_input = batch_target[:, :-1]  # all tokens except the last
             target_output = batch_target[:, 1:]  # all tokens except the first
             target_mask = self.padding_mask(target_input)
-            target_output_mask = self.padding_mask(target_output)
-            # target_mask = self.causal_mask(
-            #     self.padding_mask(batch_target), L_target=batch_target.shape[1]
-            # )
+            target_output_mask = jnp.squeeze(target_mask, axis=(1, 2))  # (B, seq_len)
 
             yield {
                 "src_input": batch_src,
