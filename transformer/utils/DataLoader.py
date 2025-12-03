@@ -20,38 +20,52 @@ class DataLoader:
         self.shuffle = shuffle
         self.n_prefetch = n_prefetch
 
-    def create_src_mask(self, src):
+    def padding_mask(self, seq: jnp.ndarray):
         """
-        Create source mask for encoder. Fill with 1 for tokens and 0 for padding
-        Changes shape from (b, seq_len) to (b, 1, 1, seq_len)
-        Args:
-            src: source sequence
-        Returns:
-            source mask
-        """
-        return (src != 0).astype(jnp.float32)[
-            :, None, None, :
-        ]  # 1 for tokens, 0 for padding
+        Create padding mask to ignore padded tokens.
+        seq is a sequence of shape (B, seq_len)
 
-    def create_target_mask(self, target):
-        """
-        Create target mask for encoder. Fill padding mask with 1 for tokens and 0 for padding
-        Changes shape from (b, seq_len) to (b, 1, 1, seq_len)
-        We then create a lower triangular matrix where future tokens are masked.
-        Multiply this with the source mask to ignore padding tokens and we get final mask.
+        ie:
+        seq = [1, 2, 3, 0, 0, 0]
+        mask = [1, 1, 1, 0, 0, 0]
         Args:
-            target: target sequence
+            seq: sequence
         Returns:
-            source mask
+            padding mask with shape (N, 1, 1, seq_len)
         """
-        B, L_target = target.shape
-        padding_mask = (target != 0).astype(jnp.float32)[:, None, None, :]  # (B,1,1,L)
-        # create causal mask (1,L,L) (lower triangular matrix)
-        causal_mask = jnp.tril(jnp.ones((L_target, L_target), dtype=jnp.float32))[
-            None, None, :, :
-        ]
-        # create final mask where future tokens are masked and padding tokens are ignored
-        return padding_mask * causal_mask  # (B,1,L,L)
+        return (seq != 0).astype(jnp.float32)[:, None, None, :]
+
+    def causal_mask(self, padding_mask) -> jnp.ndarray:
+        """
+        Create causal mask to ignore future tokens in target sequence.
+
+        ie: seq_len = 3, max_seq_len = 6
+        padding_mask = [1, 1, 1, 0, 0, 0]
+        causal_mask = [[1, 0, 0, 0, 0, 0],
+                       [1, 1, 0, 0, 0, 0],
+                       [1, 1, 1, 0, 0, 0],
+                       [1, 1, 1, 1, 0, 0],
+                       [1, 1, 1, 1, 1, 0],
+                       [1, 1, 1, 1, 1, 1]]
+        final_mask = padding_mask * causal_mask = [[1, 0, 0, 0, 0, 0],
+                                                  [1, 1, 0, 0, 0, 0],
+                                                  [1, 1, 1, 0, 0, 0],
+                                                  [1, 1, 1, 0, 0, 0],
+                                                  [1, 1, 1, 0, 0, 0],
+                                                  [1, 1, 1, 0, 0, 0]]
+        Args:
+            padding_mask: padding mask
+        Returns:
+            jnp.ndarray
+        """
+        # create a matrix of shape (L_target, L_target) then apply tril to get the lower triangular matrix
+        causal_mask = jnp.tril(
+            jnp.ones((self.seq_len, self.seq_len), dtype=jnp.float32)
+        )[None, None, :, :]
+
+        # multiply the each row of the mask by the padding mask to get the final mask
+        # this will ignore the future tokens in the target sequence
+        return padding_mask * causal_mask
 
     def __iter__(self, rng=None):
         return self._prefetch_to_device(self._batch_generator(rng))
@@ -72,17 +86,24 @@ class DataLoader:
                 break
 
             batch_src = jnp.array(self.src[batch_idx])
-            src_mask = self.create_src_mask(batch_src)
+            src_mask = self.padding_mask(batch_src)
 
             batch_target = jnp.array(self.target[batch_idx])
-            target_mask = self.create_target_mask(batch_target)
+            target_input = batch_target[:, :-1]  # all tokens except the last
+            target_output = batch_target[:, 1:]  # all tokens except the first
+            target_mask = self.padding_mask(target_input)
+            target_output_mask = self.padding_mask(target_output)
+            # target_mask = self.causal_mask(
+            #     self.padding_mask(batch_target), L_target=batch_target.shape[1]
+            # )
 
             yield {
                 "src_input": batch_src,
                 "src_mask": src_mask,
-                "target_input": batch_target[:, :-1],
+                "target_input": target_input,
                 "target_mask": target_mask,
-                "target_output": batch_target[:, 1:],
+                "target_output": target_output,
+                "target_output_mask": target_output_mask,
             }
 
     def _prefetch_to_device(self, iterator):
@@ -112,3 +133,27 @@ class DataLoader:
                 prefetch_buffer.append(batch_device)
             except StopIteration:
                 continue
+
+
+# loader = DataLoader(
+#     src=jnp.array([1, 2, 3, 4, 5, 6]),
+#     target=jnp.array([1, 2, 3, 4, 5, 6]),
+#     batch_size=2,
+#     shuffle=True,
+#     seq_len=6,
+#     n_prefetch=1,
+# )
+
+# batch = jnp.array([[1, 2, 3, 0, 0, 0], [1, 2, 3, 0, 0, 0]])
+
+# padding_mask = loader.padding_mask(batch)
+# print(f"Batch: \n {batch}")
+# print(f"Padding mask: \n {padding_mask}")
+# print()
+# causal_mask = loader.causal_mask(padding_mask)
+
+# print("Causal mask: \n")
+# print(causal_mask)
+
+# print(f"padding mask shape: {padding_mask.shape}")
+# print(f"causal mask shape: {causal_mask.shape}")

@@ -216,16 +216,25 @@ class MultiHeadAttentionBlock(nn.Module):
                 # get key/value blocks
                 k_block = key[:, :, k_start:k_end, :]  # (B,H,Kb,d_k)
                 v_block = value[:, :, k_start:k_end, :]  # (B,H,Kb,d_k)
+                q_pos = jnp.arange(q_start, q_end)[:, None]  # (Qb,1)
+                k_pos = jnp.arange(k_start, k_end)[None, :]  # (1,Kb)
+                causal_block = q_pos >= k_pos  # (Qb,Kb)
 
                 # compute scores for this tile: (B,H,Qb,Kb)
                 # einsum is clear: q @ k^T
                 scores = jnp.matmul(q_block, k_block.swapaxes(-2, -1)) * scale
+
                 # apply mask for the keys in this block (if provided)
                 if mask is not None:
-                    # mask slice: (B,1,1,Kb) or broadcastable
-                    mask_block = mask[:, :, :, k_start:k_end]  # (B,1,1,Kb)
-                    # mask == 0 should be blocked; set to -inf
-                    scores = jnp.where(mask_block, scores, -jnp.inf)
+                    # ensure mask is boolean
+                    padding_block = mask[:, :, :, k_start:k_end].astype(
+                        bool
+                    )  # <- cast to bool
+                    mask_block = causal_block[None, None, :, :] & padding_block
+                else:
+                    mask_block = causal_block[None, None, :, :]
+
+                scores = jnp.where(mask_block, scores, -jnp.inf)
 
                 # per-query-row max in this new tile
                 m_block = jnp.max(scores, axis=-1)  # (B,H,Qb)
