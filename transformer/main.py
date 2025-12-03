@@ -183,8 +183,8 @@ def main():
     logging.info("Training completed, training with new data")
     train(
         state=state,
-        train_batches=train_loader,
-        val_batches=val_batch,
+        train_loader=train_loader,
+        val_loader=val_batch,
         epochs=config.EPOCHS,
         manager=manager,
         logger=logging,
