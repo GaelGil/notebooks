@@ -127,15 +127,14 @@ def train_step(
         )
         masked_loss = per_token_loss * target_output_mask
         cross_entropy_loss = masked_loss.sum() / target_output_mask.sum()
-        perplexity = jnp.exp(cross_entropy_loss)
-        return perplexity
+        return cross_entropy_loss
 
     # compute loss and gradients
     grad_fn = jax.value_and_grad(loss_fn)
     loss, grads = grad_fn(state.params)
     # update the the training state with the new gradients
     state = state.apply_gradients(grads=grads)
-    return state, loss
+    return state, jnp.exp(loss)
 
 
 def eval(
@@ -152,20 +151,20 @@ def eval(
     Returns:
         accuracy, loss
     """
-    total_loss = 0.0
+    total_perplexity = 0.0
     total_accuracy = 0.0
     num_bathces = 0
     # loop over the dataset
     for batch in loader.__iter__(rng=rng):
         # evaluate on batch
-        accuracy, loss = eval_step(state=state, batch=batch)
+        accuracy, perplexity = eval_step(state=state, batch=batch)
         # get num of examples in current batch and add to total
         total_accuracy += accuracy
-        total_loss += loss
+        total_perplexity += perplexity
         num_bathces += 1
 
     accuracy = total_accuracy / num_bathces
-    avg_loss = total_loss / num_bathces
+    avg_loss = total_perplexity / num_bathces
 
     return accuracy, avg_loss
 
@@ -204,6 +203,7 @@ def eval_step(state: train_state.TrainState, batch):
     cross_entropy_loss = masked_loss.sum() / target_output_mask.sum()
     perplexity = jnp.exp(cross_entropy_loss)
     predictions = jnp.argmax(logits, axis=-1)
+    target_output_mask = target_output_mask.squeeze((1, 2))
     correct = ((predictions == target_output) * target_output_mask).sum()
     total = target_output_mask.sum()
     accuracy = correct / total
