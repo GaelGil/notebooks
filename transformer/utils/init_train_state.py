@@ -45,7 +45,7 @@ def init_train_state(config: Config, vocab_size: int) -> train_state.TrainState:
     )
 
     dummy_target_mask = jnp.ones(
-        (config.BATCH_SIZE, 1, 1, config.SEQ_LEN), dtype=jnp.float32
+        (config.BATCH_SIZE, 1, 1, config.SEQ_LEN - 1), dtype=jnp.float32
     )
 
     # Initialize with dummy inputs

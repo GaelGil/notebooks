@@ -104,6 +104,7 @@ def train_step(
     target_input = batch["target_input"]
     target_mask = batch["target_mask"]
     target_output = batch["target_output"]
+    target_output_mask = batch["target_output_mask"]
 
     # define loss function
     def loss_fn(params):
@@ -124,8 +125,10 @@ def train_step(
             logits=logits,
             labels=target_output,
         )
-        loss = (per_token_loss * target_mask).sum() / target_mask.sum()
-        return loss
+        masked_loss = per_token_loss * target_output_mask
+        cross_entropy_loss = masked_loss.sum() / target_output_mask.sum()
+        perplexity = jnp.exp(cross_entropy_loss)
+        return perplexity
 
     # compute loss and gradients
     grad_fn = jax.value_and_grad(loss_fn)
@@ -183,6 +186,7 @@ def eval_step(state: train_state.TrainState, batch):
     target_input = batch["target_input"]
     target_mask = batch["target_mask"]
     target_output = batch["target_output"]
+    target_output_mask = batch["target_output_mask"]
     # pass batch through the model in training state
     logits = state.apply_fn(
         {"params": state.params},
@@ -196,11 +200,12 @@ def eval_step(state: train_state.TrainState, batch):
         logits=logits,
         labels=target_output,
     )
-    loss = (per_token_loss * target_mask).sum() / target_mask.sum()
-
+    masked_loss = per_token_loss * target_output_mask
+    cross_entropy_loss = masked_loss.sum() / target_output_mask.sum()
+    perplexity = jnp.exp(cross_entropy_loss)
     predictions = jnp.argmax(logits, axis=-1)
-    correct = ((predictions == target_output) * target_mask).sum()
+    correct = ((predictions == target_output) * target_output_mask).sum()
     total = target_mask.sum()
     accuracy = correct / total
 
-    return accuracy, loss
+    return accuracy, perplexity
