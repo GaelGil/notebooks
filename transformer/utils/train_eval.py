@@ -205,7 +205,7 @@ def eval_step(state: train_state.TrainState, batch):
     perplexity = jnp.exp(cross_entropy_loss)
     predictions = jnp.argmax(logits, axis=-1)
     correct = ((predictions == target_output) * target_output_mask).sum()
-    total = target_mask.sum()
+    total = target_output_mask.sum()
     accuracy = correct / total
 
     return accuracy, perplexity
