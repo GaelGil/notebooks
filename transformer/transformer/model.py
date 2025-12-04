@@ -220,9 +220,7 @@ class MultiHeadAttentionBlock(nn.Module):
                 k_pos = jnp.arange(k_start, k_end)[None, :]
                 causal_block = q_pos >= k_pos
 
-                scores = jnp.matmul(q_block, k_block.swapaxes(-2, -1)) * (
-                    1.0 / jnp.sqrt(d_k)
-                )
+                scores = jnp.matmul(q_block, k_block.swapaxes(-2, -1)) * scale
 
                 if mask is not None:
                     padding_block = mask[:, :, :, k_start:k_end].astype(bool)
