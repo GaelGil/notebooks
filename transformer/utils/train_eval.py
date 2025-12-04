@@ -205,8 +205,8 @@ def eval_step(state: train_state.TrainState, batch):
     # logits shape (B, L, vocab)
     pred = jnp.argmax(logits, axis=-1)  # (B, L)
     # mask = target_output_mask (B, L) with 1 for real tokens, 0 for padding
-    correct = jnp.sum((pred == target_output) * masked_loss)
-    total = jnp.sum(masked_loss)
+    correct = jnp.sum((pred == target_output) * target_output_mask)
+    total = jnp.sum(target_output_mask)
     accuracy = correct / total  # -> in [0,1]
 
     return accuracy, perplexity

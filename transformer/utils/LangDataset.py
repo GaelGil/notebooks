@@ -131,7 +131,7 @@ class LangDataset:
         # prefix = tokenizer.encode(text=prefix, add_bos=False, add_eos=False)
         for src, target in zip(src_data, target_data):
             # encode and add bos and eos
-            src_ids.append(tokenizer.encode(text=src, add_bos=True, add_eos=True))
+            src_ids.append(tokenizer.encode(text=src, add_bos=False, add_eos=False))
             target_ids.append(tokenizer.encode(text=target, add_bos=True, add_eos=True))
 
         # pad sequences up to seq_len
