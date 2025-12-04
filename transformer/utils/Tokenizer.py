@@ -97,7 +97,7 @@ class Tokenizer:
         """
         ids = self.sp.Encode(text, out_type=int)
         if prefix:
-            ids = prefix + ids
+            ids = self.sp.Encode(prefix, out_type=int) + ids
         if add_bos:
             ids = [self.sp.bos_id()] + ids
         if add_eos:
