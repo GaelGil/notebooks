@@ -56,6 +56,7 @@ def main():
             target_one=raw_target_one,
             src_two=raw_src_two,
             target_two=raw_target_two,
+            prefixs=config.PREFIXES,
         )
 
     if Path("./data/splits/test_nah.npy").exists():
