@@ -213,65 +213,45 @@ class MultiHeadAttentionBlock(nn.Module):
             # iterate over key/value blocks
             for k_start in range(0, L_src, k_block_size):
                 k_end = min(k_start + k_block_size, L_src)
-                # get key/value blocks
-                k_block = key[:, :, k_start:k_end, :]  # (B,H,Kb,d_k)
-                v_block = value[:, :, k_start:k_end, :]  # (B,H,Kb,d_k)
-                q_pos = jnp.arange(q_start, q_end)[:, None]  # (Qb,1)
-                k_pos = jnp.arange(k_start, k_end)[None, :]  # (1,Kb)
-                causal_block = q_pos >= k_pos  # (Qb,Kb)
+                k_block = key[:, :, k_start:k_end, :]
+                v_block = value[:, :, k_start:k_end, :]
 
-                # compute scores for this tile: (B,H,Qb,Kb)
-                # einsum is clear: q @ k^T
-                scores = jnp.matmul(q_block, k_block.swapaxes(-2, -1)) * scale
+                q_pos = jnp.arange(q_start, q_end)[:, None]
+                k_pos = jnp.arange(k_start, k_end)[None, :]
+                causal_block = q_pos >= k_pos
 
-                # apply mask for the keys in this block (if provided)
+                scores = jnp.matmul(q_block, k_block.swapaxes(-2, -1)) * (
+                    1.0 / jnp.sqrt(d_k)
+                )
+
                 if mask is not None:
-                    # ensure mask is boolean
-                    padding_block = mask[:, :, :, k_start:k_end].astype(
-                        bool
-                    )  # <- cast to bool
+                    padding_block = mask[:, :, :, k_start:k_end].astype(bool)
                     mask_block = causal_block[None, None, :, :] & padding_block
                 else:
                     mask_block = causal_block[None, None, :, :]
 
                 scores = jnp.where(mask_block, scores, -jnp.inf)
 
-                # per-query-row max in this new tile
                 m_block = jnp.max(scores, axis=-1)  # (B,H,Qb)
+                m_new = jnp.maximum(running_max, m_block)
 
-                # new running max
-                m_new = jnp.maximum(running_max, m_block)  # (B,H,Qb)
+                exp_scores = jnp.exp(scores - m_new[..., None])
+                exp_sum = jnp.sum(exp_scores, axis=-1)
 
-                # compute exp(S - m_new[...,None]) safely
-                exp_scores = jnp.exp(scores - m_new[..., None])  # (B,H,Qb,Kb)
-
-                # sum over keys in block
-                exp_sum = jnp.sum(exp_scores, axis=-1)  # (B,H,Qb)
-
-                # update l: l_new = exp(m - m_new)*l + exp_sum
-                # factor = exp(m - m_new) (<= 1)
                 factor = jnp.exp(running_max - m_new)
-                running_sum = factor * running_sum + exp_sum  # (B,H,Qb)
+                running_sum = factor * running_sum + exp_sum
 
-                # weighted value: sum_k exp(S - m_new) * V_block
-                # compute (B,H,Qb,d_k) <- sum_k exp_S * V_block
-                # first expand exp_S to (B,H,Qb,Kb,1) and multiply by V_block (B,H,Kb,d_k)
                 weighted_v = jnp.einsum("bhqk,bhkd->bhqd", exp_scores, v_block)
-                # weighted_v = jnp.matmul(exp_scores, v_block)
-
-                # update acc similarly: acc_new = factor[...,None]*acc + weighted_v
                 running_acc = factor[..., None] * running_acc + weighted_v
-
-                # set m <- m_new for next iteration
                 running_max = m_new
 
-            # After all key blocks processed: normalize acc / l[...,None]
-            out_block = running_acc / (running_sum[..., None] + 1e-9)  # (B,H,Qb,d_k)
+            # normalize and append
+            out_block = running_acc / (running_sum[..., None] + 1e-9)
             out_blocks.append(out_block)
 
-        # concatenate along query length axis
-        out = jnp.concatenate(out_blocks, axis=2)  # (B,H,L_t,d_k)
-        return out.astype(query.dtype)
+        out = jnp.concatenate(out_blocks, axis=2)
+        # keep as float32 for stability (do not cast back to low precision here)
+        return out
 
     @nn.compact
     def __call__(
