@@ -112,9 +112,9 @@ class FeedForwardBlock(nn.Module):
             None
         """
 
-        self.linear_1 = nn.Dense(features=self.d_ff, dtype=jnp.bfloat16)
+        self.linear_1 = nn.Dense(features=self.d_ff, dtype=jnp.float32)
         self.dropout = nn.Dropout(rate=self.dropout_rate)
-        self.linear_2 = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
+        self.linear_2 = nn.Dense(features=self.d_model, dtype=jnp.float32)
 
     @nn.compact
     def __call__(self, x: jnp.ndarray, is_training: bool):
@@ -149,10 +149,10 @@ class MultiHeadAttentionBlock(nn.Module):
 
         assert self.d_model % self.n_heads == 0, "d_model must be divisible by n_heads"
         self.d_k = self.d_model // self.n_heads  # size of each head
-        self.w_q = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
-        self.w_k = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
-        self.w_v = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
-        self.w_o = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
+        self.w_q = nn.Dense(features=self.d_model, dtype=jnp.float32)
+        self.w_k = nn.Dense(features=self.d_model, dtype=jnp.float32)
+        self.w_v = nn.Dense(features=self.d_model, dtype=jnp.float32)
+        self.w_o = nn.Dense(features=self.d_model, dtype=jnp.float32)
         self.dropout = nn.Dropout(rate=self.dropout_rate)
 
     @staticmethod
@@ -179,7 +179,7 @@ class MultiHeadAttentionBlock(nn.Module):
         _, _, L_src, _ = key.shape  # batch_size, n_heads, seq_len, d_k
         scale = 1.0 / jnp.sqrt(d_k)  # scale factor
 
-        # work in float32 for stability (inputs may be bfloat16)
+        # work in float32 for stability (inputs may be float32)
         query = query.astype(jnp.float32)
         key = key.astype(jnp.float32)
         value = value.astype(jnp.float32)
@@ -204,7 +204,7 @@ class MultiHeadAttentionBlock(nn.Module):
 
             # initialize accumulators for this q_block
             # m = running max of scores for each (B,H,Qb)
-            running_max = jnp.full((B, H, q_end - q_start), -jnp.inf, dtype=jnp.float32)
+            running_max = jnp.full((B, H, q_end - q_start), -1e9, dtype=jnp.float32)
             # l = running sum of exp(scores - m) for normalization, shape (B,H,Qb)
             running_sum = jnp.zeros((B, H, q_end - q_start), dtype=jnp.float32)
             # acc = running weighted sum of V, shape (B,H,Qb,d_k)
@@ -266,9 +266,7 @@ class MultiHeadAttentionBlock(nn.Module):
                 running_max = m_new
 
             # After all key blocks processed: normalize acc / l[...,None]
-            out_block = running_acc / (
-                running_sum[..., None] + -jnp.inf
-            )  # (B,H,Qb,d_k)
+            out_block = running_acc / (running_sum[..., None] + 1e-9)  # (B,H,Qb,d_k)
             out_blocks.append(out_block)
 
         # concatenate along query length axis
@@ -545,7 +543,7 @@ class ProjectionLayer(nn.Module):
     vocab_size: int
 
     def setup(self) -> None:
-        self.linear = nn.Dense(features=self.vocab_size, dtype=jnp.bfloat16)
+        self.linear = nn.Dense(features=self.vocab_size, dtype=jnp.float32)
 
     @nn.compact
     def __call__(self, x: jnp.ndarray):
