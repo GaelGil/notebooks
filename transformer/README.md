@@ -6,12 +6,11 @@ from flax.training import train_state
 from transformer.model import Transformer
 from utils.config import Config
 
-
 def init_train_state(config: Config, vocab_size: int) -> train_state.TrainState:
-    """
-    Initialize the train state
-    Args:
-        config: Config
+"""
+Initialize the train state
+Args:
+config: Config
 
     Returns:
         train_state.TrainState
@@ -80,10 +79,10 @@ def init_train_state(config: Config, vocab_size: int) -> train_state.TrainState:
 
         assert self.d_model % self.n_heads == 0, "d_model must be divisible by n_heads"
         self.d_k = self.d_model // self.n_heads  # size of each head
-        self.w_q = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
-        self.w_k = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
-        self.w_v = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
-        self.w_o = nn.Dense(features=self.d_model, dtype=jnp.bfloat16)
+        self.w_q = nn.Dense(features=self.d_model, dtype=jnp.float32)
+        self.w_k = nn.Dense(features=self.d_model, dtype=jnp.float32)
+        self.w_v = nn.Dense(features=self.d_model, dtype=jnp.float32)
+        self.w_o = nn.Dense(features=self.d_model, dtype=jnp.float32)
         self.dropout = nn.Dropout(rate=self.dropout_rate)
 
     @staticmethod
@@ -110,7 +109,7 @@ def init_train_state(config: Config, vocab_size: int) -> train_state.TrainState:
         _, _, L_src, _ = key.shape  # batch_size, n_heads, seq_len, d_k
         scale = 1.0 / jnp.sqrt(d_k)  # scale factor
 
-        # work in float32 for stability (inputs may be bfloat16)
+        # work in float32 for stability (inputs may be float32)
         query = query.astype(jnp.float32)
         key = key.astype(jnp.float32)
         value = value.astype(jnp.float32)
@@ -258,18 +257,19 @@ def init_train_state(config: Config, vocab_size: int) -> train_state.TrainState:
         x = jnp.transpose(x, (0, 2, 1, 3)).reshape(B, L_target, self.d_model)
         x = self.w_o(x)
         return x
-" and this is my data loader "    def create_src_mask(self, src):
-        """
-        Create source mask for encoder. Fill with 1 for tokens and 0 for padding
-        Changes shape from (b, seq_len) to (b, 1, 1, seq_len)
-        Args:
-            src: source sequence
-        Returns:
-            source mask
-        """
-        return (src != 0).astype(jnp.float32)[
-            :, None, None, :
-        ]  # 1 for tokens, 0 for padding
+
+" and this is my data loader " def create_src_mask(self, src):
+"""
+Create source mask for encoder. Fill with 1 for tokens and 0 for padding
+Changes shape from (b, seq_len) to (b, 1, 1, seq_len)
+Args:
+src: source sequence
+Returns:
+source mask
+"""
+return (src != 0).astype(jnp.float32)[
+:, None, None, :
+] # 1 for tokens, 0 for padding
 
     def create_target_mask(self, target):
         """

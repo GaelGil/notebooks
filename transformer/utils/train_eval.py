@@ -202,10 +202,11 @@ def eval_step(state: train_state.TrainState, batch):
     masked_loss = per_token_loss * target_output_mask
     cross_entropy_loss = masked_loss.sum() / target_output_mask.sum()
     perplexity = jnp.exp(cross_entropy_loss)
-    predictions = jnp.argmax(logits, axis=-1)
-    target_output_mask = target_output_mask.squeeze((1, 2))
-    correct = ((predictions == target_output) * target_output_mask).sum()
-    total = target_output_mask.sum()
-    accuracy = correct / total
+    # logits shape (B, L, vocab)
+    pred = jnp.argmax(logits, axis=-1)  # (B, L)
+    # mask = target_output_mask (B, L) with 1 for real tokens, 0 for padding
+    correct = jnp.sum((pred == target_output) * masked_loss)
+    total = jnp.sum(masked_loss)
+    accuracy = correct / total  # -> in [0,1]
 
     return accuracy, perplexity
