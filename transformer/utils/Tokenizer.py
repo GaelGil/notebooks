@@ -45,7 +45,7 @@ class Tokenizer:
             for sentence_list in [src_one + src_two, target_one, target_two]:
                 self.write_txt(data=sentence_list, f=f)
 
-    def train_tokenizer(self, src_one, target_one, src_two, target_two):
+    def train_tokenizer(self, src_one, target_one, src_two, target_two, prefixs=None):
         """
         Trains a sentencepiece tokenizer on the joint corpus
 
@@ -71,6 +71,7 @@ class Tokenizer:
             unk_id=1,
             bos_id=2,
             eos_id=3,
+            user_defined_symbols=prefixs,
         )
         # Load the trained tokenizer
         self.sp.Load(self.tokenizer_model_path)
