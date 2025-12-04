@@ -83,15 +83,11 @@ def main():
             raw_src_one,
             raw_target_one,
             tokenizer=tokenizer,
-            src_fname=config.LANG_SRC_ONE,
-            target_fname=config.LANG_TARGET_ONE,
         )
         src_two, target_two = dataset_two.prep_data(
             raw_src_two,
             raw_target_two,
             tokenizer=tokenizer,
-            src_fname=config.LANG_SRC_TWO,
-            target_fname=config.LANG_TARGET_TWO,
         )
         logging.info("Splitting the data ...")
         src_one_train, src_one_val, target_one_train, target_one_val, _, _ = (
