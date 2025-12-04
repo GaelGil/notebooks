@@ -17,7 +17,6 @@ class Config(BaseModel):
     LANG_SRC_TWO: str
     LANG_TARGET_TWO: str
     DROPOUT: float
-    DEVICE: str
     DATA_PATH: str
     MAX_TO_KEEP: int
     CHECKPOINT_PATH: Path
@@ -51,7 +50,6 @@ config = Config(
     LANG_SRC_TWO="sp",
     LANG_TARGET_TWO="nah",
     DROPOUT=0.1,
-    DEVICE="CUDA",
     DATA_PATH="somosnlp-hackathon-2022/Axolotl-Spanish-Nahuatl",
     MAX_TO_KEEP=5,
     CHECKPOINT_PATH=Path("./checkpoints"),

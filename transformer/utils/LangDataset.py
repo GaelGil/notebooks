@@ -16,6 +16,7 @@ class LangDataset:
         src_file: str = None,
         target_file: str = None,
         seq_len: int = None,
+        prefix: str = None,
     ):
         """
         Load the dataset from the Hugging Face Hub
@@ -32,6 +33,7 @@ class LangDataset:
         self.src_file = src_file
         self.target_file = target_file
         self.seq_len: int = seq_len
+        self.prefix: str = prefix
         if dataset_name:
             self.dataset: dict = load_dataset(dataset_name)
 
@@ -111,8 +113,6 @@ class LangDataset:
         src_data,
         target_data,
         tokenizer: Tokenizer,
-        src_fname: str,
-        target_fname: str,
     ):
         """
         Args:
@@ -131,7 +131,11 @@ class LangDataset:
         # prefix = tokenizer.encode(text=prefix, add_bos=False, add_eos=False)
         for src, target in zip(src_data, target_data):
             # encode and add bos and eos
-            src_ids.append(tokenizer.encode(text=src, add_bos=False, add_eos=False))
+            src_ids.append(
+                tokenizer.encode(
+                    text=src, add_bos=False, add_eos=False, prefix=self.prefix
+                )
+            )
             target_ids.append(tokenizer.encode(text=target, add_bos=True, add_eos=True))
 
         # pad sequences up to seq_len

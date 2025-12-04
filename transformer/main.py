@@ -33,6 +33,7 @@ def main():
         src_lang=config.LANG_SRC_ONE,
         target_lang=config.LANG_TARGET_ONE,
         seq_len=config.SEQ_LEN,
+        prefix=config.PREFIXES[0],
     )
 
     dataset_two = LangDataset(
@@ -40,6 +41,7 @@ def main():
         src_lang=config.LANG_SRC_TWO,
         target_lang=config.LANG_TARGET_TWO,
         seq_len=config.SEQ_LEN,
+        prefix=config.PREFIXES[1],
     )
 
     logging.info("Loading the data ...")
