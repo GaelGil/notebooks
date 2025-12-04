@@ -82,9 +82,9 @@ class Tokenizer:
     def encode(
         self,
         text: str,
-        prefix: list = [],
         add_bos: bool = True,
         add_eos: bool = True,
+        prefix: str = None,
     ):
         """
         Args:
@@ -96,8 +96,10 @@ class Tokenizer:
             ids: list of integers
         """
         ids = self.sp.Encode(text, out_type=int)
+        if prefix:
+            ids = prefix + ids
         if add_bos:
-            ids = prefix + [self.sp.bos_id()] + ids
+            ids = [self.sp.bos_id()] + ids
         if add_eos:
             ids = ids + [self.sp.eos_id()]
         return ids
