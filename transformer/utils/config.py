@@ -34,10 +34,7 @@ class Config(BaseModel):
     JOINT_CORPUS_PATH: Path
     SPLITS_PATH: str
     SAVE_INTERVAL: int
-    SRC_ONE_FNAME: str
-    TARGET_ONE_FNAME: str
-    SRC_TWO_FNAME: str
-    TARGET_TWO_FNAME: str
+    PREFIXES: list
 
 
 config = Config(
@@ -45,12 +42,12 @@ config = Config(
     EPOCHS=100,
     LR=0.0001,
     SEQ_LEN=192,
-    D_MODEL=64,
+    D_MODEL=512,
     D_FF=2048,
     H=8,
-    N=3,
-    LANG_SRC_ONE="en",
-    LANG_TARGET_ONE="es",
+    N=6,
+    LANG_SRC_ONE="es",
+    LANG_TARGET_ONE="en",
     LANG_SRC_TWO="sp",
     LANG_TARGET_TWO="nah",
     DROPOUT=0.1,
@@ -71,8 +68,5 @@ config = Config(
     JOINT_CORPUS_PATH=Path("./tokenizer/joint_corpus.txt"),
     SPLITS_PATH="./data/splits",
     SAVE_INTERVAL=1,
-    SRC_ONE_FNAME="Spanish",
-    TARGET_ONE_FNAME="English",
-    SRC_TWO_FNAME="Spanish",
-    TARGET_TWO_FNAME="Nahuatl",
+    PREFIXES=["<es_to_en>", "<es_to_nah>"],
 )
