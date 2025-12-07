@@ -53,6 +53,14 @@ def train(
             # target_mask = batch["target_mask"]
             # target_output = batch["target_output"]
             # target_output_mask = batch["target_output_mask"]
+            # print(f"src_input shape: {src_input.shape}")
+            # print(f"src_mask shape: {src_mask.shape}")
+            # print(f"target_input shape: {target_input.shape}")
+            # print(f"target_mask shape: {target_mask.shape}")
+            # print(f"target_output shape: {target_output.shape}")
+            # print(f"target_output_mask shape: {target_output_mask.shape}")
+            # print("target_output_mask sums:", target_output_mask.sum(axis=1))
+            # print("target_output nonzero count:", (target_output != 0).sum(axis=1))
             # print(jnp.unique(src_input)[:20])
             # print(jnp.sum(src_input == 0))
             # print(jnp.sum(target_input == 0))

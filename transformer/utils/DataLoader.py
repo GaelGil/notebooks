@@ -65,7 +65,13 @@ class DataLoader:
 
         # multiply the each row of the mask by the padding mask to get the final mask
         # this will ignore the future tokens in the target sequence
-        return padding_mask * causal_mask
+        padding_q = padding_mask.transpose(0, 1, 3, 2)  # (B,1,T,1)
+        padding_k = padding_mask  # (B,1,1,T)
+
+        # combine:
+        mask = causal_mask * padding_q * padding_k
+
+        return mask
 
     def __iter__(self, rng=None):
         return self._prefetch_to_device(self._batch_generator(rng))
@@ -155,7 +161,7 @@ class DataLoader:
 # print(f"Batch: \n {batch}")
 # print(f"Padding mask: \n {padding_mask}")
 # print()
-# causal_mask = loader.causal_mask(padding_mask)
+# causal_mask = loader.final_mask(padding_mask, 6)
 
 # print("final mask: \n")
 # print(causal_mask)
