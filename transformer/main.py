@@ -128,11 +128,18 @@ def main():
         seq_len=config.SEQ_LEN,
         shuffle=False,
     )
+    # print(train_loader.src.shape)
+    # print(val_loader.src.shape)
+    print(f"tokenizer vocab size: {tokenizer.vocab_size}")
+    print(tokenizer.sp.encode("hello world"))
 
     # initialize the train state
     logging.info("Initializing the train state ...")
     state = init_train_state(config=config, vocab_size=tokenizer.vocab_size)
-
+    # print("ID 0 =", tokenizer.sp.id_to_piece(0))
+    # print("ID 1 =", tokenizer.sp.id_to_piece(1))
+    # print("ID 2 =", tokenizer.sp.id_to_piece(2))
+    # print("ID 3 =", tokenizer.sp.id_to_piece(3))
     # initialize the checkpoint manager
     logging.info("Initializing the checkpoint manager ...")
     checkpoint_manager = CheckpointManager(config=config)

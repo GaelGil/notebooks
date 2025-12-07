@@ -156,100 +156,88 @@ class MultiHeadAttentionBlock(nn.Module):
         self.dropout = nn.Dropout(rate=self.dropout_rate)
 
     @staticmethod
-    def flash_attention(
-        query: jnp.ndarray,  # (B, H, L_t, d_k)
-        key: jnp.ndarray,  # (B, H, L_s, d_k)
-        value: jnp.ndarray,  # (B, H, L_s, d_k)
-        mask: jnp.ndarray,  # None or (B, 1, 1, L_s) or broadcastable
-        is_training: bool = False,
-        dropout: nn.Dropout = None,
-        q_block_size: int = 64,
-        k_block_size: int = 64,
-    ) -> jnp.ndarray:
+    def flash_attention(q, k, v, dropout, is_training, mask=None, block_size=64):
         """
-        Streaming (tiled) exact attention — FlashAttention style.
+        FlashAttention forward pass implemented from scratch.
 
-        Assumes inputs are shaped (B, H, L, d_k). Returns (B, H, L_t, d_k).
-        All internal math is done in float32 for stability, result cast back.
+        Args:
+            q, k, v: (B, H, L, d)
+            mask: (B, 1, L, L) boolean mask or None
+        Returns:
+            output: (B, H, L, d)
         """
-        if k_block_size is None:
-            k_block_size = q_block_size
 
-        B, H, L_target, d_k = query.shape  # batch_size, n_heads, seq_len, d_k
-        _, _, L_src, _ = key.shape  # batch_size, n_heads, seq_len, d_k
+        B, H, L, d_k = q.shape
         scale = 1.0 / jnp.sqrt(d_k)  # scale factor
 
-        # work in float32 for stability (inputs may be float32)
-        query = query.astype(jnp.float32)
-        key = key.astype(jnp.float32)
-        value = value.astype(jnp.float32)
+        # Output tensor
+        output = jnp.zeros_like(q)
 
-        # prepare mask broadcast rules: mask should index keys
-        # Accept mask shapes: (B, L_s), (B, 1, 1, L_s), or None
-        if mask is not None:
-            if mask.ndim == 2:
-                mask = mask[:, None, None, :]  # (B,1,1,L_s)
-            elif mask.ndim == 3:
-                mask = mask[:, :, None, :]  # (B,1,1,L_s) expected
-            # mask now (B, 1, 1, L_s) or broadcastable
+        # Running softmax stats
+        m = jnp.full((B, H, L), -jnp.inf)  # max logits
+        l = jnp.zeros((B, H, L))  # sum exp
 
-        # We'll produce output in blocks of queries
-        out_blocks = []
+        # Iterate over query blocks
+        # Iterate over query blocks
+        for q_start in range(0, L, block_size):
+            q_end = min(q_start + block_size, L)
+            q_block_len = q_end - q_start
+            if q_block_len <= 0:
+                continue  # skip empty query block
 
-        # iterate over query blocks
-        for q_start in range(0, L_target, q_block_size):
-            q_end = min(q_start + q_block_size, L_target)
-            # get query block
-            q_block = query[:, :, q_start:q_end, :]  # (B, H, Qb, d_k)
+            q_block = q[:, :, q_start:q_end, :]  # (B, H, q_block_len, D)
+            out_block = jnp.zeros_like(q_block)
+            m_block = m[:, :, q_start:q_end]
+            l_block = l[:, :, q_start:q_end]
 
-            # initialize accumulators for this q_block
-            # m = running max of scores for each (B,H,Qb)
-            running_max = jnp.full((B, H, q_end - q_start), -1e9, dtype=jnp.float32)
-            # l = running sum of exp(scores - m) for normalization, shape (B,H,Qb)
-            running_sum = jnp.zeros((B, H, q_end - q_start), dtype=jnp.float32)
-            # acc = running weighted sum of V, shape (B,H,Qb,d_k)
-            running_acc = jnp.zeros((B, H, q_end - q_start, d_k), dtype=jnp.float32)
+            # Iterate over key/value blocks
+            for kv_start in range(0, L, block_size):
+                kv_end = min(kv_start + block_size, L)
+                kv_block_len = kv_end - kv_start
+                if kv_block_len <= 0:
+                    continue  # skip empty key/value block
 
-            # iterate over key/value blocks
-            for k_start in range(0, L_src, k_block_size):
-                k_end = min(k_start + k_block_size, L_src)
-                k_block = key[:, :, k_start:k_end, :]
-                v_block = value[:, :, k_start:k_end, :]
+                k_block = k[:, :, kv_start:kv_end, :]
+                v_block = v[:, :, kv_start:kv_end, :]
 
-                q_pos = jnp.arange(q_start, q_end)[:, None]
-                k_pos = jnp.arange(k_start, k_end)[None, :]
-                causal_block = q_pos >= k_pos
+                # Skip any empty blocks
+                if q_block.shape[2] == 0 or k_block.shape[2] == 0:
+                    continue  # skip empty query or key/value blocks
 
-                scores = jnp.matmul(q_block, k_block.swapaxes(-2, -1)) * scale
+                # Compute attention logits
+                logits = jnp.einsum("bhqd,bhkd->bhqk", q_block, k_block) * scale
 
+                # Apply mask if provided
                 if mask is not None:
-                    padding_block = mask[:, :, :, k_start:k_end].astype(bool)
-                    mask_block = causal_block[None, None, :, :] & padding_block
-                else:
-                    mask_block = causal_block[None, None, :, :]
+                    local_mask = mask[:, :, q_start:q_end, kv_start:kv_end]
+                    # Skip empty mask slices
+                    if local_mask.shape[2] == 0 or local_mask.shape[3] == 0:
+                        continue
+                    logits = jnp.where(local_mask, logits, -1e9)
 
-                scores = jnp.where(mask_block, scores, -jnp.inf)
+                # Update running max for numerical stability
+                new_m = jnp.maximum(m_block, jnp.max(logits, axis=-1))
+                exp_m_block = jnp.exp(m_block - new_m)
+                exp_logits = jnp.exp(logits - new_m[..., None])
+                new_l = exp_m_block * l_block + jnp.sum(exp_logits, axis=-1)
 
-                m_block = jnp.max(scores, axis=-1)  # (B,H,Qb)
-                m_new = jnp.maximum(running_max, m_block)
+                # Update output block
+                out_block = (
+                    out_block * (exp_m_block * l_block / new_l)[..., None]
+                    + jnp.einsum("bhqk,bhkd->bhqd", exp_logits, v_block)
+                    / new_l[..., None]
+                )
 
-                exp_scores = jnp.exp(scores - m_new[..., None])
-                exp_sum = jnp.sum(exp_scores, axis=-1)
+                # Update running stats
+                m_block = new_m
+                l_block = new_l
 
-                factor = jnp.exp(running_max - m_new)
-                running_sum = factor * running_sum + exp_sum
+            # Write back results
+            output = output.at[:, :, q_start:q_end, :].set(out_block)
+            m = m.at[:, :, q_start:q_end].set(m_block)
+            l = l.at[:, :, q_start:q_end].set(l_block)
 
-                weighted_v = jnp.einsum("bhqk,bhkd->bhqd", exp_scores, v_block)
-                running_acc = factor[..., None] * running_acc + weighted_v
-                running_max = m_new
-
-            # normalize and append
-            out_block = running_acc / (running_sum[..., None] + 1e-9)
-            out_blocks.append(out_block)
-
-        out = jnp.concatenate(out_blocks, axis=2)
-        # keep as float32 for stability (do not cast back to low precision here)
-        return out
+        return output
 
     @nn.compact
     def __call__(
@@ -299,9 +287,9 @@ class MultiHeadAttentionBlock(nn.Module):
 
         # apply scaled dot product attention to each head
         x = MultiHeadAttentionBlock.flash_attention(
-            query=query,
-            key=key,
-            value=value,
+            q=query,
+            k=key,
+            v=value,
             dropout=self.dropout,
             is_training=is_training,
             mask=mask,

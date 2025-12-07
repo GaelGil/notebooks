@@ -35,9 +35,9 @@ class DataLoader:
         """
         return (seq != 0).astype(jnp.float32)[:, None, None, :]
 
-    def causal_mask(self, padding_mask) -> jnp.ndarray:
+    def final_mask(self, padding_mask, seq_len) -> jnp.ndarray:
         """
-        Create causal mask to ignore future tokens in target sequence.
+        Create the final mask to ignore future tokens in target sequence.
 
         ie: seq_len = 3, max_seq_len = 6
         padding_mask = [1, 1, 1, 0, 0, 0]
@@ -59,9 +59,9 @@ class DataLoader:
             jnp.ndarray
         """
         # create a matrix of shape (L_target, L_target) then apply tril to get the lower triangular matrix
-        causal_mask = jnp.tril(
-            jnp.ones((self.seq_len, self.seq_len), dtype=jnp.float32)
-        )[None, None, :, :]
+        causal_mask = jnp.tril(jnp.ones((seq_len, seq_len), dtype=jnp.float32))[
+            None, None, :, :
+        ]
 
         # multiply the each row of the mask by the padding mask to get the final mask
         # this will ignore the future tokens in the target sequence
@@ -88,12 +88,20 @@ class DataLoader:
             batch_src = jnp.array(self.src[batch_idx])
             src_mask = self.padding_mask(batch_src)
 
-            batch_target = jnp.array(self.target[batch_idx])
-            target_input = batch_target[:, :-1]  # all tokens except the last
-            target_output = batch_target[:, 1:]  # all tokens except the first
-            target_mask = self.padding_mask(target_input)
-            target_output_mask = jnp.squeeze(target_mask, axis=(1, 2))  # (B, seq_len)
+            batch_src = self.src[batch_idx]
+            batch_target = self.target[batch_idx]
 
+            # --- Shift target BEFORE padding ---
+            target_input = batch_target[:, :-1]  # all tokens except last
+            target_output = batch_target[:, 1:]  # all tokens except first
+            target_input_seq_len = target_input.shape[1]
+
+            # --- Create masks ---
+            target_mask = self.padding_mask(target_input)
+            target_output_mask = jnp.squeeze(target_mask, axis=(1, 2))
+            target_mask = self.final_mask(target_mask, target_input_seq_len)
+
+            src_mask = self.padding_mask(batch_src)
             yield {
                 "src_input": batch_src,
                 "src_mask": src_mask,
@@ -149,9 +157,8 @@ class DataLoader:
 # print()
 # causal_mask = loader.causal_mask(padding_mask)
 
-# print("Causal mask: \n")
+# print("final mask: \n")
 # print(causal_mask)
 
 # print(f"padding mask shape: {padding_mask.shape}")
-# print(f"otput")
-# print(f"causal mask shape: {causal_mask.shape}")
+# print(f"final mask shape: {causal_mask.shape}")

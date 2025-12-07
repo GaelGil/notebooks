@@ -47,6 +47,30 @@ def train(
         for batch in train_loader.__iter__(rng=loader_rng):
             dropout_base, dropout_rng = jax.random.split(dropout_base)
             # train on batch
+            # src_input = batch["src_input"]
+            # src_mask = batch["src_mask"]
+            # target_input = batch["target_input"]
+            # target_mask = batch["target_mask"]
+            # target_output = batch["target_output"]
+            # target_output_mask = batch["target_output_mask"]
+            # print(jnp.unique(src_input)[:20])
+            # print(jnp.sum(src_input == 0))
+            # print(jnp.sum(target_input == 0))
+
+            # print("src_input:", src_input.shape, src_input.min(), src_input.max())
+            # print(
+            #     "target_input:",
+            #     target_input.shape,
+            #     target_input.min(),
+            #     target_input.max(),
+            # )
+            # print(
+            #     "target_output:",
+            #     target_output.shape,
+            #     target_output.min(),
+            #     target_output.max(),
+            # )
+            # print("mask sum:", target_output_mask.sum())
             state, loss = train_step(state=state, batch=batch, dropout_rng=dropout_rng)
 
         # train and val accuracy and loss
@@ -57,8 +81,8 @@ def train(
 
         # create metrics dictionary
         metrics = {
-            "train_perplexity": float(train_loss),
-            "eval_perplexity": float(eval_loss),
+            "train_perplexity": float(jnp.exp(train_loss)),
+            "eval_perplexity": float(jnp.exp(eval_loss)),
             "train_accuracy": float(train_accuracy),
             "eval_accuracy": float(eval_accuracy),
         }
@@ -134,7 +158,7 @@ def train_step(
     loss, grads = grad_fn(state.params)
     # update the the training state with the new gradients
     state = state.apply_gradients(grads=grads)
-    return state, jnp.exp(loss)
+    return state, loss
 
 
 def eval(
@@ -151,22 +175,22 @@ def eval(
     Returns:
         accuracy, loss
     """
-    total_perplexity = 0.0
-    total_accuracy = 0.0
-    num_bathces = 0
+    total_correct = 0.0
+    total_loss = 0.0
+    total_tokens = 0.0
     # loop over the dataset
     for batch in loader.__iter__(rng=rng):
-        # evaluate on batch
-        accuracy, perplexity = eval_step(state=state, batch=batch)
-        # get num of examples in current batch and add to total
-        total_accuracy += accuracy
-        total_perplexity += perplexity
-        num_bathces += 1
+        correct_tokens, batch_loss, num_tokens = eval_step(state=state, batch=batch)
+        total_correct += correct_tokens
+        total_loss += batch_loss
+        total_tokens += num_tokens
 
-    accuracy = total_accuracy / num_bathces
-    avg_loss = total_perplexity / num_bathces
+    # Compute final metrics
+    accuracy = total_correct / total_tokens
+    avg_cross_entropy = total_loss / total_tokens
+    # perplexity = jnp.exp(avg_cross_entropy)
 
-    return accuracy, avg_loss
+    return float(accuracy), float(avg_cross_entropy)
 
 
 @jax.jit
@@ -195,18 +219,19 @@ def eval_step(state: train_state.TrainState, batch):
         target_mask,
         is_training=False,
     )
+    # Per-token loss
     per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
         logits=logits,
         labels=target_output,
     )
-    masked_loss = per_token_loss * target_output_mask
-    cross_entropy_loss = masked_loss.sum() / target_output_mask.sum()
-    perplexity = jnp.exp(cross_entropy_loss)
-    # logits shape (B, L, vocab)
-    pred = jnp.argmax(logits, axis=-1)  # (B, L)
-    # mask = target_output_mask (B, L) with 1 for real tokens, 0 for padding
-    correct = jnp.sum((pred == target_output) * target_output_mask)
-    total = jnp.sum(target_output_mask)
-    accuracy = correct / total  # -> in [0,1]
 
-    return accuracy, perplexity
+    # Apply mask
+    masked_loss = per_token_loss * target_output_mask
+    total_loss = masked_loss.sum()
+    num_tokens = target_output_mask.sum()
+
+    # Compute accuracy
+    pred = jnp.argmax(logits, axis=-1)
+    correct_tokens = jnp.sum((pred == target_output) * target_output_mask)
+
+    return correct_tokens, total_loss, num_tokens
