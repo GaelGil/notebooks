@@ -4,7 +4,6 @@ import jax
 import jax.numpy as jnp
 from datasets import load_dataset
 import os
-from utils.Tokenizer import Tokenizer
 
 
 class LangDataset:
@@ -16,7 +15,6 @@ class LangDataset:
         src_file: str = None,
         target_file: str = None,
         seq_len: int = None,
-        prefix: str = None,
     ):
         """
         Load the dataset from the Hugging Face Hub
@@ -33,9 +31,8 @@ class LangDataset:
         self.src_file = src_file
         self.target_file = target_file
         self.seq_len: int = seq_len
-        self.prefix: str = prefix
-        if dataset_name:
-            self.dataset: dict = load_dataset(dataset_name)
+        self.dataset: dict = {}
+        self.dataset_name: str = dataset_name
 
     def load_data(self):
         if self.src_file:
@@ -55,6 +52,7 @@ class LangDataset:
             target_data = list(target)
             return src_data, target_data
         else:
+            self.dataset: dict = load_dataset(self.dataset_name)
             self.handle_null()
             src_data = self.dataset["train"][self.src_lang]
             target_data = self.dataset["train"][self.target_lang]
@@ -90,63 +88,6 @@ class LangDataset:
             None
         """
         self.dataset = self.dataset.filter(self.valid_pair)
-
-    def pad_sequences(self, sequences: list, pad_id: int = 0, max_len: int = None):
-        """
-        Args:
-            sequences: list of list of token ids
-            pad_id: integer used for padding
-            max_len: if None, pad to the length of the longest sequence
-
-        Returns:
-            padded: numpy array of shape [N, max_len]
-        """
-        padded = []
-        for seq in sequences:
-            seq = seq[:max_len]  # truncate if too long
-            padding = [pad_id] * (max_len - len(seq))
-            padded.append(seq + padding)
-        return jnp.array(padded, dtype=jnp.int32)
-
-    def prep_data(
-        self,
-        src_data,
-        target_data,
-        tokenizer: Tokenizer,
-    ):
-        """
-        Args:
-            src_data: list of source sentences
-            target_data: list of target sentences
-            tokenizer: Tokenizer object
-
-        Returns:
-            src_ids_padded: numpy array of shape [N, max_len]
-            target_ids_padded: numpy array of shape [N, max_len]
-        """
-        src_ids = []
-        target_ids = []
-
-        # prefix = f"Translate {src_fname} to {target_fname} "
-        # prefix = tokenizer.encode(text=prefix, add_bos=False, add_eos=False)
-        for src, target in zip(src_data, target_data):
-            # encode and add bos and eos
-            src_ids.append(
-                tokenizer.encode(
-                    text=src, add_bos=False, add_eos=False, prefix=self.prefix
-                )
-            )
-            target_ids.append(tokenizer.encode(text=target, add_bos=True, add_eos=True))
-
-        # pad sequences up to seq_len
-        src_ids_padded = self.pad_sequences(
-            src_ids, pad_id=tokenizer.sp.pad_id(), max_len=self.seq_len
-        )
-        target_ids_padded = self.pad_sequences(
-            target_ids, pad_id=tokenizer.sp.pad_id(), max_len=self.seq_len
-        )
-
-        return src_ids_padded, target_ids_padded
 
     def split(
         self,

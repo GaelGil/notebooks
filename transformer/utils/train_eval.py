@@ -35,7 +35,7 @@ def train(
         None
     """
 
-    # loader_rng = jax.random.PRNGKey(0)
+    loader_rng = jax.random.PRNGKey(0)
     # eval_accuracy, eval_loss = eval(state=state, loader=val_loader, rng=None)
     # train_accuracy, train_loss = eval(state=state, loader=train_loader, rng=loader_rng)
 
@@ -53,7 +53,7 @@ def train(
             # train on batch
 
             state, loss = train_step(state=state, batch=batch, dropout_rng=dropout_rng)
-
+            # print(f"loss: {loss} epoch: {epoch}")
         # train and val accuracy and loss
         eval_accuracy, eval_loss = eval(state=state, loader=val_loader, rng=None)
         train_accuracy, train_loss = eval(
@@ -211,22 +211,17 @@ def eval_step(state: train_state.TrainState, batch):
     logits_flat = logits.reshape(-1, vocab_size)  # (B*T, V)
     labels_flat = target_output.reshape(-1)  # (B*T)
     mask_flat = target_output_mask.reshape(-1)  # (B*T)
-    # Per-token loss
+
     per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
         logits=logits_flat,
         labels=labels_flat,
     )
-
-    # Apply mask
     masked_loss = per_token_loss * mask_flat
-    total_loss = masked_loss.sum()
+    cross_entropy_loss = masked_loss.sum() / target_output_mask.sum()
     num_tokens = mask_flat.sum()
 
     # Compute accuracy
     pred = jnp.argmax(logits_flat, axis=-1)
-    jax.debug.print("src_input {}", src_input)
-    jax.debug.print("pred {}", pred)
-    jax.debug.print("labels {} \n", labels_flat)
     correct_tokens = jnp.sum((pred == labels_flat) * mask_flat)
 
-    return correct_tokens, total_loss, num_tokens
+    return correct_tokens, cross_entropy_loss, num_tokens
