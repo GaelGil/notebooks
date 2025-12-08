@@ -64,12 +64,6 @@ def main():
         step=step
     )
 
-    logging.info("Saving the final model")
-    params = jax.device_get(state.params)
-    checkpointer = ocp.Checkpointer(ocp.StandardCheckpointHandler())
-    checkpointer.save(
-        config.FINAL_SAVE_PATH.resolve(), args=ocp.args.StandardSave(params)
-    )
 
 
 if __name__ == "__main__":
