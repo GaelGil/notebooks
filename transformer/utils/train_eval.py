@@ -153,10 +153,10 @@ def train_step(
         """
         logits = state.apply_fn(
             {"params": params},
-            src_input,
-            src_mask,
-            target_input,
-            target_mask,
+            src=src_input,
+            src_mask=src_mask,
+            target=target_input,
+            target_mask=target_mask,
             is_training=True,
             rngs={"dropout": dropout_rng},
         )
@@ -241,10 +241,10 @@ def eval_step(state: train_state.TrainState, batch):
     # pass batch through the model in training state
     logits = state.apply_fn(
         {"params": state.params},
-        src_input,
-        src_mask,
-        target_input,
-        target_mask,
+        src=src_input,
+        src_mask=src_mask,
+        target=target_input,
+        target_mask=target_mask,
         is_training=False,
     )
 

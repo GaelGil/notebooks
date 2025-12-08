@@ -60,8 +60,18 @@ def init_train_state(config: Config, vocab_size: int) -> train_state.TrainState:
 
     params = variables["params"]
 
+    warmup_steps = 4000
+    total_steps = 100000
+
+    schedule = optax.warmup_cosine_decay_schedule(
+        init_value=0.0,
+        peak_value=config.LR,
+        warmup_steps=warmup_steps,
+        decay_steps=total_steps - warmup_steps,
+    )
+
     # initliaze the optimizer
-    optimizer = optax.adamw(learning_rate=config.LR)
+    optimizer = optax.adamw(learning_rate=schedule)
 
     # define the train state
     # apply_fn tells flax how to run a forward pass
