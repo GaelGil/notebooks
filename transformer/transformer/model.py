@@ -1,5 +1,6 @@
 import jax.numpy as jnp
 from flax import linen as nn
+# import jax
 
 
 class InputEmbeddings(nn.Module):
@@ -154,90 +155,40 @@ class MultiHeadAttentionBlock(nn.Module):
         self.w_v = nn.Dense(features=self.d_model, dtype=jnp.float32)
         self.w_o = nn.Dense(features=self.d_model, dtype=jnp.float32)
         self.dropout = nn.Dropout(rate=self.dropout_rate)
+        self.attention = nn.MultiHeadDotProductAttention(
+            num_heads=self.n_heads,
+            qkv_features=self.d_model,
+            dropout_rate=self.dropout_rate,
+        )
 
     @staticmethod
-    def flash_attention(q, k, v, dropout, is_training, mask=None, block_size=64):
-        """
-        FlashAttention forward pass implemented from scratch.
-
-        Args:
-            q, k, v: (B, H, L, d)
-            mask: (B, 1, L, L) boolean mask or None
-        Returns:
-            output: (B, H, L, d)
-        """
-
-        B, H, L, d_k = q.shape
-        scale = 1.0 / jnp.sqrt(d_k)  # scale factor
-
-        # Output tensor
-        output = jnp.zeros_like(q)
-
-        # Running softmax stats
-        m = jnp.full((B, H, L), -jnp.inf)  # max logits
-        l = jnp.zeros((B, H, L))  # sum exp
-
-        # Iterate over query blocks
-        # Iterate over query blocks
-        for q_start in range(0, L, block_size):
-            q_end = min(q_start + block_size, L)
-            q_block_len = q_end - q_start
-            if q_block_len <= 0:
-                continue  # skip empty query block
-
-            q_block = q[:, :, q_start:q_end, :]  # (B, H, q_block_len, D)
-            out_block = jnp.zeros_like(q_block)
-            m_block = m[:, :, q_start:q_end]
-            l_block = l[:, :, q_start:q_end]
-
-            # Iterate over key/value blocks
-            for kv_start in range(0, L, block_size):
-                kv_end = min(kv_start + block_size, L)
-                kv_block_len = kv_end - kv_start
-                if kv_block_len <= 0:
-                    continue  # skip empty key/value block
-
-                k_block = k[:, :, kv_start:kv_end, :]
-                v_block = v[:, :, kv_start:kv_end, :]
-
-                # Skip any empty blocks
-                if q_block.shape[2] == 0 or k_block.shape[2] == 0:
-                    continue  # skip empty query or key/value blocks
-
-                # Compute attention logits
-                logits = jnp.einsum("bhqd,bhkd->bhqk", q_block, k_block) * scale
-
-                # Apply mask if provided
-                if mask is not None:
-                    local_mask = mask[:, :, q_start:q_end, kv_start:kv_end]
-                    # Skip empty mask slices
-                    if local_mask.shape[2] == 0 or local_mask.shape[3] == 0:
-                        continue
-                    logits = jnp.where(local_mask, logits, -1e9)
-
-                # Update running max for numerical stability
-                new_m = jnp.maximum(m_block, jnp.max(logits, axis=-1))
-                exp_m_block = jnp.exp(m_block - new_m)
-                exp_logits = jnp.exp(logits - new_m[..., None])
-                new_l = exp_m_block * l_block + jnp.sum(exp_logits, axis=-1)
-
-                # Update output block
-                out_block = (
-                    out_block * (exp_m_block * l_block / new_l)[..., None]
-                    + jnp.einsum("bhqk,bhkd->bhqd", exp_logits, v_block)
-                    / new_l[..., None]
-                )
-
-                # Update running stats
-                m_block = new_m
-                l_block = new_l
-
-            # Write back results
-            output = output.at[:, :, q_start:q_end, :].set(out_block)
-            m = m.at[:, :, q_start:q_end].set(m_block)
-            l = l.at[:, :, q_start:q_end].set(l_block)
-
-        return output
+    def scaled_dot_product_attention(
+        query: jnp.ndarray,
+        key: jnp.ndarray,
+        value: jnp.ndarray,
+        mask: jnp.ndarray,
+        dropout: nn.Dropout,
+        is_training: bool,
+        d_k,
+    ) -> jnp.ndarray:
+        # d_k = query.shape[-1]  # get dimension of last axis
+        # (Q * K^T)/sqrt(d_k)
+        attention_scores = jnp.matmul(query, key.swapaxes(-2, -1)) / jnp.sqrt(d_k)
+        if mask is not None:
+            # mask should be (B, L) OR (B, 1, 1, L)
+            if mask.ndim == 2:
+                # convert (B, L) → (B, 1, 1, L)
+                mask = mask[:, None, None, :]
+            elif mask.ndim == 3:
+                # convert (B, 1, L) → (B, 1, 1, L)
+                mask = mask[:, :, None, :]
+        # softmax(Q * K^T/sqrt(d_k))
+        attention_scores = nn.softmax(attention_scores, axis=-1)
+        if dropout:
+            attention_scores = dropout(attention_scores, deterministic=not is_training)
+        # (Q * K^T)/sqrt(d_k) * V
+        x = jnp.matmul(attention_scores, value)
+        return x
 
     @nn.compact
     def __call__(
@@ -259,47 +210,57 @@ class MultiHeadAttentionBlock(nn.Module):
             jnp.ndarray
         """
         # (seq_len, d_model) * (d_model, d_model) -> (seq_len, d_model)
-        query: jnp.ndarray = self.w_q(q)
-        key: jnp.ndarray = self.w_k(k)
-        value: jnp.ndarray = self.w_v(v)
+        # query: jnp.ndarray = self.w_q(q)
+        # key: jnp.ndarray = self.w_k(k)
+        # value: jnp.ndarray = self.w_v(v)
 
-        # (seq_len, d_model) -> (seq_len, n_heads, d_k) -> (n_heads, seq_len, d_k)
-        # where dk = d_model // n_heads
-        # (n, 512) -> (n, h, dk) -> (h, n, dk)
-        # (3, 512) -> (3, 8, 64) -> (8, 3, 64)
-        #
-        # Sequence length n where each token is of dimension 512 ->
-        # Sequence length n where each token is an array of 8 vectors of dimension 64 ->
-        # Explaination: In a sequence the embeddings are split into 8 parts so that each head can focus on different parts of the embeddings
-        # 8 Heads where each head contains a matrix of n vectors of dimension 64
-        # keep the batch dimension the same and the sequence length the same
-        # split the embeddings into 8 heads
+        # # (seq_len, d_model) -> (seq_len, n_heads, d_k) -> (n_heads, seq_len, d_k)
+        # # where dk = d_model // n_heads
+        # # (n, 512) -> (n, h, dk) -> (h, n, dk)
+        # # (3, 512) -> (3, 8, 64) -> (8, 3, 64)
+        # #
+        # # Sequence length n where each token is of dimension 512 ->
+        # # Sequence length n where each token is an array of 8 vectors of dimension 64 ->
+        # # Explaination: In a sequence the embeddings are split into 8 parts so that each head can focus on different parts of the embeddings
+        # # 8 Heads where each head contains a matrix of n vectors of dimension 64
+        # # keep the batch dimension the same and the sequence length the same
+        # # split the embeddings into 8 heads
 
-        # with the encoder these will be the same
-        B, L_target, _ = query.shape
-        _, L_src, _ = key.shape
+        # # with the encoder these will be the same
+        # B, L_target, _ = query.shape
+        # _, L_src, _ = key.shape
 
-        # (b, seq_len, d_model) -> (b, n_heads, seq_len, d_k)
-        # split into n_heads then order axes as (b, h, seq_len, d_k)
-        query = query.reshape(B, L_target, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
-        key = key.reshape(B, L_src, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
-        value = value.reshape(B, L_src, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
+        # # (b, seq_len, d_model) -> (b, n_heads, seq_len, d_k)
+        # # split into n_heads then order axes as (b, h, seq_len, d_k)
+        # query = query.reshape(B, L_target, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
+        # key = key.reshape(B, L_src, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
+        # value = value.reshape(B, L_src, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
 
-        # apply scaled dot product attention to each head
-        x = MultiHeadAttentionBlock.flash_attention(
-            q=query,
-            k=key,
-            v=value,
-            dropout=self.dropout,
-            is_training=is_training,
+        # # apply scaled dot product attention to each head
+        # x = MultiHeadAttentionBlock.scaled_dot_product_attention(
+        #     query=query,
+        #     key=key,
+        #     value=value,
+        #     mask=mask,
+        #     dropout=self.dropout,
+        #     is_training=is_training,
+        #     d_k=self.d_k,
+        # )
+
+        # x = nn.MultiHeadDotProductAttention(
+        #     num_heads=self.n_heads, dtype=jnp.float32, deterministic=not is_training
+        # )
+        # # reshape back to (seq_len, d_model)
+        # # order axis as (b, seq_len, h, d_k) then reshape (b, seq_len, d_model)
+        # x = jnp.transpose(x, (0, 2, 1, 3)).reshape(B, L_target, self.d_model)
+        # x = self.w_o(x)
+        return self.attention(
+            inputs_q=q,
+            inputs_k=k,
+            inputs_v=v,
             mask=mask,
+            deterministic=not is_training,
         )
-
-        # reshape back to (seq_len, d_model)
-        # order axis as (b, seq_len, h, d_k) then reshape (b, seq_len, d_model)
-        x = jnp.transpose(x, (0, 2, 1, 3)).reshape(B, L_target, self.d_model)
-        x = self.w_o(x)
-        return x
 
 
 class EncoderBlock(nn.Module):
@@ -597,6 +558,10 @@ class Transformer(nn.Module):
         target_mask: jnp.ndarray,
         is_training: bool,
     ):
+        # jax.debug.print("src {}", src[0])
+        # jax.debug.print("src_mask {}", src_mask[0])
+        # jax.debug.print("target {}", target[0])
+        # jax.debug.print("target_mask {}", target_mask[0])
         # get the embeddings for the src
         src_embeddings = self.src_embeddings(x=src)
         # apply positional encoding to the src embeddings
