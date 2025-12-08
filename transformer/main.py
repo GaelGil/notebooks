@@ -35,7 +35,7 @@ def main():
         model_prefix="target",
     )
 
-    logging.info("Initializing the datasets ...")
+    # initialize the dataset instances
     dataset_one = LangDataset(
         src_file=config.SRC_FILE,
         target_file=config.TARGET_FILE,
@@ -44,7 +44,6 @@ def main():
         seq_len=config.SEQ_LEN,
         prefix=config.PREFIXES[0],
     )
-
     dataset_two = LangDataset(
         dataset_name=config.DATA_PATH,
         src_lang=config.LANG_SRC_TWO,
@@ -52,33 +51,6 @@ def main():
         seq_len=config.SEQ_LEN,
         prefix=config.PREFIXES[1],
     )
-
-    logging.info(
-        f"Loading the data from {config.SRC_FILE} and {config.TARGET_FILE} ..."
-    )
-    logging.info(f"Loading the data from {config.DATA_PATH} ...")
-    raw_src_one, raw_target_one = dataset_one.load_data()
-    raw_src_two, raw_target_two = dataset_two.load_data()
-
-    if Path(config.TARGET_CORPUS_PATH).exists():
-        logging.info("Loading the src and target tokenizer ...")
-        src_tokenizer.load_tokenizer()
-        target_tokenizer.load_tokenizer()
-    else:
-        logging.info("No tokenizer found, training a src and target tokenizer ...")
-        src_tokenizer.train_tokenizer(
-            text_one=raw_src_one,
-            text_two=raw_src_two,
-            prefixs=config.PREFIXES,
-        )
-        target_tokenizer.train_tokenizer(
-            text_one=raw_target_one,
-            text_two=raw_target_two,
-            prefixs=config.PREFIXES,
-        )
-
-    src_vocab_size = src_tokenizer.get_vocab_size()
-    target_vocab_size = target_tokenizer.get_vocab_size()
 
     if config.SPLITS_PATH.exists():
         logging.info("Loading the splits ...")
@@ -96,17 +68,39 @@ def main():
                 target_name=config.LANG_TARGET_TWO,
             )
         )
+
+    if Path(config.TOKENIZER_MODEL_PATH).exists():
+        logging.info("Loading the tokenizer ...")
+        src_tokenizer.load_tokenizer()
+        target_tokenizer.load_tokenizer()
     else:
-        logging.info("Prepping the data ...")
-        src_one, target_one = dataset_one.prep_data(
-            raw_src_one,
-            raw_target_one,
-            tokenizer=src_tokenizer,
+        logging.info(
+            f"Loading the data from {config.SRC_FILE} and {config.TARGET_FILE} ..."
         )
-        src_two, target_two = dataset_two.prep_data(
+        logging.info(f"Loading the data from {config.DATA_PATH} ...")
+        raw_src_one, raw_target_one = dataset_one.load_data()
+        raw_src_two, raw_target_two = dataset_two.load_data()
+
+        logging.info("Training a src and target tokenizer ...")
+        src_tokenizer.train_tokenizer(
+            text_one=raw_src_one,
+            text_two=raw_src_two,
+            prefixs=config.PREFIXES,
+        )
+        target_tokenizer.train_tokenizer(
+            text_one=raw_target_one,
+            text_two=raw_target_two,
+        )
+        logging.info("Prepping the data ...")
+        src_one, src_two = src_tokenizer.prep_data(
+            raw_src_one,
             raw_src_two,
-            raw_target_two,
-            tokenizer=target_tokenizer,
+            add_bos=False,
+            add_eos=False,
+            prefix=config.PREFIXES,
+        )
+        target_one, target_two = target_tokenizer.prep_data(
+            raw_target_one, raw_target_two, add_bos=True, add_eos=True
         )
         logging.info("Splitting the data ...")
         src_one_train, src_one_val, target_one_train, target_one_val, _, _ = (
@@ -132,6 +126,12 @@ def main():
             )
         )
 
+    src_vocab_size = src_tokenizer.get_vocab_size()
+    target_vocab_size = target_tokenizer.get_vocab_size()
+    print(src_tokenizer.decode([39]))
+    print(target_tokenizer.decode([39]))
+    print(src_tokenizer.decode([4]))
+    print(target_tokenizer.decode([4]))
     train_loader = DataLoader(
         src=src_one_train,
         target=target_one_train,
@@ -139,7 +139,6 @@ def main():
         seq_len=config.SEQ_LEN,
         shuffle=True,
     )
-
     val_loader = DataLoader(
         src=src_one_val,
         target=target_one_val,

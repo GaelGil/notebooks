@@ -38,7 +38,7 @@ class Config(BaseModel):
 
 
 config = Config(
-    BATCH_SIZE=8,
+    BATCH_SIZE=16,
     EPOCHS=100,
     LR=3e-4,
     SEQ_LEN=256,
@@ -58,7 +58,7 @@ config = Config(
     VAL_SPLIT=0.1,
     TEST_SPLIT=0.1,
     NUM_WORKERS=0,
-    BEST_FN="val_accuracy",
+    BEST_FN="eval_perplexity",
     SRC_FILE=Path("./data/TED2013.en-es.es"),
     TARGET_FILE=Path("./data/TED2013.en-es.en"),
     TOKENIZER_PATH="./tokenizer",

@@ -1,5 +1,5 @@
 import os
-
+import jax.numpy as jnp
 import sentencepiece as spm
 
 
@@ -10,6 +10,8 @@ class Tokenizer:
         tokenizer_path: str = None,
         tokenizer_model_path: str = None,
         model_prefix: str = None,
+        seq_len: int = None,
+        prefix: str = None,
     ):
         self.corpus_path = corpus_path
         self.tokenizer_path = tokenizer_path
@@ -17,6 +19,8 @@ class Tokenizer:
         self.sp = spm.SentencePieceProcessor()
         self.vocab_size = None
         self.model_prefix = model_prefix
+        self.seq_len = seq_len
+        self.prefix: str = prefix
 
     def write_txt(self, data: list, f: object):
         # Write list to file
@@ -41,8 +45,6 @@ class Tokenizer:
         # Combine into one file for tokenizer
         with open(self.corpus_path, "w", encoding="utf-8") as f:
             for sentence_list in [text_one, text_two]:
-                print(sentence_list)
-                print()
                 self.write_txt(data=sentence_list, f=f)
 
     def train_tokenizer(self, text_one, text_two, prefixs=None):
@@ -80,6 +82,52 @@ class Tokenizer:
 
     def load_tokenizer(self):
         self.sp.Load(f"{self.tokenizer_model_path}/{self.model_prefix}.model")
+
+    def pad_sequences(self, sequences: list, pad_id: int = 0, max_len: int = None):
+        """
+        Args:
+            sequences: list of list of token ids
+            pad_id: integer used for padding
+            max_len: if None, pad to the length of the longest sequence
+
+        Returns:
+            padded: numpy array of shape [N, max_len]
+        """
+        padded = []
+        for seq in sequences:
+            seq = seq[:max_len]  # truncate if too long
+            padding = [pad_id] * (max_len - len(seq))
+            padded.append(seq + padding)
+        return jnp.array(padded, dtype=jnp.int32)
+
+    def prep_data(self, data, data_two, add_bos=False, add_eos=False, prefix=None):
+        data_ids = []
+        data_two_ids = []
+
+        # prefix = f"Translate {src_fname} to {target_fname} "
+        # prefix = tokenizer.encode(text=prefix, add_bos=False, add_eos=False)
+        for src, target in zip(data, data_two):
+            # encode and add bos and eos
+            data_ids.append(
+                self.encode(
+                    text=src, add_bos=add_bos, add_eos=add_eos, prefix=prefix[0]
+                )
+            )
+            data_two_ids.append(
+                self.encode(
+                    text=target, add_bos=add_bos, add_eos=add_eos, prefix=prefix[1]
+                )
+            )
+
+        # pad sequences up to seq_len
+        data_ids_padded = self.pad_sequences(
+            data_ids, pad_id=self.sp.pad_id(), max_len=self.seq_len
+        )
+        data_two_ids_padded = self.pad_sequences(
+            data_two_ids, pad_id=self.sp.pad_id(), max_len=self.seq_len
+        )
+
+        return data_ids_padded, data_two_ids_padded
 
     def encode(
         self,

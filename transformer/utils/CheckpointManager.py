@@ -11,7 +11,7 @@ class CheckpointManager:
             max_to_keep=config.MAX_TO_KEEP,
             save_interval_steps=config.SAVE_INTERVAL,
             enable_async_checkpointing=config.ASYNC_CHECKPOINTING,
-            best_fn=lambda metrics: metrics[config.BEST_FN],
+            best_fn=config.BEST_FN,
         )
 
         self.registry = ocp.handlers.DefaultCheckpointHandlerRegistry()
@@ -73,6 +73,7 @@ class CheckpointManager:
                     metrics=ocp.args.JsonRestore(),
                 ),
             )
+
             # update state to the restored state
             state = restored.state
         else:
