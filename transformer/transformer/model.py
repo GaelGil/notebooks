@@ -1,6 +1,5 @@
 import jax.numpy as jnp
 from flax import linen as nn
-# import jax
 
 
 class InputEmbeddings(nn.Module):
@@ -25,7 +24,6 @@ class InputEmbeddings(nn.Module):
         # These are learned.
         self.embedding = nn.Embed(num_embeddings=self.vocab_size, features=self.d_model)
 
-    @nn.compact
     def __call__(self, x):
         # Get the embedding for each word in x
         # multiply by the square root of d_model for normalization and stability during training
@@ -49,7 +47,7 @@ class PositionalEncoding(nn.Module):
 
         self.pe = self.param(
             "positional_encoding",
-            nn.initializers.zeros,
+            nn.initializers.normal(stddev=0.02),
             (1, self.seq_len, self.d_model),
         )
 
@@ -84,7 +82,6 @@ class LayerNorm(nn.Module):
         self.alpha = self.param("alpha", nn.initializers.ones, (self.d_model))
         self.bias = self.param("bias", nn.initializers.zeros, (self.d_model))
 
-    @nn.compact
     def __call__(self, x: jnp.ndarray):
         # compute mean and std for each patch in the sequence
         # (batch, seq_len, d_model)
@@ -117,7 +114,6 @@ class FeedForwardBlock(nn.Module):
         self.dropout = nn.Dropout(rate=self.dropout_rate)
         self.linear_2 = nn.Dense(features=self.d_model, dtype=jnp.float32)
 
-    @nn.compact
     def __call__(self, x: jnp.ndarray, is_training: bool):
         # simple feed forward network
         # (seq_len, d_model) --> (dff, d_model) --> (seq_len, d_model)
@@ -149,48 +145,13 @@ class MultiHeadAttentionBlock(nn.Module):
         """
 
         assert self.d_model % self.n_heads == 0, "d_model must be divisible by n_heads"
-        self.d_k = self.d_model // self.n_heads  # size of each head
-        self.w_q = nn.Dense(features=self.d_model, dtype=jnp.float32)
-        self.w_k = nn.Dense(features=self.d_model, dtype=jnp.float32)
-        self.w_v = nn.Dense(features=self.d_model, dtype=jnp.float32)
-        self.w_o = nn.Dense(features=self.d_model, dtype=jnp.float32)
-        self.dropout = nn.Dropout(rate=self.dropout_rate)
+
         self.attention = nn.MultiHeadDotProductAttention(
             num_heads=self.n_heads,
             qkv_features=self.d_model,
             dropout_rate=self.dropout_rate,
         )
 
-    @staticmethod
-    def scaled_dot_product_attention(
-        query: jnp.ndarray,
-        key: jnp.ndarray,
-        value: jnp.ndarray,
-        mask: jnp.ndarray,
-        dropout: nn.Dropout,
-        is_training: bool,
-        d_k,
-    ) -> jnp.ndarray:
-        # d_k = query.shape[-1]  # get dimension of last axis
-        # (Q * K^T)/sqrt(d_k)
-        attention_scores = jnp.matmul(query, key.swapaxes(-2, -1)) / jnp.sqrt(d_k)
-        if mask is not None:
-            # mask should be (B, L) OR (B, 1, 1, L)
-            if mask.ndim == 2:
-                # convert (B, L) → (B, 1, 1, L)
-                mask = mask[:, None, None, :]
-            elif mask.ndim == 3:
-                # convert (B, 1, L) → (B, 1, 1, L)
-                mask = mask[:, :, None, :]
-        # softmax(Q * K^T/sqrt(d_k))
-        attention_scores = nn.softmax(attention_scores, axis=-1)
-        if dropout:
-            attention_scores = dropout(attention_scores, deterministic=not is_training)
-        # (Q * K^T)/sqrt(d_k) * V
-        x = jnp.matmul(attention_scores, value)
-        return x
-
-    @nn.compact
     def __call__(
         self,
         q: jnp.ndarray,
@@ -209,51 +170,7 @@ class MultiHeadAttentionBlock(nn.Module):
         Returns:
             jnp.ndarray
         """
-        # (seq_len, d_model) * (d_model, d_model) -> (seq_len, d_model)
-        # query: jnp.ndarray = self.w_q(q)
-        # key: jnp.ndarray = self.w_k(k)
-        # value: jnp.ndarray = self.w_v(v)
 
-        # # (seq_len, d_model) -> (seq_len, n_heads, d_k) -> (n_heads, seq_len, d_k)
-        # # where dk = d_model // n_heads
-        # # (n, 512) -> (n, h, dk) -> (h, n, dk)
-        # # (3, 512) -> (3, 8, 64) -> (8, 3, 64)
-        # #
-        # # Sequence length n where each token is of dimension 512 ->
-        # # Sequence length n where each token is an array of 8 vectors of dimension 64 ->
-        # # Explaination: In a sequence the embeddings are split into 8 parts so that each head can focus on different parts of the embeddings
-        # # 8 Heads where each head contains a matrix of n vectors of dimension 64
-        # # keep the batch dimension the same and the sequence length the same
-        # # split the embeddings into 8 heads
-
-        # # with the encoder these will be the same
-        # B, L_target, _ = query.shape
-        # _, L_src, _ = key.shape
-
-        # # (b, seq_len, d_model) -> (b, n_heads, seq_len, d_k)
-        # # split into n_heads then order axes as (b, h, seq_len, d_k)
-        # query = query.reshape(B, L_target, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
-        # key = key.reshape(B, L_src, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
-        # value = value.reshape(B, L_src, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
-
-        # # apply scaled dot product attention to each head
-        # x = MultiHeadAttentionBlock.scaled_dot_product_attention(
-        #     query=query,
-        #     key=key,
-        #     value=value,
-        #     mask=mask,
-        #     dropout=self.dropout,
-        #     is_training=is_training,
-        #     d_k=self.d_k,
-        # )
-
-        # x = nn.MultiHeadDotProductAttention(
-        #     num_heads=self.n_heads, dtype=jnp.float32, deterministic=not is_training
-        # )
-        # # reshape back to (seq_len, d_model)
-        # # order axis as (b, seq_len, h, d_k) then reshape (b, seq_len, d_model)
-        # x = jnp.transpose(x, (0, 2, 1, 3)).reshape(B, L_target, self.d_model)
-        # x = self.w_o(x)
         return self.attention(
             inputs_q=q,
             inputs_k=k,
@@ -307,7 +224,6 @@ class EncoderBlock(nn.Module):
         self.norm1 = LayerNorm(d_model=self.d_model)
         self.norm2 = LayerNorm(d_model=self.d_model)
 
-    @nn.compact
     def __call__(self, x: jnp.ndarray, src_mask: jnp.ndarray, is_training: bool):
         # attention block output
         multi_head_attention_output = self.multi_head_attention_block(
@@ -345,7 +261,6 @@ class Encoder(nn.Module):
         self.blocks: list[EncoderBlock] = self.encoder_blocks
         self.norm: LayerNorm = LayerNorm(d_model=self.d_model)
 
-    @nn.compact
     def __call__(self, x: jnp.ndarray, mask: jnp.ndarray, is_training: bool):
         for block in self.blocks:
             x = block(x=x, src_mask=mask, is_training=is_training)
@@ -375,7 +290,6 @@ class DecoderBlock(nn.Module):
         self.norm2 = LayerNorm(d_model=self.d_model)
         self.norm3 = LayerNorm(d_model=self.d_model)
 
-    @nn.compact
     def __call__(
         self,
         x: jnp.ndarray,
@@ -435,7 +349,6 @@ class Decoder(nn.Module):
         self.blocks: list[DecoderBlock] = self.decoder_blocks
         self.norm: LayerNorm = LayerNorm(d_model=self.d_model)
 
-    @nn.compact
     def __call__(
         self,
         x: jnp.ndarray,
@@ -472,7 +385,6 @@ class ProjectionLayer(nn.Module):
     def setup(self) -> None:
         self.linear = nn.Dense(features=self.vocab_size, dtype=jnp.float32)
 
-    @nn.compact
     def __call__(self, x: jnp.ndarray):
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, vocab_size)
         return self.linear(x)
@@ -558,10 +470,6 @@ class Transformer(nn.Module):
         target_mask: jnp.ndarray,
         is_training: bool,
     ):
-        # jax.debug.print("src {}", src[0])
-        # jax.debug.print("src_mask {}", src_mask[0])
-        # jax.debug.print("target {}", target[0])
-        # jax.debug.print("target_mask {}", target_mask[0])
         # get the embeddings for the src
         src_embeddings = self.src_embeddings(x=src)
         # apply positional encoding to the src embeddings

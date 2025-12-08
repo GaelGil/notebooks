@@ -20,7 +20,12 @@ def main():
     device = jax.devices("gpu")[0]
     logging.info(f"Using device: {device}")
 
-    tokenizer = Tokenizer(
+    src_tokenizer = Tokenizer(
+        joint_corpus_path=config.JOINT_CORPUS_PATH,
+        tokenizer_model_path=config.TOKENIZER_MODEL_PATH,
+        tokenizer_path=config.TOKENIZER_PATH,
+    )
+    target_tokenizer = Tokenizer(
         joint_corpus_path=config.JOINT_CORPUS_PATH,
         tokenizer_model_path=config.TOKENIZER_MODEL_PATH,
         tokenizer_path=config.TOKENIZER_PATH,
@@ -50,18 +55,24 @@ def main():
 
     if Path(config.TOKENIZER_MODEL_PATH).exists():
         logging.info("Loading the tokenizer ...")
-        tokenizer.load_tokenizer()
+        src_tokenizer.load_tokenizer()
+        target_tokenizer.load_tokenizer()
     else:
         logging.info("Training the tokenizer ...")
-        tokenizer.train_tokenizer(
-            src_one=raw_src_one,
-            target_one=raw_target_one,
-            src_two=raw_src_two,
-            target_two=raw_target_two,
+        src_tokenizer.train_tokenizer(
+            text_one=raw_src_one,
+            text_two=raw_src_two,
+            prefixs=config.PREFIXES,
+        )
+        target_tokenizer.train_tokenizer(
+            text_one=raw_target_one,
+            text_two=raw_target_one,
             prefixs=config.PREFIXES,
         )
 
-    if Path("./data/splits/test_nah.npy").exists():
+    print(src_tokenizer.decode([4]))
+
+    if config.SPLITS_PATH.exists():
         logging.info("Loading the splits ...")
         src_one_train, src_one_val, target_one_train, target_one_val, _, _ = (
             dataset_one.load_splits(
@@ -82,12 +93,12 @@ def main():
         src_one, target_one = dataset_one.prep_data(
             raw_src_one,
             raw_target_one,
-            tokenizer=tokenizer,
+            tokenizer=src_tokenizer,
         )
         src_two, target_two = dataset_two.prep_data(
             raw_src_two,
             raw_target_two,
-            tokenizer=tokenizer,
+            tokenizer=target_tokenizer,
         )
         logging.info("Splitting the data ...")
         src_one_train, src_one_val, target_one_train, target_one_val, _, _ = (
@@ -130,12 +141,17 @@ def main():
     )
     # print(train_loader.src.shape)
     # print(val_loader.src.shape)
-    print(f"tokenizer vocab size: {tokenizer.vocab_size}")
-    print(tokenizer.sp.encode("hello world"))
+    print(f"src vocab size: {src_tokenizer.vocab_size}")
+    print(f"target vocab size: {target_tokenizer.vocab_size}")
+    # print(src_tokenizer.sp.encode("hello world"))
 
     # initialize the train state
     logging.info("Initializing the train state ...")
-    state = init_train_state(config=config, vocab_size=tokenizer.vocab_size)
+    state = init_train_state(
+        config=config,
+        src_vocab_size=src_tokenizer.vocab_size,
+        target_vocab_size=target_tokenizer.vocab_size,
+    )
     # print("ID 0 =", tokenizer.sp.id_to_piece(0))
     # print("ID 1 =", tokenizer.sp.id_to_piece(1))
     # print("ID 2 =", tokenizer.sp.id_to_piece(2))

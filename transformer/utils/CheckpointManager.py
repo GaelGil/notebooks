@@ -16,12 +16,6 @@ class CheckpointManager:
 
         self.registry = ocp.handlers.DefaultCheckpointHandlerRegistry()
 
-        # self.registry.add("state", ocp.args.StandardSave)
-        # self.registry.add("state", ocp.args.StandardRestore)
-
-        # self.registry.add("metrics", ocp.args.JsonSave)
-        # self.registry.add("metrics", ocp.args.JsonRestore)
-
         # Define the checkpoint manager
         self.manager = None
 

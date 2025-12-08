@@ -35,60 +35,25 @@ def train(
         None
     """
 
+    # loader_rng = jax.random.PRNGKey(0)
+    # eval_accuracy, eval_loss = eval(state=state, loader=val_loader, rng=None)
+    # train_accuracy, train_loss = eval(state=state, loader=train_loader, rng=loader_rng)
+
     rng = jax.random.PRNGKey(0)
     # loop over the dataset for num_epochs
     for epoch in range(step, epochs):
         # split for this epoch once
         rng, loader_rng = jax.random.split(rng)
 
-        # split again for dropout
-        rng, dropout_base = jax.random.split(rng)
         # iterate through each batch in the dataset
         for batch in train_loader.__iter__(rng=loader_rng):
+            # split again for dropout
+            rng, dropout_base = jax.random.split(rng)
             dropout_base, dropout_rng = jax.random.split(dropout_base)
             # train on batch
-            #     # src_input = batch["src_input"]
-            #     # src_mask = batch["src_mask"]
-            #     # target_input = batch["target_input"]
-            #     # target_mask = batch["target_mask"]
-            #     # target_output = batch["target_output"]
-            #     # target_output_mask = batch["target_output_mask"]
-            #     # print(f"src_input shape: {src_input.shape}")
-            #     # print(f"src_mask shape: {src_mask.shape}")
-            #     # print(f"target_input shape: {target_input.shape}")
-            #     # print(f"target_mask shape: {target_mask.shape}")
-            #     # print(f"target_output shape: {target_output.shape}")
-            #     # print(f"target_output_mask shape: {target_output_mask.shape}")
-            #     # print("target_output_mask sums:", target_output_mask.sum(axis=1))
-            #     # print("target_output nonzero count:", (target_output != 0).sum(axis=1))
-            #     # print(jnp.unique(src_input)[:20])
-            #     # print(jnp.sum(src_input == 0))
-            #     # print(jnp.sum(target_input == 0))
 
-            #     # print("src_input:", src_input.shape, src_input.min(), src_input.max())
-            #     # print(
-            #     #     "target_input:",
-            #     #     target_input.shape,
-            #     #     target_input.min(),
-            #     #     target_input.max(),
-            #     # )
-            #     # print(
-            #     #     "target_output:",
-            #     #     target_output.shape,
-            #     #     target_output.min(),
-            #     #     target_output.max(),
-            #     # )
-            #     # print("mask sum:", target_output_mask.sum())
             state, loss = train_step(state=state, batch=batch, dropout_rng=dropout_rng)
-        #     # print(f"target_input shape: {target_input.shape}")
-        # for batch in val_loader.__iter__():
-        #     target_mask = batch["target_mask"]
-        #     target_output = batch["target_output"]
-        #     target_output_mask = batch["target_output_mask"]
-        #     print(f"target_mask shape: {target_mask[0]}")
-        #     print(f"target_output shape: {target_output[0]}")
-        #     print(f"target_output_mask shape: {target_output_mask[0]}")
-        # print()
+
         # train and val accuracy and loss
         eval_accuracy, eval_loss = eval(state=state, loader=val_loader, rng=None)
         train_accuracy, train_loss = eval(
@@ -231,12 +196,6 @@ def eval_step(state: train_state.TrainState, batch):
     target_mask = batch["target_mask"]
     target_output = batch["target_output"]
     target_output_mask = batch["target_output_mask"]
-    # jax.debug.print("src_input {}", src_input[0])
-    # jax.debug.print("src_mask {}", src_mask[0])
-    # jax.debug.print("target_input {}", target_input[0])
-    # jax.debug.print("target_mask {}", target_mask[0])
-    # jax.debug.print("target_output {}", target_output[0])
-    # jax.debug.print("target_output_mask {}", target_output_mask[0])
 
     # pass batch through the model in training state
     logits = state.apply_fn(
@@ -265,6 +224,9 @@ def eval_step(state: train_state.TrainState, batch):
 
     # Compute accuracy
     pred = jnp.argmax(logits_flat, axis=-1)
+    jax.debug.print("src_input {}", src_input)
+    jax.debug.print("pred {}", pred)
+    jax.debug.print("labels {} \n", labels_flat)
     correct_tokens = jnp.sum((pred == labels_flat) * mask_flat)
 
     return correct_tokens, total_loss, num_tokens
