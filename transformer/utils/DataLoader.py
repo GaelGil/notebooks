@@ -76,14 +76,18 @@ class DataLoader:
     def __iter__(self, rng=None):
         return self._prefetch_to_device(self._batch_generator(rng))
 
+    def shuffle_indices(self, indices, rng):
+        if rng is None:
+            raise ValueError("Shuffle=True but no RNG was provided to DataLoader")
+        indices = jax.random.permutation(rng, indices)
+        return indices
+
     def _batch_generator(self, rng):
         N = self.src.shape[0]
         indices = jnp.arange(N)
 
         if self.shuffle:
-            if rng is None:
-                raise ValueError("Shuffle=True but no RNG was provided to DataLoader")
-            indices = jax.random.permutation(rng, indices)
+            self.shuffle_indices(indices, rng)
 
         for start in range(0, N, self.batch_size):
             end = start + self.batch_size
@@ -91,18 +95,13 @@ class DataLoader:
             if len(batch_idx) < self.batch_size:
                 break
 
-            # batch_src = jnp.array(self.src[batch_idx])
-            # src_mask = self.padding_mask(batch_src)
-
             batch_src = self.src[batch_idx]
             batch_target = self.target[batch_idx]
 
-            # --- Shift target BEFORE padding ---
             target_input = batch_target[:, :-1]  # all tokens except last
             target_output = batch_target[:, 1:]  # all tokens except first
             target_input_seq_len = target_input.shape[1]
 
-            # --- Create masks ---
             target_mask = self.padding_mask(target_output)
             target_output_mask = jnp.squeeze(target_mask, axis=(1, 2))
             target_mask = self.final_mask(target_mask, target_input_seq_len)

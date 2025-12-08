@@ -62,9 +62,9 @@ config = Config(
     TARGET_FILE=Path("./data/TED2013.en-es.en"),
     TOKENIZER_PATH="./tokenizer",
     TOKENIZER_MODEL_PATH="./tokenizer/joint.model",
+    JOINT_CORPUS_PATH=Path("./tokenizer/corpus"),
     ASYNC_CHECKPOINTING=True,
-    JOINT_CORPUS_PATH=Path("./tokenizer/joint_corpus.txt"),
-    SPLITS_PATH="./data/splits",
+    SPLITS_PATH=Path("./data/splits/"),
     SAVE_INTERVAL=1,
     PREFIXES=["<es_to_en>", "<es_to_nah>"],
 )
