@@ -110,12 +110,18 @@ class Tokenizer:
             # encode and add bos and eos
             data_ids.append(
                 self.encode(
-                    text=src, add_bos=add_bos, add_eos=add_eos, prefix=prefix[0]
+                    text=src,
+                    add_bos=add_bos,
+                    add_eos=add_eos,
+                    prefix=prefix[0] if prefix else None,
                 )
             )
             data_two_ids.append(
                 self.encode(
-                    text=target, add_bos=add_bos, add_eos=add_eos, prefix=prefix[1]
+                    text=target,
+                    add_bos=add_bos,
+                    add_eos=add_eos,
+                    prefix=prefix[1] if prefix else None,
                 )
             )
 

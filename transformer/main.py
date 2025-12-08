@@ -16,9 +16,7 @@ logging.set_verbosity(logging.INFO)
 
 
 def main():
-    # set the device
-    device = jax.devices("gpu")[0]
-    logging.info(f"Using device: {device}")
+    logging.info(f"Using device: {jax.devices('gpu')[0]}")
 
     # initialize the src tokenizer instance
     src_tokenizer = Tokenizer(
@@ -26,6 +24,7 @@ def main():
         tokenizer_path=config.TOKENIZER_PATH,
         tokenizer_model_path=config.TOKENIZER_MODEL_PATH,
         model_prefix="src",
+        seq_len=config.SEQ_LEN,
     )
     # initialize the target tokenizer instance
     target_tokenizer = Tokenizer(
@@ -33,6 +32,7 @@ def main():
         tokenizer_path=config.TOKENIZER_PATH,
         tokenizer_model_path=config.TOKENIZER_MODEL_PATH,
         model_prefix="target",
+        seq_len=config.SEQ_LEN,
     )
 
     # initialize the dataset instances
@@ -42,14 +42,12 @@ def main():
         src_lang=config.LANG_SRC_ONE,
         target_lang=config.LANG_TARGET_ONE,
         seq_len=config.SEQ_LEN,
-        prefix=config.PREFIXES[0],
     )
     dataset_two = LangDataset(
         dataset_name=config.DATA_PATH,
         src_lang=config.LANG_SRC_TWO,
         target_lang=config.LANG_TARGET_TWO,
         seq_len=config.SEQ_LEN,
-        prefix=config.PREFIXES[1],
     )
 
     if config.SPLITS_PATH.exists():
@@ -69,18 +67,13 @@ def main():
             )
         )
 
-    if Path(config.TOKENIZER_MODEL_PATH).exists():
-        logging.info("Loading the tokenizer ...")
-        src_tokenizer.load_tokenizer()
-        target_tokenizer.load_tokenizer()
-    else:
+    if not Path(config.TOKENIZER_MODEL_PATH).exists():
         logging.info(
             f"Loading the data from {config.SRC_FILE} and {config.TARGET_FILE} ..."
         )
         logging.info(f"Loading the data from {config.DATA_PATH} ...")
         raw_src_one, raw_target_one = dataset_one.load_data()
         raw_src_two, raw_target_two = dataset_two.load_data()
-
         logging.info("Training a src and target tokenizer ...")
         src_tokenizer.train_tokenizer(
             text_one=raw_src_one,
@@ -91,47 +84,54 @@ def main():
             text_one=raw_target_one,
             text_two=raw_target_two,
         )
-        logging.info("Prepping the data ...")
-        src_one, src_two = src_tokenizer.prep_data(
-            raw_src_one,
-            raw_src_two,
-            add_bos=False,
-            add_eos=False,
-            prefix=config.PREFIXES,
+    else:
+        logging.info(
+            f"Loading the data from {config.SRC_FILE} and {config.TARGET_FILE} ..."
         )
-        target_one, target_two = target_tokenizer.prep_data(
-            raw_target_one, raw_target_two, add_bos=True, add_eos=True
+        logging.info(f"Loading the data from {config.DATA_PATH} ...")
+        raw_src_one, raw_target_one = dataset_one.load_data()
+        raw_src_two, raw_target_two = dataset_two.load_data()
+        src_tokenizer.load_tokenizer()
+        target_tokenizer.load_tokenizer()
+
+    logging.info("Prepping the data ...")
+    src_one, src_two = src_tokenizer.prep_data(
+        raw_src_one,
+        raw_src_two,
+        add_bos=False,
+        add_eos=False,
+        prefix=config.PREFIXES,
+    )
+    target_one, target_two = target_tokenizer.prep_data(
+        raw_target_one, raw_target_two, add_bos=True, add_eos=True
+    )
+    logging.info("Splitting the data ...")
+    src_one_train, src_one_val, target_one_train, target_one_val, _, _ = (
+        dataset_one.split(
+            src=src_one,
+            target=target_one,
+            train_size=config.TRAIN_SPLIT,
+            val_size=config.VAL_SPLIT,
+            src_name=config.LANG_SRC_ONE,
+            target_name=config.LANG_TARGET_ONE,
+            splits_path=config.SPLITS_PATH,
         )
-        logging.info("Splitting the data ...")
-        src_one_train, src_one_val, target_one_train, target_one_val, _, _ = (
-            dataset_one.split(
-                src=src_one,
-                target=target_one,
-                train_size=config.TRAIN_SPLIT,
-                val_size=config.VAL_SPLIT,
-                src_name=config.LANG_SRC_ONE,
-                target_name=config.LANG_TARGET_ONE,
-                splits_path=config.SPLITS_PATH,
-            )
+    )
+    src_two_train, src_two_val, target_two_train, target_two_val, _, _ = (
+        dataset_two.split(
+            src=src_two,
+            target=target_two,
+            train_size=config.TRAIN_SPLIT,
+            val_size=config.VAL_SPLIT,
+            src_name=config.LANG_SRC_TWO,
+            target_name=config.LANG_TARGET_TWO,
+            splits_path=config.SPLITS_PATH,
         )
-        src_two_train, src_two_val, target_two_train, target_two_val, _, _ = (
-            dataset_two.split(
-                src=src_two,
-                target=target_two,
-                train_size=config.TRAIN_SPLIT,
-                val_size=config.VAL_SPLIT,
-                src_name=config.LANG_SRC_TWO,
-                target_name=config.LANG_TARGET_TWO,
-                splits_path=config.SPLITS_PATH,
-            )
-        )
+    )
 
     src_vocab_size = src_tokenizer.get_vocab_size()
     target_vocab_size = target_tokenizer.get_vocab_size()
-    print(src_tokenizer.decode([39]))
-    print(target_tokenizer.decode([39]))
-    print(src_tokenizer.decode([4]))
-    print(target_tokenizer.decode([4]))
+
     train_loader = DataLoader(
         src=src_one_train,
         target=target_one_train,
