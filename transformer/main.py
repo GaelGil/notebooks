@@ -20,15 +20,19 @@ def main():
     device = jax.devices("gpu")[0]
     logging.info(f"Using device: {device}")
 
+    # initialize the src tokenizer instance
     src_tokenizer = Tokenizer(
-        joint_corpus_path=config.JOINT_CORPUS_PATH,
-        tokenizer_model_path=config.TOKENIZER_MODEL_PATH,
+        corpus_path=config.SRC_CORPUS_PATH,
         tokenizer_path=config.TOKENIZER_PATH,
+        tokenizer_model_path=config.TOKENIZER_MODEL_PATH,
+        model_prefix="src",
     )
+    # initialize the target tokenizer instance
     target_tokenizer = Tokenizer(
-        joint_corpus_path=config.JOINT_CORPUS_PATH,
-        tokenizer_model_path=config.TOKENIZER_MODEL_PATH,
+        corpus_path=config.TARGET_CORPUS_PATH,
         tokenizer_path=config.TOKENIZER_PATH,
+        tokenizer_model_path=config.TOKENIZER_MODEL_PATH,
+        model_prefix="target",
     )
 
     logging.info("Initializing the datasets ...")
@@ -49,16 +53,19 @@ def main():
         prefix=config.PREFIXES[1],
     )
 
-    logging.info("Loading the data ...")
+    logging.info(
+        f"Loading the data from {config.SRC_FILE} and {config.TARGET_FILE} ..."
+    )
+    logging.info(f"Loading the data from {config.DATA_PATH} ...")
     raw_src_one, raw_target_one = dataset_one.load_data()
     raw_src_two, raw_target_two = dataset_two.load_data()
 
-    if Path(config.TOKENIZER_MODEL_PATH).exists():
-        logging.info("Loading the tokenizer ...")
+    if Path(config.TARGET_CORPUS_PATH).exists():
+        logging.info("Loading the src and target tokenizer ...")
         src_tokenizer.load_tokenizer()
         target_tokenizer.load_tokenizer()
     else:
-        logging.info("Training the tokenizer ...")
+        logging.info("No tokenizer found, training a src and target tokenizer ...")
         src_tokenizer.train_tokenizer(
             text_one=raw_src_one,
             text_two=raw_src_two,
@@ -66,11 +73,12 @@ def main():
         )
         target_tokenizer.train_tokenizer(
             text_one=raw_target_one,
-            text_two=raw_target_one,
+            text_two=raw_target_two,
             prefixs=config.PREFIXES,
         )
 
-    print(src_tokenizer.decode([4]))
+    src_vocab_size = src_tokenizer.get_vocab_size()
+    target_vocab_size = target_tokenizer.get_vocab_size()
 
     if config.SPLITS_PATH.exists():
         logging.info("Loading the splits ...")
@@ -139,27 +147,18 @@ def main():
         seq_len=config.SEQ_LEN,
         shuffle=False,
     )
-    # print(train_loader.src.shape)
-    # print(val_loader.src.shape)
-    print(f"src vocab size: {src_tokenizer.vocab_size}")
-    print(f"target vocab size: {target_tokenizer.vocab_size}")
-    # print(src_tokenizer.sp.encode("hello world"))
 
     # initialize the train state
     logging.info("Initializing the train state ...")
     state = init_train_state(
         config=config,
-        src_vocab_size=src_tokenizer.vocab_size,
-        target_vocab_size=target_tokenizer.vocab_size,
+        src_vocab_size=src_vocab_size,
+        target_vocab_size=target_vocab_size,
     )
-    # print("ID 0 =", tokenizer.sp.id_to_piece(0))
-    # print("ID 1 =", tokenizer.sp.id_to_piece(1))
-    # print("ID 2 =", tokenizer.sp.id_to_piece(2))
-    # print("ID 3 =", tokenizer.sp.id_to_piece(3))
+
     # initialize the checkpoint manager
     logging.info("Initializing the checkpoint manager ...")
     checkpoint_manager = CheckpointManager(config=config)
-
     checkpoint_manager.add_to_register(
         "state", ocp.args.StandardSave, ocp.args.StandardRestore
     )
@@ -167,12 +166,12 @@ def main():
         "metrics", ocp.args.JsonSave, ocp.args.JsonRestore
     )
 
-    # create the checkpoint manager
-    logging.info("Creating the checkpoint manager ...")
+    # assemble the checkpoint manager
+    logging.info("Assembling the checkpoint manager ...")
     checkpoint_manager.create_manager()
-
     manager = checkpoint_manager.get_manager()
 
+    # restore from the latest checkpoint
     state, step = checkpoint_manager.restore(state=state, logging=logging)
 
     logging.info("Training the model")

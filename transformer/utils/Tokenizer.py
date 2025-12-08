@@ -6,19 +6,17 @@ import sentencepiece as spm
 class Tokenizer:
     def __init__(
         self,
-        joint_corpus_path: str = None,
-        tokenizer_model_path: str = None,
+        corpus_path: str = None,
         tokenizer_path: str = None,
+        tokenizer_model_path: str = None,
+        model_prefix: str = None,
     ):
-        self.joint_corpus_path = joint_corpus_path
-        self.tokenizer_model_path = tokenizer_model_path
+        self.corpus_path = corpus_path
         self.tokenizer_path = tokenizer_path
+        self.tokenizer_model_path = tokenizer_model_path
         self.sp = spm.SentencePieceProcessor()
         self.vocab_size = None
-
-    @property
-    def vocab_size(self):
-        return self.sp.get_piece_size()
+        self.model_prefix = model_prefix
 
     def write_txt(self, data: list, f: object):
         # Write list to file
@@ -28,22 +26,23 @@ class Tokenizer:
             if line:  # skip empty lines
                 f.write(line + "\n")
 
-    def create_joint_corpus(self, text_one, text_two):
+    def create_joint_corpus(self, text_one: list[str], text_two: list[str]):
         """
-        Creates a joint corpus of source and target data
+        Creates a joint for the text
 
         Args:
-            src_one: list of strings
-            target_one: list of strings
-            src_two: list of strings
-            target_two: list of strings
+            text_one: list of strings
+            text_two: list of strings
 
         Returns:
             None
         """
+        os.makedirs(os.path.dirname(self.corpus_path), exist_ok=True)
         # Combine into one file for tokenizer
-        with open(self.joint_corpus_path, "w", encoding="utf-8") as f:
+        with open(self.corpus_path, "w", encoding="utf-8") as f:
             for sentence_list in [text_one, text_two]:
+                print(sentence_list)
+                print()
                 self.write_txt(data=sentence_list, f=f)
 
     def train_tokenizer(self, text_one, text_two, prefixs=None):
@@ -59,13 +58,13 @@ class Tokenizer:
         Returns:
             None
         """
-        os.makedirs(self.tokenizer_path, exist_ok=True)
         # Create joint corpus
         self.create_joint_corpus(text_one, text_two)
+        os.makedirs(self.tokenizer_model_path, exist_ok=True)
         # Train tokenizer
         spm.SentencePieceTrainer.Train(
-            input=self.joint_corpus_path,
-            model_prefix=os.path.join(self.tokenizer_path, "joint"),
+            input=self.corpus_path,
+            model_prefix=os.path.join(self.tokenizer_model_path, self.model_prefix),
             model_type="unigram",
             character_coverage=1.0,
             pad_id=0,
@@ -74,14 +73,13 @@ class Tokenizer:
             eos_id=3,
             user_defined_symbols=prefixs,
         )
-
-        self.vocab_size = self.sp.get_piece_size()
-
-        # Load the trained tokenizer
         self.load_tokenizer()
 
+    def get_vocab_size(self):
+        return self.sp.GetPieceSize()
+
     def load_tokenizer(self):
-        self.sp.Load(self.tokenizer_model_path)
+        self.sp.Load(f"{self.tokenizer_model_path}/{self.model_prefix}.model")
 
     def encode(
         self,

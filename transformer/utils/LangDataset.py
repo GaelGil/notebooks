@@ -3,7 +3,7 @@ import random
 import jax
 import jax.numpy as jnp
 from datasets import load_dataset
-
+import os
 from utils.Tokenizer import Tokenizer
 
 
@@ -158,6 +158,7 @@ class LangDataset:
         target_name: str,
         splits_path: str,
     ):
+        os.makedirs(splits_path, exist_ok=True)
         indices = jnp.arange(len(src))
         indices = jax.random.permutation(key=jax.random.PRNGKey(0), x=indices)
         src = src[indices]

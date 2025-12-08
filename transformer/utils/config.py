@@ -30,8 +30,9 @@ class Config(BaseModel):
     ASYNC_CHECKPOINTING: bool
     TOKENIZER_PATH: str
     TOKENIZER_MODEL_PATH: str
-    JOINT_CORPUS_PATH: Path
-    SPLITS_PATH: str
+    SRC_CORPUS_PATH: Path
+    TARGET_CORPUS_PATH: Path
+    SPLITS_PATH: Path
     SAVE_INTERVAL: int
     PREFIXES: list
 
@@ -61,8 +62,9 @@ config = Config(
     SRC_FILE=Path("./data/TED2013.en-es.es"),
     TARGET_FILE=Path("./data/TED2013.en-es.en"),
     TOKENIZER_PATH="./tokenizer",
-    TOKENIZER_MODEL_PATH="./tokenizer/joint.model",
-    JOINT_CORPUS_PATH=Path("./tokenizer/corpus"),
+    TOKENIZER_MODEL_PATH="./tokenizer/model",
+    SRC_CORPUS_PATH=Path("./tokenizer/corpus/src_corpus"),
+    TARGET_CORPUS_PATH=Path("./tokenizer/corpus/target_corpus"),
     ASYNC_CHECKPOINTING=True,
     SPLITS_PATH=Path("./data/splits/"),
     SAVE_INTERVAL=1,
