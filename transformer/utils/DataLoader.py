@@ -91,8 +91,8 @@ class DataLoader:
             if len(batch_idx) < self.batch_size:
                 break
 
-            batch_src = jnp.array(self.src[batch_idx])
-            src_mask = self.padding_mask(batch_src)
+            # batch_src = jnp.array(self.src[batch_idx])
+            # src_mask = self.padding_mask(batch_src)
 
             batch_src = self.src[batch_idx]
             batch_target = self.target[batch_idx]
@@ -103,7 +103,7 @@ class DataLoader:
             target_input_seq_len = target_input.shape[1]
 
             # --- Create masks ---
-            target_mask = self.padding_mask(target_input)
+            target_mask = self.padding_mask(target_output)
             target_output_mask = jnp.squeeze(target_mask, axis=(1, 2))
             target_mask = self.final_mask(target_mask, target_input_seq_len)
 
