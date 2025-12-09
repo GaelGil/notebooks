@@ -163,17 +163,17 @@ def main():
         shuffle=False,
     )
 
-    for batch in train_loader.__iter__(rng=jax.random.PRNGKey(0)):
-        for i, (src, tgt) in enumerate(zip(batch["src_input"], batch["target_input"])):
-            input_ids = [int(x) for x in src if int(x) != tokenizer.sp.pad_id()]
-            target_ids = [int(x) for x in tgt if int(x) != tokenizer.sp.pad_id()]
+    # for batch in train_loader.__iter__(rng=jax.random.PRNGKey(0)):
+    #     for i, (src, tgt) in enumerate(zip(batch["src_input"], batch["target_input"])):
+    #         input_ids = [int(x) for x in src if int(x) != tokenizer.sp.pad_id()]
+    #         target_ids = [int(x) for x in tgt if int(x) != tokenizer.sp.pad_id()]
 
-            print(f"SAMPLE {i}")
-            print("INPUT:", input_ids)
-            print("INPUT DECODED:", tokenizer.decode(input_ids))
-            print("TARGET:", target_ids)
-            print("TARGET DECODED:", tokenizer.decode(target_ids))
-        break  # remove break if you want to iterate over all batches
+    #         print(f"SAMPLE {i}")
+    #         print("INPUT:", input_ids)
+    #         print("INPUT DECODED:", tokenizer.decode(input_ids))
+    #         print("TARGET:", target_ids)
+    #         print("TARGET DECODED:", tokenizer.decode(target_ids))
+    #     break  # remove break if you want to iterate over all batches
 
     # initialize the train state
     logging.info("Initializing the train state ...")
@@ -212,8 +212,8 @@ def main():
             logger=logging,
             scheduler=scheduler,
             step=step,
-            src_tokenizer=tokenizer,
-            target_tokenizer=tokenizer,
+            # src_tokenizer=tokenizer,
+            # target_tokenizer=tokenizer,
         )
 
     train_loader = DataLoader(
