@@ -19,6 +19,7 @@ def train(
     epochs: int,
     manager: ocp.CheckpointManager,
     logger,
+    scheduler,
     step: int = 0,
 ):
     """
@@ -44,7 +45,7 @@ def train(
     for epoch in range(step, epochs):
         # split for this epoch once
         rng, loader_rng = jax.random.split(rng)
-
+        print(f"Learning rate: {scheduler(step=epoch)}")
         # iterate through each batch in the dataset
         for batch in train_loader.__iter__(rng=loader_rng):
             # split again for dropout

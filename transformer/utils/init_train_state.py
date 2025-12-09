@@ -62,15 +62,7 @@ def init_train_state(
 
     params = variables["params"]
 
-    warmup_steps = 4000
-    total_steps = 100000
-
-    schedule = optax.warmup_cosine_decay_schedule(
-        init_value=0.0,
-        peak_value=config.LR,
-        warmup_steps=warmup_steps,
-        decay_steps=total_steps - warmup_steps,
-    )
+    schedule = transformer_schedule(d_model=config.D_MODEL, warmup=config.WARMUP_STEPS)
 
     # initliaze the optimizer
     optimizer = optax.adamw(learning_rate=schedule)
@@ -82,4 +74,14 @@ def init_train_state(
     state = train_state.TrainState.create(
         apply_fn=model.apply, params=params, tx=optimizer
     )
-    return state
+    return state, schedule
+
+
+def transformer_schedule(d_model=256, warmup=4000):
+    scale = d_model**-0.5
+
+    def schedule(step):
+        step = jnp.maximum(step, 1)
+        return scale * jnp.minimum(step**-0.5, step * warmup**-1.5)
+
+    return schedule

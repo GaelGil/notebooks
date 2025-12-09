@@ -94,40 +94,41 @@ def main():
         src_tokenizer.load_tokenizer()
         target_tokenizer.load_tokenizer()
 
-    logging.info("Prepping the data ...")
-    src_one, src_two = src_tokenizer.prep_data(
-        raw_src_one,
-        raw_src_two,
-        add_bos=False,
-        add_eos=False,
-        prefix=config.PREFIXES,
-    )
-    target_one, target_two = target_tokenizer.prep_data(
-        raw_target_one, raw_target_two, add_bos=True, add_eos=True
-    )
-    logging.info("Splitting the data ...")
-    src_one_train, src_one_val, target_one_train, target_one_val, _, _ = (
-        dataset_one.split(
-            src=src_one,
-            target=target_one,
-            train_size=config.TRAIN_SPLIT,
-            val_size=config.VAL_SPLIT,
-            src_name=config.LANG_SRC_ONE,
-            target_name=config.LANG_TARGET_ONE,
-            splits_path=config.SPLITS_PATH,
+    if not config.SPLITS_PATH.exists():
+        logging.info("Prepping the data ...")
+        src_one, src_two = src_tokenizer.prep_data(
+            raw_src_one,
+            raw_src_two,
+            add_bos=False,
+            add_eos=False,
+            prefix=config.PREFIXES,
         )
-    )
-    src_two_train, src_two_val, target_two_train, target_two_val, _, _ = (
-        dataset_two.split(
-            src=src_two,
-            target=target_two,
-            train_size=config.TRAIN_SPLIT,
-            val_size=config.VAL_SPLIT,
-            src_name=config.LANG_SRC_TWO,
-            target_name=config.LANG_TARGET_TWO,
-            splits_path=config.SPLITS_PATH,
+        target_one, target_two = target_tokenizer.prep_data(
+            raw_target_one, raw_target_two, add_bos=True, add_eos=True
         )
-    )
+        logging.info("Splitting the data ...")
+        src_one_train, src_one_val, target_one_train, target_one_val, _, _ = (
+            dataset_one.split(
+                src=src_one,
+                target=target_one,
+                train_size=config.TRAIN_SPLIT,
+                val_size=config.VAL_SPLIT,
+                src_name=config.LANG_SRC_ONE,
+                target_name=config.LANG_TARGET_ONE,
+                splits_path=config.SPLITS_PATH,
+            )
+        )
+        src_two_train, src_two_val, target_two_train, target_two_val, _, _ = (
+            dataset_two.split(
+                src=src_two,
+                target=target_two,
+                train_size=config.TRAIN_SPLIT,
+                val_size=config.VAL_SPLIT,
+                src_name=config.LANG_SRC_TWO,
+                target_name=config.LANG_TARGET_TWO,
+                splits_path=config.SPLITS_PATH,
+            )
+        )
 
     src_vocab_size = src_tokenizer.get_vocab_size()
     target_vocab_size = target_tokenizer.get_vocab_size()
@@ -147,9 +148,23 @@ def main():
         shuffle=False,
     )
 
+    for batch in train_loader.__iter__(rng=jax.random.PRNGKey(0)):
+        input_ids = [i for i in batch["src_input"][0] if i != src_tokenizer.sp.pad_id()]
+        target_ids = [
+            i for i in batch["target_input"][0] if i != target_tokenizer.sp.pad_id()
+        ]
+
+        print(f"INPUT: {input_ids}")
+        print(f"input type: {type(input_ids)}")
+        print(f"INPUT DECODED: {src_tokenizer.decode(input_ids)}")
+        print(f"TARGET: {target_ids}")
+        print(f"TARGET DECODED: {target_tokenizer.decode(target_ids)}")
+        print()
+        break
+
     # initialize the train state
     logging.info("Initializing the train state ...")
-    state = init_train_state(
+    state, scheduler = init_train_state(
         config=config,
         src_vocab_size=src_vocab_size,
         target_vocab_size=target_vocab_size,
@@ -182,6 +197,7 @@ def main():
             epochs=config.EPOCHS,
             manager=manager,
             logger=logging,
+            scheduler=scheduler,
             step=step,
         )
 
@@ -208,6 +224,7 @@ def main():
         epochs=config.EPOCHS,
         manager=manager,
         logger=logging,
+        scheduler=scheduler,
     )
 
 
