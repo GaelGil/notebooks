@@ -35,6 +35,7 @@ class Config(BaseModel):
     SPLITS_PATH: Path
     SAVE_INTERVAL: int
     PREFIXES: list
+    WARMUP_STEPS: int
 
 
 config = Config(
@@ -42,9 +43,9 @@ config = Config(
     EPOCHS=100,
     LR=3e-4,
     SEQ_LEN=256,
-    D_MODEL=256,
+    D_MODEL=512,
     D_FF=2048,
-    H=4,
+    H=8,
     N=6,
     LANG_SRC_ONE="es",
     LANG_TARGET_ONE="en",
@@ -69,4 +70,5 @@ config = Config(
     SPLITS_PATH=Path("./data/splits/"),
     SAVE_INTERVAL=1,
     PREFIXES=["<es_to_en>", "<es_to_nah>"],
+    WARMUP_STEPS=1000,
 )

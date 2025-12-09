@@ -108,9 +108,9 @@ class DataLoader:
 
             src_mask = self.padding_mask(batch_src)
 
-            # print("src_input", batch_src[0])
+            print("src_input", batch_src[0])
             # print("src_mask", src_mask[0])
-            # print("target_input", target_input[0])
+            print("target_input", target_input[0])
             # print("target_mask", target_mask[0])
             # print("target_output", target_output[0])
             # print("target_output_mask", target_output_mask[0])
