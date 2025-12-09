@@ -108,18 +108,18 @@ class DataLoader:
             batch_src = self.src[batch_idx]
             batch_target = self.target[batch_idx]
 
-            input_ids = [
-                int(x) for x in batch_src[0] if int(x) != self.tokenizer.sp.pad_id()
-            ]
-            target_ids = [
-                int(x) for x in batch_target[0] if int(x) != self.tokenizer.sp.pad_id()
-            ]
-            print("INPUT:", input_ids)
-            print("INPUT DECODED:", self.tokenizer.decode(input_ids))
-            print("TARGET:", target_ids)
-            print("TARGET DECODED:", self.tokenizer.decode(target_ids))
-            print("DATA LOADER")
-            print()
+            # input_ids = [
+            #     int(x) for x in batch_src[0] if int(x) != self.tokenizer.sp.pad_id()
+            # ]
+            # target_ids = [
+            #     int(x) for x in batch_target[0] if int(x) != self.tokenizer.sp.pad_id()
+            # ]
+            # print("INPUT:", input_ids)
+            # print("INPUT DECODED:", self.tokenizer.decode(input_ids))
+            # print("TARGET:", target_ids)
+            # print("TARGET DECODED:", self.tokenizer.decode(target_ids))
+            # print("DATA LOADER")
+            # print()
 
             target_input = batch_target[:, :-1]  # all tokens except last
             target_output = batch_target[:, 1:]  # all tokens except first
