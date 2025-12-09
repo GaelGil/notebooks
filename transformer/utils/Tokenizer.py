@@ -30,7 +30,7 @@ class Tokenizer:
             if line:  # skip empty lines
                 f.write(line + "\n")
 
-    def create_joint_corpus(self, text_one: list[str], text_two: list[str]):
+    def create_joint_corpus(self, src, target, target_one):
         """
         Creates a joint for the text
 
@@ -44,10 +44,17 @@ class Tokenizer:
         os.makedirs(os.path.dirname(self.corpus_path), exist_ok=True)
         # Combine into one file for tokenizer
         with open(self.corpus_path, "w", encoding="utf-8") as f:
-            for sentence_list in [text_one, text_two]:
+            for sentence_list in [src, target, target_one]:
                 self.write_txt(data=sentence_list, f=f)
 
-    def train_tokenizer(self, text_one, text_two, prefixs=None):
+    def train_tokenizer(
+        self,
+        src: list[str],
+        target: list[str],
+        src_one: list[str],
+        target_one: list[str],
+        prefixs=None,
+    ):
         """
         Trains a sentencepiece tokenizer on the joint corpus
 
@@ -61,7 +68,7 @@ class Tokenizer:
             None
         """
         # Create joint corpus
-        self.create_joint_corpus(text_one, text_two)
+        self.create_joint_corpus(src + src_one, target, target_one)
         os.makedirs(self.tokenizer_model_path, exist_ok=True)
         # Train tokenizer
         spm.SentencePieceTrainer.Train(
@@ -100,42 +107,39 @@ class Tokenizer:
             padded.append(seq + padding)
         return jnp.array(padded, dtype=jnp.int32)
 
-    def prep_data(
-        self, data, data_two: list = [], add_bos=False, add_eos=False, prefix=None
-    ):
-        data_ids = []
-        data_two_ids = []
+    def prep_data(self, src, target, prefix=None):
+        src_ids = []
+        target_ids = []
 
         # prefix = f"Translate {src_fname} to {target_fname} "
         # prefix = tokenizer.encode(text=prefix, add_bos=False, add_eos=False)
-        for src, target in zip(data, data_two):
+        for src, target in zip(src, target):
             # encode and add bos and eos
-            data_ids.append(
+            src_ids.append(
                 self.encode(
                     text=src,
-                    add_bos=add_bos,
-                    add_eos=add_eos,
-                    prefix=prefix[0] if prefix else None,
+                    add_bos=False,
+                    add_eos=False,
+                    prefix=prefix,
                 )
             )
-            data_two_ids.append(
+            target_ids.append(
                 self.encode(
                     text=target,
-                    add_bos=add_bos,
-                    add_eos=add_eos,
-                    prefix=prefix[1] if prefix else None,
+                    add_bos=True,
+                    add_eos=True,
                 )
             )
 
         # pad sequences up to seq_len
-        data_ids_padded = self.pad_sequences(
-            data_ids, pad_id=self.sp.pad_id(), max_len=self.seq_len
+        src_ids_padded = self.pad_sequences(
+            src_ids, pad_id=self.sp.pad_id(), max_len=self.seq_len
         )
-        data_two_ids_padded = self.pad_sequences(
-            data_two_ids, pad_id=self.sp.pad_id(), max_len=self.seq_len
+        target_two_ids_padded = self.pad_sequences(
+            target_ids, pad_id=self.sp.pad_id(), max_len=self.seq_len
         )
 
-        return data_ids_padded, data_two_ids_padded
+        return src_ids_padded, target_two_ids_padded
 
     def encode(
         self,
