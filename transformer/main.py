@@ -35,6 +35,15 @@ def main():
         seq_len=config.SEQ_LEN,
     )
 
+    # initialize the target tokenizer instance
+    target_two_tokenizer = Tokenizer(
+        corpus_path=config.TARGET_CORPUS_PATH,
+        tokenizer_path=config.TOKENIZER_PATH,
+        tokenizer_model_path=config.TOKENIZER_MODEL_PATH,
+        model_prefix="target_two",
+        seq_len=config.SEQ_LEN,
+    )
+
     # initialize the dataset instances
     dataset_one = LangDataset(
         src_file=config.SRC_FILE,
@@ -80,9 +89,9 @@ def main():
             text_two=raw_src_two,
             prefixs=config.PREFIXES,
         )
-        target_tokenizer.train_tokenizer(
-            text_one=raw_target_one,
-            text_two=raw_target_two,
+        target_tokenizer.train_tokenizer(text_one=raw_target_one, text_two=[])
+        target_two_tokenizer.train_tokenizer(
+            text_one=raw_target_one, text_two=raw_target_two
         )
     else:
         logging.info(
@@ -93,6 +102,7 @@ def main():
         raw_src_two, raw_target_two = dataset_two.load_data()
         src_tokenizer.load_tokenizer()
         target_tokenizer.load_tokenizer()
+        target_two_tokenizer.load_tokenizer()
 
     if not config.SPLITS_PATH.exists():
         logging.info("Prepping the data ...")
@@ -103,8 +113,11 @@ def main():
             add_eos=False,
             prefix=config.PREFIXES,
         )
-        target_one, target_two = target_tokenizer.prep_data(
-            raw_target_one, raw_target_two, add_bos=True, add_eos=True
+        target_one = target_tokenizer.prep_data(
+            raw_target_one, add_bos=True, add_eos=True
+        )
+        target_two = target_two_tokenizer.prep_data(
+            raw_target_two, add_bos=True, add_eos=True
         )
         logging.info("Splitting the data ...")
         src_one_train, src_one_val, target_one_train, target_one_val, _, _ = (
@@ -131,7 +144,9 @@ def main():
         )
 
     src_vocab_size = src_tokenizer.get_vocab_size()
-    target_vocab_size = target_tokenizer.get_vocab_size()
+    target_vocab_size = (
+        target_tokenizer.get_vocab_size() + target_two_tokenizer.get_vocab_size()
+    )
 
     train_loader = DataLoader(
         src=src_one_train,
@@ -149,18 +164,14 @@ def main():
     )
 
     for batch in train_loader.__iter__(rng=jax.random.PRNGKey(0)):
-        input_ids = [i for i in batch["src_input"][0] if i != src_tokenizer.sp.pad_id()]
-        target_ids = [
-            i for i in batch["target_input"][0] if i != target_tokenizer.sp.pad_id()
-        ]
+        for i, (src, tgt) in enumerate(zip(batch["src_input"], batch["target_input"])):
+            input_ids = [int(x) for x in src if int(x) != src_tokenizer.sp.pad_id()]
+            target_ids = [int(x) for x in tgt if int(x) != target_tokenizer.sp.pad_id()]
 
-        print(f"INPUT: {input_ids}")
-        print(f"input type: {type(input_ids)}")
-        print(f"INPUT DECODED: {src_tokenizer.decode(input_ids)}")
-        print(f"TARGET: {target_ids}")
-        print(f"TARGET DECODED: {target_tokenizer.decode(target_ids)}")
-        print()
-        break
+            print(f"SAMPLE {i}")
+            print("INPUT DECODED:", src_tokenizer.decode(input_ids))
+            print("TARGET DECODED:", target_tokenizer.decode(target_ids))
+        break  # remove break if you want to iterate over all batches
 
     # initialize the train state
     logging.info("Initializing the train state ...")
@@ -189,17 +200,17 @@ def main():
     state, step = checkpoint_manager.restore(state=state, logging=logging)
 
     logging.info("Training the model")
-    if step != config.EPOCHS:
-        train(
-            state=state,
-            train_loader=train_loader,
-            val_loader=val_loader,
-            epochs=config.EPOCHS,
-            manager=manager,
-            logger=logging,
-            scheduler=scheduler,
-            step=step,
-        )
+    # if step != config.EPOCHS:
+    #     train(
+    #         state=state,
+    #         train_loader=train_loader,
+    #         val_loader=val_loader,
+    #         epochs=config.EPOCHS,
+    #         manager=manager,
+    #         logger=logging,
+    #         scheduler=scheduler,
+    #         step=step,
+    # )
 
     train_loader = DataLoader(
         src=src_two_train,
@@ -217,15 +228,15 @@ def main():
     )
 
     logging.info("Training completed, training with new data")
-    train(
-        state=state,
-        train_loader=train_loader,
-        val_loader=val_batch,
-        epochs=config.EPOCHS,
-        manager=manager,
-        logger=logging,
-        scheduler=scheduler,
-    )
+    # train(
+    #     state=state,
+    #     train_loader=train_loader,
+    #     val_loader=val_batch,
+    #     epochs=config.EPOCHS,
+    #     manager=manager,
+    #     logger=logging,
+    #     scheduler=scheduler,
+    # )
 
 
 if __name__ == "__main__":

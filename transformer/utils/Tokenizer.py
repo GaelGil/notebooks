@@ -100,7 +100,9 @@ class Tokenizer:
             padded.append(seq + padding)
         return jnp.array(padded, dtype=jnp.int32)
 
-    def prep_data(self, data, data_two, add_bos=False, add_eos=False, prefix=None):
+    def prep_data(
+        self, data, data_two: list = [], add_bos=False, add_eos=False, prefix=None
+    ):
         data_ids = []
         data_two_ids = []
 
