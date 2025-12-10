@@ -1,5 +1,6 @@
 import jax.numpy as jnp
 from flax import linen as nn
+import jax
 
 
 class InputEmbeddings(nn.Module):
@@ -22,7 +23,12 @@ class InputEmbeddings(nn.Module):
         # This is a (vocab_size x d_model) matrix so
         # that each word is represented by a vector of dimension d_model.
         # These are learned.
-        self.embedding = nn.Embed(num_embeddings=self.vocab_size, features=self.d_model)
+
+        self.embedding = nn.Embed(
+            num_embeddings=self.vocab_size,
+            features=self.d_model,
+            embedding_init=jax.nn.initializers.normal(stddev=self.d_model**-0.5),
+        )
 
     def __call__(self, x):
         # Get the embedding for each word in x
@@ -495,5 +501,8 @@ class Transformer(nn.Module):
 
         # project the decoder output into vocab size and get outputs
         output = self.projection(decoder_output)
+
+        # jax.debug.print("encoder_output.shape = {}", encoder_output.shape)
+        # jax.debug.print("decoder_output.shape = {}", decoder_output.shape)
 
         return output

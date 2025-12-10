@@ -21,6 +21,7 @@ def train(
     logger,
     scheduler,
     step: int = 0,
+    tokenizer=None,
 ):
     """
     train the model
@@ -128,16 +129,18 @@ def train_step(
         )
 
         vocab_size = logits.shape[-1]
-        logits_flat = logits.reshape(-1, vocab_size)  # (B*T, V)
-        labels_flat = target_output.reshape(-1)  # (B*T)
-        mask_flat = target_output_mask.reshape(-1)  # (B*T)
+        logits_flat = logits.reshape(-1, vocab_size)
+        labels_flat = target_output.reshape(-1)
+        mask_flat = target_output_mask.reshape(-1)
 
         per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
             logits=logits_flat,
             labels=labels_flat,
         )
+
         masked_loss = per_token_loss * mask_flat
-        cross_entropy_loss = masked_loss.sum() / target_output_mask.sum()
+        cross_entropy_loss = masked_loss.sum() / mask_flat.sum()
+
         return cross_entropy_loss
 
     # compute loss and gradients
@@ -145,6 +148,7 @@ def train_step(
     loss, grads = grad_fn(state.params)
     # update the the training state with the new gradients
     state = state.apply_gradients(grads=grads)
+
     return state, loss
 
 
@@ -209,17 +213,20 @@ def eval_step(state: train_state.TrainState, batch):
     )
 
     vocab_size = logits.shape[-1]
-    logits_flat = logits.reshape(-1, vocab_size)  # (B*T, V)
-    labels_flat = target_output.reshape(-1)  # (B*T)
-    mask_flat = target_output_mask.reshape(-1)  # (B*T)
+    logits_flat = logits.reshape(-1, vocab_size)
+    labels_flat = target_output.reshape(-1)
+    mask_flat = target_output_mask.reshape(-1)
 
     per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
         logits=logits_flat,
         labels=labels_flat,
     )
     masked_loss = per_token_loss * mask_flat
-    cross_entropy_loss = masked_loss.sum() / target_output_mask.sum()
     num_tokens = mask_flat.sum()
+
+    masked_loss = per_token_loss * mask_flat
+
+    cross_entropy_loss = masked_loss.sum() / num_tokens
 
     # Compute accuracy
     pred = jnp.argmax(logits_flat, axis=-1)
