@@ -26,14 +26,6 @@ def main():
         model_prefix="joint",
         seq_len=config.SEQ_LEN,
     )
-    # initialize the target tokenizer instance
-    # target_tokenizer = Tokenizer(
-    #     corpus_path=config.TARGET_CORPUS_PATH,
-    #     tokenizer_path=config.TOKENIZER_PATH,
-    #     tokenizer_model_path=config.TOKENIZER_MODEL_PATH,
-    #     model_prefix="target",
-    #     seq_len=config.SEQ_LEN,
-    # )
 
     # initialize the dataset instances
     dataset_one = LangDataset(
@@ -87,10 +79,7 @@ def main():
             target_one=raw_target_two,
             prefixs=config.PREFIXES,
         )
-        # target_tokenizer.train_tokenizer(
-        #     text_one=raw_target_one,
-        #     text_two=raw_target_two,
-        # )
+
     else:
         logging.info(
             f"Loading the data from {config.SRC_FILE} and {config.TARGET_FILE} ..."
@@ -99,7 +88,6 @@ def main():
         raw_src_one, raw_target_one = dataset_one.load_data()
         raw_src_two, raw_target_two = dataset_two.load_data()
         tokenizer.load_tokenizer()
-        # target_tokenizer.load_tokenizer()
 
     if not config.SPLITS_PATH.exists():
         logging.info("Prepping the data ...")
@@ -113,9 +101,7 @@ def main():
             target=raw_target_two,
             prefix=config.PREFIXES[1],
         )
-        # target_one, target_two = tokenizer.prep_data(
-        #     raw_target_one, raw_target_two, add_bos=True, add_eos=True
-        # )
+
         logging.info("Splitting the data ...")
         src_one_train, src_one_val, _, target_one_train, target_one_val, _ = (
             dataset_one.split(
@@ -212,7 +198,7 @@ def main():
             logger=logging,
             scheduler=scheduler,
             step=step,
-            # src_tokenizer=tokenizer,
+            tokenizer=tokenizer,
             # target_tokenizer=tokenizer,
         )
 

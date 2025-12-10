@@ -39,10 +39,10 @@ class Config(BaseModel):
 
 
 config = Config(
-    BATCH_SIZE=16,
+    BATCH_SIZE=32,
     EPOCHS=100,
     LR=3e-4,
-    SEQ_LEN=256,
+    SEQ_LEN=128,
     D_MODEL=512,
     D_FF=2048,
     H=8,
@@ -70,5 +70,5 @@ config = Config(
     SPLITS_PATH=Path("./data/splits/"),
     SAVE_INTERVAL=1,
     PREFIXES=["<es_to_en>", "<es_to_nah>"],
-    WARMUP_STEPS=1000,
+    WARMUP_STEPS=50,
 )

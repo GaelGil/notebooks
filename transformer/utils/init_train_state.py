@@ -65,7 +65,13 @@ def init_train_state(
     schedule = transformer_schedule(d_model=config.D_MODEL, warmup=config.WARMUP_STEPS)
 
     # initliaze the optimizer
-    optimizer = optax.adamw(learning_rate=schedule)
+
+    # clip gradients
+    clip_value = 1.0
+    optimizer = optax.chain(
+        optax.clip_by_global_norm(clip_value),  # Clip gradients globally by norm
+        optax.adamw(learning_rate=schedule),  # Apply AdamW after clipping
+    )
 
     # define the train state
     # apply_fn tells flax how to run a forward pass
