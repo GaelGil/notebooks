@@ -51,8 +51,8 @@ class Tokenizer:
         self,
         src: list[str],
         target: list[str],
-        src_one: list[str],
-        target_one: list[str],
+        src_one: list[str] = [],
+        target_one: list[str] = [],
         prefixs=None,
     ):
         """
