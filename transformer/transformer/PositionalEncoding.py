@@ -1,5 +1,6 @@
 from flax import nnx
 from jax import numpy as jnp
+import jax
 
 
 class CustomVariable(nnx.Variable):
@@ -17,9 +18,10 @@ class PositionalEncoding(nnx.Module):
 
         self.dropout = nnx.Dropout(rate=dropout_rate)
 
-        self.pe = CustomVariable(
-            jnp.zeros((1, seq_len, d_model), dtype=jnp.float32), mutable=False
-        )
+        # self.pe = CustomVariable(
+        #     jnp.zeros((1, seq_len, d_model), dtype=jnp.float32), mutable=False
+        # )
+        self.pe = nnx.Param(jax.random.uniform(rngs.params(), (1, seq_len, d_model)))
 
     def __call__(self, x: jnp.ndarray, is_training: bool):
         """

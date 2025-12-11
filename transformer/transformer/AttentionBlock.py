@@ -29,6 +29,7 @@ class MultiHeadAttentionBlock(nnx.Module):
             qkv_features=d_model,
             dropout_rate=dropout_rate,
             rngs=rngs,
+            decode=False,
         )
 
     def __call__(
