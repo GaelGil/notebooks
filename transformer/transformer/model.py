@@ -1,192 +1,7 @@
-import jax.numpy as jnp
-from flax import linen as nn
-import jax
+from flax import nnx
 
 
-class InputEmbeddings(nn.Module):
-    d_model: int
-    vocab_size: int
-
-    def setup(
-        self,
-    ) -> None:
-        """
-        Args:
-            d_model: dimension of the model
-            vocab_size: size of the vocabulary (num tokens)
-
-        Returns:
-            None
-        """
-
-        # create embeddings matrix.
-        # This is a (vocab_size x d_model) matrix so
-        # that each word is represented by a vector of dimension d_model.
-        # These are learned.
-
-        self.embedding = nn.Embed(
-            num_embeddings=self.vocab_size,
-            features=self.d_model,
-            embedding_init=jax.nn.initializers.normal(stddev=self.d_model**-0.5),
-        )
-
-    def __call__(self, x):
-        # Get the embedding for each word in x
-        # multiply by the square root of d_model for normalization and stability during training
-        return self.embedding(x) * self.d_model**0.5
-
-
-class PositionalEncoding(nn.Module):
-    d_model: int
-    seq_len: int
-    dropout_rate: float
-
-    def setup(self):
-        """
-        Args:
-            d_model: embedding dimension
-            seq_len: maximum input sequence length
-            dropout: dropout rate (used during training)
-        """
-
-        self.dropout = nn.Dropout(rate=self.dropout_rate)
-
-        self.pe = self.param(
-            "positional_encoding",
-            nn.initializers.normal(stddev=0.02),
-            (1, self.seq_len, self.d_model),
-        )
-
-    def __call__(self, x: jnp.ndarray, is_training: bool):
-        """
-        Args:
-            x: input tensor of shape (batch_size, seq_len, d_model)
-            training: whether in training mode for dropout
-        """
-        seq_len = x.shape[1]  # actual runtime sequence length
-        pe = self.pe[:, :seq_len, :]  # slice to match
-
-        x = x + pe
-        return self.dropout(x, deterministic=not is_training)
-
-
-class LayerNorm(nn.Module):
-    d_model: int
-    eps: float = 1e-6  # helps avoid division by zero
-
-    def setup(self) -> None:
-        """Set up layer norm
-        Args:
-            None
-
-        Returns:
-            None
-        """
-        # create alpha and bias of shape (d_model)
-        # alpha and bias are learnable parameters
-        # alpha and bias are applied to each patch
-        self.alpha = self.param("alpha", nn.initializers.ones, (self.d_model))
-        self.bias = self.param("bias", nn.initializers.zeros, (self.d_model))
-
-    def __call__(self, x: jnp.ndarray):
-        # compute mean and std for each patch in the sequence
-        # (batch, seq_len, d_model)
-        # axis=-1 means along the last dimension which is d_model
-        # (batch_size, seq_len, 1) this holds mean of each token in the sequence
-        mean = jnp.mean(x, axis=-1, keepdims=True)
-        # (batch_size, seq_len, 1) var of each token in the sequence
-        var = jnp.var(x, axis=-1, keepdims=True)
-        # all elements in x are normalized by mean and std
-        return (self.alpha * (x - mean) / jnp.sqrt(var + self.eps)) + self.bias
-
-
-class FeedForwardBlock(nn.Module):
-    d_model: int
-    d_ff: int
-    dropout_rate: float
-
-    def setup(self) -> None:
-        """
-        Args:
-            d_model: dimension of the model
-            d_ff: dimension of the feed forward network
-            dropout: dropout probability
-
-        Returns:
-            None
-        """
-
-        self.linear_1 = nn.Dense(features=self.d_ff, dtype=jnp.float32)
-        self.dropout = nn.Dropout(rate=self.dropout_rate)
-        self.linear_2 = nn.Dense(features=self.d_model, dtype=jnp.float32)
-
-    def __call__(self, x: jnp.ndarray, is_training: bool):
-        # simple feed forward network
-        # (seq_len, d_model) --> (dff, d_model) --> (seq_len, d_model)
-        x = nn.leaky_relu(self.linear_1(x))
-        x = self.dropout(x, deterministic=not is_training)
-        x = self.linear_2(x)
-        return x
-
-
-class MultiHeadAttentionBlock(nn.Module):
-    """
-    Multi Head Attention Block
-    """
-
-    d_model: int
-    n_heads: int
-    dropout_rate: float
-
-    def setup(self) -> None:
-        """
-
-        Args:
-            d_model: dimension of the model
-            n_heads: number of heads
-            dropout: dropout probability
-
-        Returns:
-            None
-        """
-
-        assert self.d_model % self.n_heads == 0, "d_model must be divisible by n_heads"
-
-        self.attention = nn.MultiHeadDotProductAttention(
-            num_heads=self.n_heads,
-            qkv_features=self.d_model,
-            dropout_rate=self.dropout_rate,
-        )
-
-    def __call__(
-        self,
-        q: jnp.ndarray,
-        k: jnp.ndarray,
-        v: jnp.ndarray,
-        mask: jnp.ndarray,
-        is_training: bool,
-    ) -> jnp.ndarray:
-        """
-
-        Args:
-            q: query
-            k: key
-            v: value
-
-        Returns:
-            jnp.ndarray
-        """
-
-        return self.attention(
-            inputs_q=q,
-            inputs_k=k,
-            inputs_v=v,
-            mask=mask,
-            deterministic=not is_training,
-        )
-
-
-class EncoderBlock(nn.Module):
+class EncoderBlock(nnx.Module):
     """
     Atttributes:
         d_model: dimension of model
@@ -252,7 +67,7 @@ class EncoderBlock(nn.Module):
         return output
 
 
-class Encoder(nn.Module):
+class Encoder(nnx.Module):
     encoder_blocks: list[EncoderBlock]
     d_model: int
 
@@ -273,7 +88,7 @@ class Encoder(nn.Module):
         return self.norm(x)
 
 
-class DecoderBlock(nn.Module):
+class DecoderBlock(nnx.Module):
     d_model: int
     n_heads: int
     d_ff: int
@@ -340,7 +155,7 @@ class DecoderBlock(nn.Module):
         return output
 
 
-class Decoder(nn.Module):
+class Decoder(nnx.Module):
     decoder_blocks: list[DecoderBlock]
     d_model: int
 
@@ -374,29 +189,7 @@ class Decoder(nn.Module):
         return self.norm(x)
 
 
-class ProjectionLayer(nn.Module):
-    """
-    Projection layer to map the output of the decoder to the vocabulary. This gives us the logits
-
-    Args:
-        d_model: dimension of the model
-        vocab_size: size of the vocabulary
-
-    Returns:
-        None
-    """
-
-    vocab_size: int
-
-    def setup(self) -> None:
-        self.linear = nn.Dense(features=self.vocab_size, dtype=jnp.float32)
-
-    def __call__(self, x: jnp.ndarray):
-        # (batch_size, seq_len, d_model) --> (batch_size, seq_len, vocab_size)
-        return self.linear(x)
-
-
-class Transformer(nn.Module):
+class Transformer(nnx.Module):
     d_model: int
     N: int
     n_heads: int
