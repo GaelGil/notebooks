@@ -5,6 +5,7 @@ from flax.training import train_state
 
 from transformer.model import Transformer
 from utils.config import Config
+from flax import linen as nn
 
 
 def init_train_state(
@@ -28,6 +29,7 @@ def init_train_state(
         src_vocab_size=src_vocab_size,
         target_vocab_size=target_vocab_size,
     )
+    # nn.
 
     rng: jax.random.PRNGKey = jax.random.PRNGKey(0)
 
