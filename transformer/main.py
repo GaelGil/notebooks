@@ -11,11 +11,15 @@ from utils.init_train_state import init_train_state
 from utils.LangDataset import LangDataset
 from utils.Tokenizer import Tokenizer
 from utils.train_eval import train
+from transformers import AutoTokenizer
 
 logging.set_verbosity(logging.INFO)
 
 
 def main():
+    tokenizer = AutoTokenizer.from_pretrained(
+        "hackathon-pln-es/t5-small-spanish-nahuatl"
+    )
     logging.info(f"Using device: {jax.devices('gpu')[0]}")
 
     # initialize the src tokenizer instance
