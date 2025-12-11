@@ -3,9 +3,8 @@ import jax.numpy as jnp
 import optax
 from flax.training import train_state
 
-from transformer.model import Transformer
+from transformer.Transformer import Transformer
 from utils.config import Config
-# from flax import linen as nn
 
 
 def init_train_state(
