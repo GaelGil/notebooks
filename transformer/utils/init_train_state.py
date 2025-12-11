@@ -66,11 +66,9 @@ def init_train_state(
         tx=optax.adamw(learning_rate=schedule), model=model, wrt=nnx.Param
     )
 
-    # define the train state
-    # apply_fn tells flax how to run a forward pass
-    # params are the parameters of the model
-    # tx is the optimizer used to update the parameters
-    state = nnx.TrainState.create(apply_fn=model.apply, params=params, tx=optimizer)
+    graphdef, params = nnx.split(model)
+
+    state = nnx.TrainState.create(graphdef=graphdef, params=params, tx=optimizer)
     return state, schedule
 
 
