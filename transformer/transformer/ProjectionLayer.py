@@ -14,8 +14,10 @@ class ProjectionLayer(nnx.Module):
         None
     """
 
-    def __init__(self, vocab_size: int) -> None:
-        self.linear = nnx.Linear(features=vocab_size, dtype=jnp.float32)
+    def __init__(self, vocab_size: int, d_model: int, rngs: nnx.Rngs) -> None:
+        self.linear = nnx.Linear(
+            in_features=d_model, out_features=vocab_size, dtype=jnp.float32, rngs=rngs
+        )
 
     def __call__(self, x: jnp.ndarray):
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, vocab_size)

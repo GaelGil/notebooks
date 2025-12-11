@@ -36,6 +36,7 @@ class Config(BaseModel):
     SAVE_INTERVAL: int
     PREFIXES: list
     WARMUP_STEPS: int
+    SEED: int
 
 
 config = Config(
@@ -71,4 +72,5 @@ config = Config(
     SAVE_INTERVAL=1,
     PREFIXES=["<es_to_en>", "<es_to_nah>"],
     WARMUP_STEPS=50,
+    SEED=42,
 )
