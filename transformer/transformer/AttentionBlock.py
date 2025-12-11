@@ -7,11 +7,7 @@ class MultiHeadAttentionBlock(nnx.Module):
     Multi Head Attention Block
     """
 
-    d_model: int
-    n_heads: int
-    dropout_rate: float
-
-    def setup(self) -> None:
+    def __init__(self, d_model: int, n_heads: int, dropout_rate: float) -> None:
         """
 
         Args:
@@ -23,12 +19,12 @@ class MultiHeadAttentionBlock(nnx.Module):
             None
         """
 
-        assert self.d_model % self.n_heads == 0, "d_model must be divisible by n_heads"
+        assert d_model % n_heads == 0, "d_model must be divisible by n_heads"
 
         self.attention = nnx.MultiHeadDotProductAttention(
-            num_heads=self.n_heads,
-            qkv_features=self.d_model,
-            dropout_rate=self.dropout_rate,
+            num_heads=n_heads,
+            qkv_features=d_model,
+            dropout_rate=dropout_rate,
         )
 
     def __call__(

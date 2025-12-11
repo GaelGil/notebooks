@@ -3,11 +3,7 @@ from jax import numpy as jnp
 
 
 class FeedForwardBlock(nnx.Module):
-    d_model: int
-    d_ff: int
-    dropout_rate: float
-
-    def setup(self) -> None:
+    def __init__(self, d_model: int, d_ff: int, dropout_rate: float) -> None:
         """
         Args:
             d_model: dimension of the model
@@ -18,9 +14,9 @@ class FeedForwardBlock(nnx.Module):
             None
         """
 
-        self.linear_1 = nnx.Linear(features=self.d_ff, dtype=jnp.float32)
-        self.dropout = nnx.Linear(rate=self.dropout_rate)
-        self.linear_2 = nnx.Linear(features=self.d_model, dtype=jnp.float32)
+        self.linear_1 = nnx.Linear(features=d_ff, dtype=jnp.float32)
+        self.dropout = nnx.Linear(rate=dropout_rate)
+        self.linear_2 = nnx.Linear(features=d_model, dtype=jnp.float32)
 
     def __call__(self, x: jnp.ndarray, is_training: bool):
         # simple feed forward network
