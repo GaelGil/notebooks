@@ -21,7 +21,7 @@ class MultiHeadAttentionBlock(nnx.Module):
 
         assert d_model % n_heads == 0, "d_model must be divisible by n_heads"
 
-        self.attention = nnx.MultiHeadDotProductAttention(
+        self.attention = nnx.MultiHeadAttention(
             num_heads=n_heads,
             qkv_features=d_model,
             dropout_rate=dropout_rate,

@@ -51,28 +51,32 @@ class Transformer(nnx.Module):
         )
 
         self.encoder = Encoder(
-            encoder_blocks=[
-                EncoderBlock(
-                    d_model=d_model,
-                    n_heads=n_heads,
-                    d_ff=d_ff,
-                    dropout_rate=dropout,
-                )
-                for _ in range(self.N)
-            ],
+            encoder_blocks=nnx.List(
+                [
+                    EncoderBlock(
+                        d_model=d_model,
+                        n_heads=n_heads,
+                        d_ff=d_ff,
+                        dropout_rate=dropout,
+                    )
+                    for _ in range(N)
+                ],
+            ),
             d_model=d_model,
         )
 
         self.decoder = Decoder(
-            decoder_blocks=[
-                DecoderBlock(
-                    d_model=d_model,
-                    n_heads=n_heads,
-                    d_ff=d_ff,
-                    dropout_rate=dropout,
-                )
-                for _ in range(N)
-            ],
+            decoder_blocks=nnx.List(
+                [
+                    DecoderBlock(
+                        d_model=d_model,
+                        n_heads=n_heads,
+                        d_ff=d_ff,
+                        dropout_rate=dropout,
+                    )
+                    for _ in range(N)
+                ]
+            ),
             d_model=d_model,
         )
 
