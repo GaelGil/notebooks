@@ -48,7 +48,7 @@ class Transformer(nnx.Module):
             d_model=d_model, vocab_size=target_vocab_size, rngs=rngs
         )
         self.target_pe = PositionalEncoding(
-            d_model=d_model, seq_len=seq_len, dropout_rate=dropout
+            d_model=d_model, seq_len=seq_len, dropout_rate=dropout, rngs=rngs
         )
 
         self.encoder = Encoder(
@@ -59,11 +59,13 @@ class Transformer(nnx.Module):
                         n_heads=n_heads,
                         d_ff=d_ff,
                         dropout_rate=dropout,
+                        rngs=rngs,
                     )
                     for _ in range(N)
                 ],
             ),
             d_model=d_model,
+            rngs=rngs,
         )
 
         self.decoder = Decoder(
@@ -74,14 +76,18 @@ class Transformer(nnx.Module):
                         n_heads=n_heads,
                         d_ff=d_ff,
                         dropout_rate=dropout,
+                        rngs=rngs,
                     )
                     for _ in range(N)
                 ]
             ),
             d_model=d_model,
+            rngs=rngs,
         )
 
-        self.projection = ProjectionLayer(vocab_size=target_vocab_size)
+        self.projection = ProjectionLayer(
+            vocab_size=target_vocab_size, d_model=d_model, rngs=rngs
+        )
 
     def __call__(
         self,

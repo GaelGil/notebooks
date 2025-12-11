@@ -2,9 +2,11 @@ from flax import nnx
 from jax import numpy as jnp
 
 
-class PositionalEncoding(nnx.Module):
-    pe: nnx.Param  # ← declare parameter here
+class CustomVariable(nnx.Variable):
+    pass
 
+
+class PositionalEncoding(nnx.Module):
     def __init__(self, d_model: int, seq_len: int, dropout_rate: float, rngs: nnx.Rngs):
         """
         Args:
@@ -15,13 +17,9 @@ class PositionalEncoding(nnx.Module):
 
         self.dropout = nnx.Dropout(rate=dropout_rate)
 
-        # 2. Initialize the parameter *value*
-        pe_value = nnx.initializers.normal(stddev=0.02)(
-            (1, seq_len, d_model), rngs=rngs.params()
+        self.pe = CustomVariable(
+            jnp.zeros((1, seq_len, d_model), dtype=jnp.float32), mutable=False
         )
-
-        # 3. Wrap the value in a Param
-        self.pe = nnx.Param(pe_value)
 
     def __call__(self, x: jnp.ndarray, is_training: bool):
         """

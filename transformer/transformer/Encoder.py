@@ -20,6 +20,7 @@ class EncoderBlock(nnx.Module):
         n_heads: int,
         d_ff: int,
         dropout_rate: float,
+        rngs: nnx.Rngs,
     ) -> None:
         """
         Set up encoder block
@@ -36,18 +37,20 @@ class EncoderBlock(nnx.Module):
             d_model=d_model,
             n_heads=n_heads,
             dropout_rate=dropout_rate,
+            rngs=rngs,
         )
         # and one feed forward block
         self.feed_forward_block = FeedForwardBlock(
             d_model=d_model,
             d_ff=d_ff,
             dropout_rate=dropout_rate,
+            rngs=rngs,
         )
         # Lastly there are two residual connections in the encoder block
         # that connect the multi head attention block and the feed forward block
         self.dropout = nnx.Dropout(rate=dropout_rate)
-        self.norm1 = nnx.LayerNorm(num_features=d_model)
-        self.norm2 = nnx.LayerNorm(num_features=d_model)
+        self.norm1 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
+        self.norm2 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
 
     def __call__(self, x: jnp.ndarray, src_mask: jnp.ndarray, is_training: bool):
         # attention block output
@@ -72,7 +75,9 @@ class EncoderBlock(nnx.Module):
 
 
 class Encoder(nnx.Module):
-    def __init__(self, encoder_blocks: nnx.List[EncoderBlock], d_model: int) -> None:
+    def __init__(
+        self, encoder_blocks: nnx.List[EncoderBlock], d_model: int, rngs: nnx.Rngs
+    ) -> None:
         """
         Args:
             blocks: list of encoder blocks
@@ -80,8 +85,8 @@ class Encoder(nnx.Module):
         Returns:
             None
         """
-        self.blocks: nnx.List[EncoderBlock] = self.encoder_blocks
-        self.norm: nnx.LayerNorm = nnx.LayerNorm(num_features=self.d_model)
+        self.blocks: nnx.List[EncoderBlock] = encoder_blocks
+        self.norm: nnx.LayerNorm = nnx.LayerNorm(num_features=d_model, rngs=rngs)
 
     def __call__(self, x: jnp.ndarray, mask: jnp.ndarray, is_training: bool):
         for block in self.blocks:

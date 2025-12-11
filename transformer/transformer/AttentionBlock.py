@@ -7,7 +7,9 @@ class MultiHeadAttentionBlock(nnx.Module):
     Multi Head Attention Block
     """
 
-    def __init__(self, d_model: int, n_heads: int, dropout_rate: float) -> None:
+    def __init__(
+        self, d_model: int, n_heads: int, dropout_rate: float, rngs: nnx.Rngs
+    ) -> None:
         """
 
         Args:
@@ -23,8 +25,10 @@ class MultiHeadAttentionBlock(nnx.Module):
 
         self.attention = nnx.MultiHeadAttention(
             num_heads=n_heads,
+            in_features=d_model,
             qkv_features=d_model,
             dropout_rate=dropout_rate,
+            rngs=rngs,
         )
 
     def __call__(

@@ -1,7 +1,7 @@
-import jax
 import jax.numpy as jnp
 import optax
-from flax.training import train_state
+
+# from flax.training import train_state
 from flax import nnx
 from transformer.Transformer import Transformer
 from utils.config import Config
@@ -9,7 +9,7 @@ from utils.config import Config
 
 def init_train_state(
     config: Config, src_vocab_size: int, target_vocab_size: int
-) -> train_state.TrainState:
+) -> nnx.TrainState:
     """
     Initialize the train state
     Args:
@@ -18,8 +18,7 @@ def init_train_state(
     Returns:
         train_state.TrainState
     """
-    rngs = nnx.Rngs(params=jax.random.key(0))
-
+    rngs = nnx.Rngs(0)
     model: Transformer = Transformer(
         d_model=config.D_MODEL,
         N=config.N,
@@ -52,36 +51,26 @@ def init_train_state(
         (config.BATCH_SIZE, 1, 1, config.SEQ_LEN - 1), dtype=jnp.float32
     )
 
-    # Initialize with dummy inputs
-    variables = model.init(
-        rngs,
+    _ = model(
         src=dummy_src_input,
         src_mask=dummy_src_mask,
         target=dummy_target_input,
         target_mask=dummy_target_mask,
-        is_training=True,
+        is_training=False,
     )
-
-    params = variables["params"]
 
     schedule = transformer_schedule(d_model=config.D_MODEL, warmup=config.WARMUP_STEPS)
 
     # initliaze the optimizer
-
-    # clip gradients
-    clip_value = 1.0
-    optimizer = optax.chain(
-        optax.clip_by_global_norm(clip_value),  # Clip gradients globally by norm
-        optax.adamw(learning_rate=schedule),  # Apply AdamW after clipping
+    optimizer = nnx.Optimizer(
+        tx=optax.adamw(learning_rate=schedule), model=model, wrt=nnx.Param
     )
 
     # define the train state
     # apply_fn tells flax how to run a forward pass
     # params are the parameters of the model
     # tx is the optimizer used to update the parameters
-    state = train_state.TrainState.create(
-        apply_fn=model.apply, params=params, tx=optimizer
-    )
+    state = nnx.TrainState.create(apply_fn=model.apply, params=params, tx=optimizer)
     return state, schedule
 
 

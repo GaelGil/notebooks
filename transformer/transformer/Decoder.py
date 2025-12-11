@@ -11,20 +11,21 @@ class DecoderBlock(nnx.Module):
         n_heads: int,
         d_ff: int,
         dropout_rate: float,
+        rngs: nnx.Rngs,
     ) -> None:
         self.masked_multi_head_attention_block = MultiHeadAttentionBlock(
-            d_model=d_model, n_heads=n_heads, dropout_rate=dropout_rate
+            d_model=d_model, n_heads=n_heads, dropout_rate=dropout_rate, rngs=rngs
         )
         self.cross_attention_block = MultiHeadAttentionBlock(
-            d_model=d_model, n_heads=n_heads, dropout_rate=dropout_rate
+            d_model=d_model, n_heads=n_heads, dropout_rate=dropout_rate, rngs=rngs
         )
         self.feed_forward_block = FeedForwardBlock(
-            d_model=d_model, d_ff=d_ff, dropout_rate=dropout_rate
+            d_model=d_model, d_ff=d_ff, dropout_rate=dropout_rate, rngs=rngs
         )
         self.dropout = nnx.Dropout(dropout_rate)
-        self.norm1 = nnx.LayerNorm(num_features=d_model)
-        self.norm2 = nnx.LayerNorm(num_features=d_model)
-        self.norm3 = nnx.LayerNorm(num_features=d_model)
+        self.norm1 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
+        self.norm2 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
+        self.norm3 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
 
     def __call__(
         self,
@@ -71,7 +72,9 @@ class DecoderBlock(nnx.Module):
 
 
 class Decoder(nnx.Module):
-    def __init__(self, decoder_blocks: nnx.List[DecoderBlock], d_model: int) -> None:
+    def __init__(
+        self, decoder_blocks: nnx.List[DecoderBlock], d_model: int, rngs: nnx.Rngs
+    ) -> None:
         """
         Args:
             blocks: list of decoder blocks
@@ -80,7 +83,7 @@ class Decoder(nnx.Module):
             None
         """
         self.blocks: nnx.List[DecoderBlock] = decoder_blocks
-        self.norm: nnx.LayerNorm = nnx.LayerNorm(num_features=d_model)
+        self.norm: nnx.LayerNorm = nnx.LayerNorm(num_features=d_model, rngs=rngs)
 
     def __call__(
         self,
