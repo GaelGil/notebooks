@@ -22,6 +22,12 @@ def main():
     )
     logging.info(f"Using device: {jax.devices('gpu')[0]}")
 
+    sentence = "muchas flores son blancas"
+    input_ids = tokenizer(
+        "translate Spanish to English: " + sentence, return_tensors="pt"
+    ).input_ids
+
+    print(input_ids)
     # initialize the src tokenizer instance
     tokenizer = Tokenizer(
         corpus_path=config.SRC_CORPUS_PATH,

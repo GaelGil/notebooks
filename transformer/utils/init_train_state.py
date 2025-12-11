@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 import optax
 from flax.training import train_state
-
+from flax import nnx
 from transformer.Transformer import Transformer
 from utils.config import Config
 
@@ -18,6 +18,8 @@ def init_train_state(
     Returns:
         train_state.TrainState
     """
+    rngs = nnx.Rngs(params=jax.random.key(0))
+
     model: Transformer = Transformer(
         d_model=config.D_MODEL,
         N=config.N,
@@ -27,10 +29,9 @@ def init_train_state(
         seq_len=config.SEQ_LEN,
         src_vocab_size=src_vocab_size,
         target_vocab_size=target_vocab_size,
+        rngs=rngs,
     )
     # nn.
-
-    rng: jax.random.PRNGKey = jax.random.PRNGKey(0)
 
     # create dummy inputs
     dummy_src_input = jnp.zeros(
@@ -53,7 +54,7 @@ def init_train_state(
 
     # Initialize with dummy inputs
     variables = model.init(
-        rng,
+        rngs,
         src=dummy_src_input,
         src_mask=dummy_src_mask,
         target=dummy_target_input,

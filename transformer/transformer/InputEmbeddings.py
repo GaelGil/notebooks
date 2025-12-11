@@ -2,7 +2,7 @@ from flax import nnx
 
 
 class InputEmbeddings(nnx.Module):
-    def __init__(self, d_model: int, vocab_size: int) -> None:
+    def __init__(self, d_model: int, vocab_size: int, rngs: nnx.Rngs) -> None:
         """
         Args:
             d_model: dimension of the model
@@ -21,6 +21,7 @@ class InputEmbeddings(nnx.Module):
             num_embeddings=vocab_size,
             features=d_model,
             embedding_init=nnx.initializers.normal(stddev=d_model**-0.5),
+            rngs=rngs,
         )
 
         self.d_model = d_model
