@@ -18,6 +18,7 @@ class Transformer(nnx.Module):
         seq_len: int,
         src_vocab_size: int,
         target_vocab_size: int,
+        rngs: nnx.Rngs,
     ) -> None:
         """
         Initialize the Transformer model
@@ -37,14 +38,14 @@ class Transformer(nnx.Module):
 
         """
         self.src_embeddings = InputEmbeddings(
-            d_model=d_model, vocab_size=src_vocab_size
+            d_model=d_model, vocab_size=src_vocab_size, rngs=rngs
         )
         self.src_pe = PositionalEncoding(
-            d_model=d_model, seq_len=seq_len, dropout_rate=dropout
+            d_model=d_model, seq_len=seq_len, dropout_rate=dropout, rngs=rngs
         )
 
         self.target_embeddings = InputEmbeddings(
-            d_model=d_model, vocab_size=target_vocab_size
+            d_model=d_model, vocab_size=target_vocab_size, rngs=rngs
         )
         self.target_pe = PositionalEncoding(
             d_model=d_model, seq_len=seq_len, dropout_rate=dropout
