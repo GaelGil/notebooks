@@ -3,11 +3,7 @@ from jax import numpy as jnp
 
 
 class PositionalEncoding(nnx.Module):
-    d_model: int
-    seq_len: int
-    dropout_rate: float
-
-    def setup(self):
+    def __init__(self, d_model: int, seq_len: int, dropout_rate: float):
         """
         Args:
             d_model: embedding dimension
@@ -15,12 +11,12 @@ class PositionalEncoding(nnx.Module):
             dropout: dropout rate (used during training)
         """
 
-        self.dropout = nnx.Dropout(rate=self.dropout_rate)
+        self.dropout = nnx.Dropout(rate=dropout_rate)
 
         self.pe = nnx.Param(
             "positional_encoding",
             nnx.initializers.normal(stddev=0.02),
-            (1, self.seq_len, self.d_model),
+            (1, seq_len, d_model),
         )
 
     def __call__(self, x: jnp.ndarray, is_training: bool):

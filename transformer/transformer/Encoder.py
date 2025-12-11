@@ -14,12 +14,13 @@ class EncoderBlock(nnx.Module):
         training: whether in training mode
     """
 
-    d_model: int
-    n_heads: int
-    d_ff: int
-    dropout_rate: float
-
-    def setup(self) -> None:
+    def __init__(
+        self,
+        d_model: int,
+        n_heads: int,
+        d_ff: int,
+        dropout_rate: float,
+    ) -> None:
         """
         Set up encoder block
         Each encoder block has one multi head attention block and one feed forward block.
@@ -32,21 +33,21 @@ class EncoderBlock(nnx.Module):
         """
         # encoder block has one self attention block
         self.multi_head_attention_block = MultiHeadAttentionBlock(
-            d_model=self.d_model,
-            n_heads=self.n_heads,
-            dropout_rate=self.dropout_rate,
+            d_model=d_model,
+            n_heads=n_heads,
+            dropout_rate=dropout_rate,
         )
         # and one feed forward block
         self.feed_forward_block = FeedForwardBlock(
-            d_model=self.d_model,
-            d_ff=self.d_ff,
-            dropout_rate=self.dropout_rate,
+            d_model=d_model,
+            d_ff=d_ff,
+            dropout_rate=dropout_rate,
         )
         # Lastly there are two residual connections in the encoder block
         # that connect the multi head attention block and the feed forward block
-        self.dropout = nnx.Dropout(rate=self.dropout_rate)
-        self.norm1 = nnx.LayerNorm(d_model=self.d_model)
-        self.norm2 = nnx.LayerNorm(d_model=self.d_model)
+        self.dropout = nnx.Dropout(rate=dropout_rate)
+        self.norm1 = nnx.LayerNorm(num_features=d_model)
+        self.norm2 = nnx.LayerNorm(num_features=d_model)
 
     def __call__(self, x: jnp.ndarray, src_mask: jnp.ndarray, is_training: bool):
         # attention block output
@@ -71,10 +72,7 @@ class EncoderBlock(nnx.Module):
 
 
 class Encoder(nnx.Module):
-    encoder_blocks: list[EncoderBlock]
-    d_model: int
-
-    def setup(self) -> None:
+    def __init__(self, encoder_blocks: nnx.List[EncoderBlock], d_model: int) -> None:
         """
         Args:
             blocks: list of encoder blocks
@@ -82,8 +80,8 @@ class Encoder(nnx.Module):
         Returns:
             None
         """
-        self.blocks: list[EncoderBlock] = self.encoder_blocks
-        self.norm: nnx.LayerNorm = nnx.LayerNorm(d_model=self.d_model)
+        self.blocks: nnx.List[EncoderBlock] = self.encoder_blocks
+        self.norm: nnx.LayerNorm = nnx.LayerNorm(num_features=self.d_model)
 
     def __call__(self, x: jnp.ndarray, mask: jnp.ndarray, is_training: bool):
         for block in self.blocks:

@@ -5,27 +5,26 @@ from jax import numpy as jnp
 
 
 class DecoderBlock(nnx.Module):
-    d_model: int
-    n_heads: int
-    d_ff: int
-    dropout_rate: float
-
-    def setup(
+    def __init__(
         self,
+        d_model: int,
+        n_heads: int,
+        d_ff: int,
+        dropout_rate: float,
     ) -> None:
         self.masked_multi_head_attention_block = MultiHeadAttentionBlock(
-            d_model=self.d_model, n_heads=self.n_heads, dropout_rate=self.dropout_rate
+            d_model=d_model, n_heads=n_heads, dropout_rate=dropout_rate
         )
         self.cross_attention_block = MultiHeadAttentionBlock(
-            d_model=self.d_model, n_heads=self.n_heads, dropout_rate=self.dropout_rate
+            d_model=d_model, n_heads=n_heads, dropout_rate=dropout_rate
         )
         self.feed_forward_block = FeedForwardBlock(
-            d_model=self.d_model, d_ff=self.d_ff, dropout_rate=self.dropout_rate
+            d_model=d_model, d_ff=d_ff, dropout_rate=dropout_rate
         )
-        self.dropout = nnx.Dropout(self.dropout_rate)
-        self.norm1 = nnx.LayerNorm(d_model=self.d_model)
-        self.norm2 = nnx.LayerNorm(d_model=self.d_model)
-        self.norm3 = nnx.LayerNorm(d_model=self.d_model)
+        self.dropout = nnx.Dropout(dropout_rate)
+        self.norm1 = nnx.LayerNorm(num_features=d_model)
+        self.norm2 = nnx.LayerNorm(num_features=d_model)
+        self.norm3 = nnx.LayerNorm(num_features=d_model)
 
     def __call__(
         self,
@@ -72,10 +71,7 @@ class DecoderBlock(nnx.Module):
 
 
 class Decoder(nnx.Module):
-    decoder_blocks: list[DecoderBlock]
-    d_model: int
-
-    def setup(self) -> None:
+    def __init__(self, decoder_blocks: nnx.List[DecoderBlock], d_model: int) -> None:
         """
         Args:
             blocks: list of decoder blocks
@@ -83,8 +79,8 @@ class Decoder(nnx.Module):
         Returns:
             None
         """
-        self.blocks: list[DecoderBlock] = self.decoder_blocks
-        self.norm: nnx.LayerNorm = nnx.LayerNorm(d_model=self.d_model)
+        self.blocks: nnx.List[DecoderBlock] = decoder_blocks
+        self.norm: nnx.LayerNorm = nnx.LayerNorm(num_features=d_model)
 
     def __call__(
         self,

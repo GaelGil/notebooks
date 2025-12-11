@@ -8,17 +8,16 @@ from transformer.ProjectionLayer import ProjectionLayer
 
 
 class Transformer(nnx.Module):
-    d_model: int
-    N: int
-    n_heads: int
-    d_ff: int
-    dropout: float
-    seq_len: int
-    src_vocab_size: int
-    target_vocab_size: int
-
-    def setup(
+    def __init__(
         self,
+        d_model: int,
+        N: int,
+        n_heads: int,
+        d_ff: int,
+        dropout: float,
+        seq_len: int,
+        src_vocab_size: int,
+        target_vocab_size: int,
     ) -> None:
         """
         Initialize the Transformer model
@@ -38,46 +37,46 @@ class Transformer(nnx.Module):
 
         """
         self.src_embeddings = InputEmbeddings(
-            d_model=self.d_model, vocab_size=self.src_vocab_size
+            d_model=d_model, vocab_size=src_vocab_size
         )
         self.src_pe = PositionalEncoding(
-            d_model=self.d_model, seq_len=self.seq_len, dropout_rate=self.dropout
+            d_model=d_model, seq_len=seq_len, dropout_rate=dropout
         )
 
         self.target_embeddings = InputEmbeddings(
-            d_model=self.d_model, vocab_size=self.target_vocab_size
+            d_model=d_model, vocab_size=target_vocab_size
         )
         self.target_pe = PositionalEncoding(
-            d_model=self.d_model, seq_len=self.seq_len, dropout_rate=self.dropout
+            d_model=d_model, seq_len=seq_len, dropout_rate=dropout
         )
 
         self.encoder = Encoder(
             encoder_blocks=[
                 EncoderBlock(
-                    d_model=self.d_model,
-                    n_heads=self.n_heads,
-                    d_ff=self.d_ff,
-                    dropout_rate=self.dropout,
+                    d_model=d_model,
+                    n_heads=n_heads,
+                    d_ff=d_ff,
+                    dropout_rate=dropout,
                 )
                 for _ in range(self.N)
             ],
-            d_model=self.d_model,
+            d_model=d_model,
         )
 
         self.decoder = Decoder(
             decoder_blocks=[
                 DecoderBlock(
-                    d_model=self.d_model,
-                    n_heads=self.n_heads,
-                    d_ff=self.d_ff,
-                    dropout_rate=self.dropout,
+                    d_model=d_model,
+                    n_heads=n_heads,
+                    d_ff=d_ff,
+                    dropout_rate=dropout,
                 )
-                for _ in range(self.N)
+                for _ in range(N)
             ],
-            d_model=self.d_model,
+            d_model=d_model,
         )
 
-        self.projection = ProjectionLayer(vocab_size=self.target_vocab_size)
+        self.projection = ProjectionLayer(vocab_size=target_vocab_size)
 
     def __call__(
         self,
