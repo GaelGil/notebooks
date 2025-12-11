@@ -5,7 +5,7 @@ from flax.training import train_state
 
 from transformer.model import Transformer
 from utils.config import Config
-from flax import linen as nn
+# from flax import linen as nn
 
 
 def init_train_state(
