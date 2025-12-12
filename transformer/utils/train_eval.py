@@ -13,6 +13,7 @@ from flax import nnx
 
 def train(
     model: Transformer,
+    optimizer: nnx.Optimizer,
     train_loader,
     val_loader,
     epochs: int,
@@ -34,7 +35,7 @@ def train(
             rng, dropout_base = jax.random.split(rng)
             dropout_base, dropout_rng = jax.random.split(dropout_base)
             model, optimizer, loss = train_step(
-                model=model, batch=batch, dropout_rng=dropout_rng
+                model=model, batch=batch, optimizer=optimizer, dropout_rng=dropout_rng
             )
 
         eval_accuracy, eval_loss = eval(model=model, loader=val_loader, rng=None)

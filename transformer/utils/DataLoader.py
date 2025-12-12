@@ -1,12 +1,14 @@
 import grain
+from jax import numpy as jnp
 
 
 class Source(grain.Dataloader):
-    def __init__(self, num_samples):
-        self.num_samples = num_samples
+    def __init__(self, src_path, tgt_path):
+        self.src = jnp.load(src_path)
+        self.tgt = jnp.load(tgt_path)
 
     def __len__(self):
-        return self.num_samples
+        return len(self.src)
 
-    def __getitem__(self, index):
-        return index
+    def __getitem__(self, idx):
+        return self.src[idx], self.tgt[idx]
