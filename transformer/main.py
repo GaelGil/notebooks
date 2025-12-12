@@ -4,9 +4,8 @@ import jax
 import orbax.checkpoint as ocp
 from absl import logging
 
-from utils.CheckpointManager import CheckpointManager
 from utils.config import config
-from utils.DataLoader import DataLoader
+
 from utils.init_state import init_state
 from utils.LangDataset import LangDataset
 from utils.Tokenizer import Tokenizer
@@ -133,56 +132,48 @@ def main():
 
     vocab_size = tokenizer.get_vocab_size()
 
-    train_loader = DataLoader(
-        src=src_one_train,
-        target=target_one_train,
-        batch_size=config.BATCH_SIZE,
-        seq_len=config.SEQ_LEN,
-        shuffle=True,
-        tokenizer=tokenizer,
-    )
-    val_loader = DataLoader(
-        src=src_one_val,
-        target=target_one_val,
-        batch_size=config.BATCH_SIZE,
-        seq_len=config.SEQ_LEN,
-        shuffle=False,
+    # train_loader = DataLoader(
+    #     src=src_one_train,
+    #     target=target_one_train,
+    #     batch_size=config.BATCH_SIZE,
+    #     seq_len=config.SEQ_LEN,
+    #     shuffle=True,
+    #     tokenizer=tokenizer,
+    # )
+    # val_loader = DataLoader(
+    #     src=src_one_val,
+    #     target=target_one_val,
+    #     batch_size=config.BATCH_SIZE,
+    #     seq_len=config.SEQ_LEN,
+    #     shuffle=False,
+    # )
+    checkpoint_options = ocp.CheckpointManagerOptions(
+        max_to_keep=config.MAX_TO_KEEP,
+        save_interval_steps=config.SAVE_INTERVAL,
+        enable_async_checkpointing=config.ASYNC_CHECKPOINTING,
+        best_fn=config.BEST_FN,
     )
 
+    manager = ocp.CheckpointManager(
+        directory=config.CHECKPOINT_PATH.resolve(),
+        options=checkpoint_options,
+    )
     # initialize the train state
     logging.info("Initializing the train state ...")
-    state, optimizer = init_state(
+    model, optimizer = init_state(
         config=config,
         src_vocab_size=vocab_size,
         target_vocab_size=vocab_size,
+        manager=manager,
     )
-
+    step = manager.latest_step()
     # initialize the checkpoint manager
     logging.info("Initializing the checkpoint manager ...")
-    checkpoint_manager = CheckpointManager(
-        max_to_keep=config.MAX_TO_KEEP,
-        save_interval_steps=config.SAVE_INTERVAL,
-        async_checkpointing=config.ASYNC_CHECKPOINTING,
-        best_fn=config.BEST_FN,
-        checkpoint_path=config.CHECKPOINT_PATH,
-    )
-    checkpoint_manager.add_to_register(
-        "state", ocp.args.StandardSave, ocp.args.StandardRestore
-    )
-    checkpoint_manager.add_to_register(
-        "metrics", ocp.args.JsonSave, ocp.args.JsonRestore
-    )
-    # assemble the checkpoint manager
-    logging.info("Assembling the checkpoint manager ...")
-    checkpoint_manager.create_manager()
-    manager = checkpoint_manager.get_manager()
-    # restore from the latest checkpoint
-    state, step = checkpoint_manager.restore(state=state, logging=logging)
 
     logging.info("Training the model")
     if step != config.EPOCHS:
         train(
-            state=state,
+            model=model,
             train_loader=train_loader,
             val_loader=val_loader,
             epochs=config.EPOCHS,
@@ -190,7 +181,6 @@ def main():
             logger=logging,
             step=step,
             tokenizer=tokenizer,
-            # target_tokenizer=tokenizer,
         )
 
     train_loader = DataLoader(
@@ -210,12 +200,14 @@ def main():
 
     logging.info("Training completed, training with new data")
     train(
-        state=state,
+        model=model,
         train_loader=train_loader,
-        val_loader=val_batch,
+        val_loader=val_loader,
         epochs=config.EPOCHS,
         manager=manager,
         logger=logging,
+        step=step,
+        tokenizer=tokenizer,
     )
 
 

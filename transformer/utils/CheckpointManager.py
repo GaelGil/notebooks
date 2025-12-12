@@ -14,6 +14,7 @@ class CheckpointManager:
         checkpoint_path: Path,
     ):
         self.checkpoint_path = checkpoint_path
+        # Define the checkpoint options
         self.checkpoint_options = ocp.CheckpointManagerOptions(
             max_to_keep=max_to_keep,
             save_interval_steps=save_interval_steps,
@@ -44,7 +45,7 @@ class CheckpointManager:
         self.registry.add(val, save_fn)
         self.registry.add(val, restore_fn)
 
-    def create_manager(self):
+    def assemble_manager(self):
         """
         Creates the checkpoint manager using the registry options and checkpoint
         options
