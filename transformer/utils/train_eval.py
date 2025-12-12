@@ -27,17 +27,13 @@ def train(
     rng = jax.random.PRNGKey(0)
     for epoch in range(step, epochs):
         rng, loader_rng = jax.random.split(rng)
-        batch = next(train_loader)
-        model, optimizer, loss = train_step(
-            model=model, batch=batch, optimizer=optimizer, dropout_rng=loader_rng
-        )
-        # for batch in train_loader.__iter__(rng=loader_rng):
-        #     rng, dropout_base = jax.random.split(rng)
-        #     dropout_base, dropout_rng = jax.random.split(dropout_base)
-        #     model, optimizer, loss = train_step(
-        #         model=model, batch=batch, optimizer=optimizer, dropout_rng=dropout_rng
-        #     )
+        for batch in train_loader.__iter__():
+            batch = next(train_loader)
+            model, optimizer, batch_loss = train_step(
+                model=model, batch=batch, optimizer=optimizer, dropout_rng=loader_rng
+            )
 
+        # after each batch evaluate
         eval_accuracy, eval_loss = eval(model=model, loader=val_loader, rng=None)
         train_accuracy, train_loss = eval(
             model=model, loader=train_loader, rng=loader_rng
