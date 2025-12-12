@@ -23,7 +23,7 @@ class Config(BaseModel):
     TRAIN_SPLIT: float
     VAL_SPLIT: float
     TEST_SPLIT: float
-    NUM_WORKERS: int
+    WORKER_COUNT: int
     BEST_FN: str
     SRC_FILE: Path
     TARGET_FILE: Path
@@ -59,7 +59,7 @@ config = Config(
     TRAIN_SPLIT=0.8,
     VAL_SPLIT=0.1,
     TEST_SPLIT=0.1,
-    NUM_WORKERS=0,
+    WORKER_COUNT=0,
     BEST_FN="eval_perplexity",
     SRC_FILE=Path("./data/TED2013.en-es.es"),
     TARGET_FILE=Path("./data/TED2013.en-es.en"),

@@ -10,6 +10,9 @@ from utils.init_state import init_state
 from utils.LangDataset import LangDataset
 from utils.Tokenizer import Tokenizer
 from utils.train_eval import train
+import grain
+from grain.samplers import IndexSampler
+from grain.transforms import Batch
 
 logging.set_verbosity(logging.INFO)
 
@@ -62,15 +65,10 @@ def main():
             src_name=config.LANG_SRC_TWO,
             target_name=config.LANG_TARGET_TWO,
         )
-
+    raw_src_one, raw_target_one = dataset_one.load_data()
+    raw_src_two, raw_target_two = dataset_two.load_data()
     if not Path(config.TOKENIZER_MODEL_PATH).exists():
-        logging.info(
-            f"Loading the data from {config.SRC_FILE} and {config.TARGET_FILE} ..."
-        )
-        logging.info(f"Loading the data from {config.DATA_PATH} ...")
-        raw_src_one, raw_target_one = dataset_one.load_data()
-        raw_src_two, raw_target_two = dataset_two.load_data()
-        logging.info("Training a src and target tokenizer ...")
+        logging.info("Training the tokenizer ...")
         tokenizer.train_tokenizer(
             src=raw_src_one,
             target=raw_target_one,
@@ -78,14 +76,8 @@ def main():
             target_one=raw_target_two,
             prefixs=config.PREFIXES,
         )
-
     else:
-        logging.info(
-            f"Loading the data from {config.SRC_FILE} and {config.TARGET_FILE} ..."
-        )
-        logging.info(f"Loading the data from {config.DATA_PATH} ...")
-        raw_src_one, raw_target_one = dataset_one.load_data()
-        raw_src_two, raw_target_two = dataset_two.load_data()
+        logging.info("Loading the tokenizer ...")
         tokenizer.load_tokenizer()
 
     if not config.SPLITS_PATH.exists():
@@ -132,21 +124,37 @@ def main():
 
     vocab_size = tokenizer.get_vocab_size()
 
-    # train_loader = DataLoader(
-    #     src=src_one_train,
-    #     target=target_one_train,
-    #     batch_size=config.BATCH_SIZE,
-    #     seq_len=config.SEQ_LEN,
+    # source = Source(num_samples=len(src_one_train))
+    # train_sampler = IndexSampler(
+    #     num_records=len(source),
+    #     shard_options=grain.sharding.NoSharding,
     #     shuffle=True,
-    #     tokenizer=tokenizer,
+    #     num_epochs=1,
+    #     seed=42,
     # )
-    # val_loader = DataLoader(
-    #     src=src_one_val,
-    #     target=target_one_val,
-    #     batch_size=config.BATCH_SIZE,
-    #     seq_len=config.SEQ_LEN,
+
+    # eval_sampler = IndexSampler(
+    #     num_records=len(source),
+    #     shard_options=grain.sharding.NoSharding,
     #     shuffle=False,
+    #     num_epochs=1,
+    #     seed=42,
     # )
+
+    # train_loader = grain.DataLoader(
+    #     data_source=source,
+    #     sampler=train_sampler,
+    #     operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=True)],
+    #     worker_count=config.WORKER_COUNT,
+    # )
+
+    # val_loader = grain.DataLoader(
+    #     data_source=source,
+    #     sampler=eval_sampler,
+    #     operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=False)],
+    #     worker_count=config.WORKER_COUNT,
+    # )
+
     checkpoint_options = ocp.CheckpointManagerOptions(
         max_to_keep=config.MAX_TO_KEEP,
         save_interval_steps=config.SAVE_INTERVAL,
@@ -183,19 +191,18 @@ def main():
             tokenizer=tokenizer,
         )
 
-    train_loader = DataLoader(
-        src=src_two_train,
-        target=target_two_train,
-        batch_size=config.BATCH_SIZE,
-        seq_len=config.SEQ_LEN,
-        shuffle=True,
+    train_loader = grain.DataLoader(
+        data_source=source,
+        sampler=train_sampler,
+        operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=True)],
+        worker_count=config.WORKER_COUNT,
     )
-    val_batch = DataLoader(
-        src=src_two_val,
-        target=target_two_val,
-        batch_size=config.BATCH_SIZE,
-        seq_len=config.SEQ_LEN,
-        shuffle=False,
+
+    val_loader = grain.DataLoader(
+        data_source=source,
+        sampler=eval_sampler,
+        operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=False)],
+        worker_count=config.WORKER_COUNT,
     )
 
     logging.info("Training completed, training with new data")
