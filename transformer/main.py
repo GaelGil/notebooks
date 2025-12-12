@@ -11,15 +11,11 @@ from utils.init_train_state import init_train_state
 from utils.LangDataset import LangDataset
 from utils.Tokenizer import Tokenizer
 from utils.train_eval import train
-from transformers import AutoTokenizer
 
 logging.set_verbosity(logging.INFO)
 
 
 def main():
-    tokenizer = AutoTokenizer.from_pretrained(
-        "hackathon-pln-es/t5-small-spanish-nahuatl"
-    )
     logging.info(f"Using device: {jax.devices('gpu')[0]}")
 
     # initialize the src tokenizer instance
@@ -153,21 +149,9 @@ def main():
         shuffle=False,
     )
 
-    # for batch in train_loader.__iter__(rng=jax.random.PRNGKey(0)):
-    #     for i, (src, tgt) in enumerate(zip(batch["src_input"], batch["target_input"])):
-    #         input_ids = [int(x) for x in src if int(x) != tokenizer.sp.pad_id()]
-    #         target_ids = [int(x) for x in tgt if int(x) != tokenizer.sp.pad_id()]
-
-    #         print(f"SAMPLE {i}")
-    #         print("INPUT:", input_ids)
-    #         print("INPUT DECODED:", tokenizer.decode(input_ids))
-    #         print("TARGET:", target_ids)
-    #         print("TARGET DECODED:", tokenizer.decode(target_ids))
-    #     break  # remove break if you want to iterate over all batches
-
     # initialize the train state
     logging.info("Initializing the train state ...")
-    state, scheduler = init_train_state(
+    state = init_train_state(
         config=config,
         src_vocab_size=vocab_size,
         target_vocab_size=vocab_size,
@@ -182,12 +166,10 @@ def main():
     checkpoint_manager.add_to_register(
         "metrics", ocp.args.JsonSave, ocp.args.JsonRestore
     )
-
     # assemble the checkpoint manager
     logging.info("Assembling the checkpoint manager ...")
     checkpoint_manager.create_manager()
     manager = checkpoint_manager.get_manager()
-
     # restore from the latest checkpoint
     state, step = checkpoint_manager.restore(state=state, logging=logging)
 
@@ -200,7 +182,6 @@ def main():
             epochs=config.EPOCHS,
             manager=manager,
             logger=logging,
-            scheduler=scheduler,
             step=step,
             tokenizer=tokenizer,
             # target_tokenizer=tokenizer,
@@ -229,7 +210,6 @@ def main():
         epochs=config.EPOCHS,
         manager=manager,
         logger=logging,
-        scheduler=scheduler,
     )
 
 

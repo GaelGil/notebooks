@@ -1,19 +1,25 @@
 import orbax.checkpoint as ocp
-from flax.training import train_state
+from flax import nnx
 
-from utils.config import Config
+from pathlib import Path
 
 
 class CheckpointManager:
-    def __init__(self, config: Config):
-        self.config = config
+    def __init__(
+        self,
+        max_to_keep: int,
+        save_interval_steps: int,
+        async_checkpointing: bool,
+        best_fn: str,
+        checkpoint_path: Path,
+    ):
+        self.checkpoint_path = checkpoint_path
         self.checkpoint_options = ocp.CheckpointManagerOptions(
-            max_to_keep=config.MAX_TO_KEEP,
-            save_interval_steps=config.SAVE_INTERVAL,
-            enable_async_checkpointing=config.ASYNC_CHECKPOINTING,
-            best_fn=config.BEST_FN,
+            max_to_keep=max_to_keep,
+            save_interval_steps=save_interval_steps,
+            enable_async_checkpointing=async_checkpointing,
+            best_fn=best_fn,
         )
-
         self.registry = ocp.handlers.DefaultCheckpointHandlerRegistry()
 
         # Define the checkpoint manager
@@ -50,7 +56,7 @@ class CheckpointManager:
             None
         """
         self.manager = ocp.CheckpointManager(
-            directory=self.config.CHECKPOINT_PATH.resolve(),
+            directory=self.self.checkpoint_path.resolve(),
             handler_registry=self.registry,
             options=self.checkpoint_options,
         )
@@ -58,7 +64,7 @@ class CheckpointManager:
     def get_manager(self):
         return self.manager
 
-    def restore(self, state, logging) -> tuple[train_state.TrainState, int]:
+    def restore(self, state, logging) -> tuple[nnx.TrainState, int]:
         # restore previous checkpoint
         if self.manager.latest_step():  # check if there is a latest checkpoint
             logging.info("Restoring from latest checkpoint")

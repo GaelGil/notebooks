@@ -30,7 +30,6 @@ def init_train_state(
         target_vocab_size=target_vocab_size,
         rngs=rngs,
     )
-    # nn.
 
     # create dummy inputs
     dummy_src_input = jnp.zeros(
@@ -59,24 +58,21 @@ def init_train_state(
         is_training=False,
     )
 
-    schedule = transformer_schedule(d_model=config.D_MODEL, warmup=config.WARMUP_STEPS)
-
-    # initliaze the optimizer
-    optimizer = nnx.Optimizer(
-        tx=optax.adamw(learning_rate=schedule), model=model, wrt=nnx.Param
+    lr_schedule_fn = optax.warmup_cosine_decay_schedule(
+        init_value=0.0,
+        peak_value=1e-3,
+        warmup_steps=int(1000 * 0.1),
+        decay_steps=int(1000 * (1 - 0.1)),
+        end_value=1e-5,
     )
-
+    opt_adam_with_schedule = optax.adam(learning_rate=lr_schedule_fn)
+    # initliaze the optimizer
+    optimizer = nnx.Optimizer(model, opt_adam_with_schedule, wrt=nnx.Param)
     graphdef, params = nnx.split(model)
-
-    state = nnx.TrainState.create(graphdef=graphdef, params=params, tx=optimizer)
-    return state, schedule
-
-
-def transformer_schedule(d_model=256, warmup=4000):
-    scale = d_model**-0.5
-
-    def schedule(step):
-        step = jnp.maximum(step, 1)
-        return scale * jnp.minimum(step**-0.5, step * warmup**-1.5)
-
-    return schedule
+    state = nnx.TrainState.create(
+        graphdef=graphdef,
+        params=params,
+        opt_state=optimizer.opt_state(params.values),
+        tx=optax.GradientTransformation,
+    )
+    return state
