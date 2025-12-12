@@ -5,6 +5,13 @@ from pathlib import Path
 
 
 def handle_tokenizer_data(logging) -> tuple[Tokenizer, dict, dict]:
+    """
+    Handles the tokenizer and dataset instances
+
+    Args:
+        logging: logger instance
+    Returns:
+        tuple[Tokenizer, dict, dict]: tokenizer, dataset_one_paths, dataset_two_paths"""
     # initialize the src tokenizer instance
     tokenizer = Tokenizer(
         corpus_path=config.SRC_CORPUS_PATH,
@@ -29,6 +36,7 @@ def handle_tokenizer_data(logging) -> tuple[Tokenizer, dict, dict]:
         seq_len=config.SEQ_LEN,
     )
 
+    # load the data
     raw_src_one, raw_target_one = dataset_one.load_data()
     raw_src_two, raw_target_two = dataset_two.load_data()
     if not Path(config.TOKENIZER_MODEL_PATH).exists():
@@ -45,6 +53,7 @@ def handle_tokenizer_data(logging) -> tuple[Tokenizer, dict, dict]:
         tokenizer.load_tokenizer()
 
     if Path(config.TOKENIZER_MODEL_PATH).exists() and config.SPLITS_PATH.exists():
+        logging.info("Tokenizer and data already exist returning ...")
         dataset_one.buil_save_paths(
             src_name=config.LANG_SRC_ONE,
             target_name=config.LANG_TARGET_ONE,

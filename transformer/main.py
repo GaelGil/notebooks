@@ -18,22 +18,25 @@ logging.set_verbosity(logging.INFO)
 def main():
     logging.info(f"Using device: {jax.devices('gpu')[0]}")
 
+    # get the tokenizer and dataset paths
     tokenizer, dataset_one_paths, dataset_two_paths = handle_tokenizer_data(
         logging=logging
     )
 
+    # get the vocab size
     vocab_size = tokenizer.get_vocab_size()
 
+    # initialize the data source
     train_data = Source(
         src_path=dataset_one_paths["train_src"],
         target_path=dataset_one_paths["train_target"],
     )
-
     val_data = Source(
         src_path=dataset_one_paths["val_src"],
         target_path=dataset_one_paths["val_target"],
     )
 
+    # initialize the sampler
     train_sampler = IndexSampler(
         num_records=train_data.__len__(),
         shard_options=grain.sharding.NoSharding(),
@@ -41,7 +44,6 @@ def main():
         num_epochs=1,
         seed=42,
     )
-
     eval_sampler = IndexSampler(
         num_records=val_data.__len__(),
         shard_options=grain.sharding.NoSharding(),
@@ -50,20 +52,23 @@ def main():
         seed=42,
     )
 
+    # initialize the dataloader
     train_loader = grain.DataLoader(
         data_source=train_data,
         sampler=train_sampler,
         operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=True)],
         worker_count=config.WORKER_COUNT,
     )
-
     val_loader = grain.DataLoader(
         data_source=val_data,
         sampler=eval_sampler,
         operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=False)],
         worker_count=config.WORKER_COUNT,
     )
+    train_loader = iter(train_loader)
+    val_loader = iter(val_loader)
 
+    # initialize the checkpoint manager options
     checkpoint_options = ocp.CheckpointManagerOptions(
         max_to_keep=config.MAX_TO_KEEP,
         save_interval_steps=config.SAVE_INTERVAL,
@@ -71,20 +76,21 @@ def main():
         best_fn=config.BEST_FN,
     )
 
+    # initialize the checkpoint manager with the options
     manager = ocp.CheckpointManager(
         directory=config.CHECKPOINT_PATH.resolve(),
         options=checkpoint_options,
     )
-    # initialize the train state
-    logging.info("Initializing the train state ...")
+
+    logging.info("Initializing the the model state ...")
     model, optimizer = init_state(
         config=config,
         src_vocab_size=vocab_size,
         target_vocab_size=vocab_size,
         manager=manager,
     )
-    step = 0 if manager.latest_step() is None else manager.latest_step()
 
+    step = 0 if manager.latest_step() is None else manager.latest_step()
     logging.info(f"Training the model from step {step}")
     if step != config.EPOCHS:
         train(
@@ -125,6 +131,9 @@ def main():
         operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=False)],
         worker_count=config.WORKER_COUNT,
     )
+
+    train_loader = iter(train_loader)
+    val_loader = iter(val_loader)
 
     logging.info("Training completed, training with new data")
     train(
