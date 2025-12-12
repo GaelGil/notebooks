@@ -33,15 +33,51 @@ def init_state(
         target_vocab_size=target_vocab_size,
         rngs=nnx.Rngs(0),
     )
+
+    # create dummy inputs
+    dummy_src_input = jnp.zeros(
+        (config.BATCH_SIZE, config.SEQ_LEN),
+        dtype=jnp.int32,
+    )
+
+    dummy_src_mask = jnp.ones(
+        (config.BATCH_SIZE, 1, 1, config.SEQ_LEN), dtype=jnp.float32
+    )
+
+    dummy_target_input = jnp.zeros(
+        (config.BATCH_SIZE, config.SEQ_LEN - 1),
+        dtype=jnp.int32,
+    )
+
+    dummy_target_mask = jnp.ones(
+        (config.BATCH_SIZE, 1, 1, config.SEQ_LEN - 1), dtype=jnp.float32
+    )
     # get the absctract model state
     # graphdef and state
-    _, abs_state = nnx.split(abs_transformer, nnx.Param, nnx.State)
-    # createa abstract optimizer
-    abs_optimizer = nnx.eval_shape(
-        lambda: nnx.Optimizer(abs_transformer, optax.adam(1e-3), wrt=nnx.Param)
+
+    abs_model = nnx.eval_shape(
+        lambda: Transformer(
+            d_model=config.D_MODEL,
+            N=config.N,
+            n_heads=config.H,
+            d_ff=config.D_FF,
+            dropout=config.DROPOUT,
+            seq_len=config.SEQ_LEN,
+            src_vocab_size=src_vocab_size,
+            target_vocab_size=target_vocab_size,
+            rngs=nnx.Rngs(0),
+        )
     )
-    # get the abstract optimizer state
-    abs_opt_state = nnx.state(abs_optimizer)
+    abs_opt = nnx.eval_shape(
+        lambda: nnx.Optimizer(abs_model, optax.adam(1e-3), wrt=nnx.Param)
+    )
+
+    _graphdef, abs_state, _rng = nnx.split(
+        abs_model,
+        nnx.Param,  # trainable weights
+        nnx.RngState,  # dropout RNGs
+    )
+    abs_opt_state = nnx.state(abs_opt)
 
     # create model
     rngs = nnx.Rngs(0)
@@ -85,25 +121,6 @@ def init_state(
         nnx.update(optimizer, restored["optimizer"])
         nnx.update(model, restored["state"])
         return model, optimizer
-
-    # create dummy inputs
-    dummy_src_input = jnp.zeros(
-        (config.BATCH_SIZE, config.SEQ_LEN),
-        dtype=jnp.int32,
-    )
-
-    dummy_src_mask = jnp.ones(
-        (config.BATCH_SIZE, 1, 1, config.SEQ_LEN), dtype=jnp.float32
-    )
-
-    dummy_target_input = jnp.zeros(
-        (config.BATCH_SIZE, config.SEQ_LEN - 1),
-        dtype=jnp.int32,
-    )
-
-    dummy_target_mask = jnp.ones(
-        (config.BATCH_SIZE, 1, 1, config.SEQ_LEN - 1), dtype=jnp.float32
-    )
 
     # run the model
     _ = model(
