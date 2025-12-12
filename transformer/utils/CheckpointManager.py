@@ -56,7 +56,7 @@ class CheckpointManager:
             None
         """
         self.manager = ocp.CheckpointManager(
-            directory=self.self.checkpoint_path.resolve(),
+            directory=self.checkpoint_path.resolve(),
             handler_registry=self.registry,
             options=self.checkpoint_options,
         )
@@ -64,7 +64,7 @@ class CheckpointManager:
     def get_manager(self):
         return self.manager
 
-    def restore(self, state, logging) -> tuple[nnx.TrainState, int]:
+    def restore(self, state: nnx.TrainState, logging) -> tuple[nnx.TrainState, int]:
         # restore previous checkpoint
         if self.manager.latest_step():  # check if there is a latest checkpoint
             logging.info("Restoring from latest checkpoint")

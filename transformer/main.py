@@ -159,7 +159,13 @@ def main():
 
     # initialize the checkpoint manager
     logging.info("Initializing the checkpoint manager ...")
-    checkpoint_manager = CheckpointManager(config=config)
+    checkpoint_manager = CheckpointManager(
+        max_to_keep=config.MAX_TO_KEEP,
+        save_interval_steps=config.SAVE_INTERVAL,
+        async_checkpointing=config.ASYNC_CHECKPOINTING,
+        best_fn=config.BEST_FN,
+        checkpoint_path=config.CHECKPOINT_PATH,
+    )
     checkpoint_manager.add_to_register(
         "state", ocp.args.StandardSave, ocp.args.StandardRestore
     )
