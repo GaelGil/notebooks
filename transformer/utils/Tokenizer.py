@@ -144,22 +144,6 @@ class Tokenizer:
             if len(target_ids[i]) > max_target_seq_len:
                 max_target_seq_len = len(target_ids[i])
 
-        src_lengths = jnp.array([len(seq) for seq in src_ids])
-        tgt_lengths = jnp.array([len(seq) for seq in target_ids])
-
-        max_src_len = int(jnp.percentile(src_lengths, 99))  # 99th percentile
-        max_tgt_len = int(jnp.percentile(tgt_lengths, 99))
-        print(f"Max source length: {max_src_len}")
-        print(f"Max target length: {max_tgt_len}")
-        avg_src_seq_len = src_seq_len // len(src_ids)
-        avg_target_seq_len = target_seq_len // len(target_ids)
-        print(
-            f"Average source sequence length: {avg_src_seq_len}\nAverage target sequence length: {avg_target_seq_len}"
-        )
-        print(
-            f"Maximum source sequence length: {max_src_seq_len}\nMaximum target sequence length: {max_target_seq_len}"
-        )
-
         # pad sequences up to seq_len
         src_ids_padded: jnp.ndarray = self.pad_sequences(
             src_ids, pad_id=self.sp.pad_id(), max_len=self.seq_len

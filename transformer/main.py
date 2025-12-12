@@ -7,7 +7,7 @@ from absl import logging
 from utils.CheckpointManager import CheckpointManager
 from utils.config import config
 from utils.DataLoader import DataLoader
-from utils.init_train_state import init_train_state
+from utils.init_state import init_state
 from utils.LangDataset import LangDataset
 from utils.Tokenizer import Tokenizer
 from utils.train_eval import train
@@ -151,7 +151,7 @@ def main():
 
     # initialize the train state
     logging.info("Initializing the train state ...")
-    state = init_train_state(
+    state, optimizer = init_state(
         config=config,
         src_vocab_size=vocab_size,
         target_vocab_size=vocab_size,
