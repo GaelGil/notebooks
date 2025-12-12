@@ -18,7 +18,9 @@ logging.set_verbosity(logging.INFO)
 def main():
     logging.info(f"Using device: {jax.devices('gpu')[0]}")
 
-    tokenizer, dataset_one_paths, dataset_two_paths = handle_tokenizer_data()
+    tokenizer, dataset_one_paths, dataset_two_paths = handle_tokenizer_data(
+        logging=logging
+    )
 
     vocab_size = tokenizer.get_vocab_size()
 
@@ -34,7 +36,7 @@ def main():
 
     train_sampler = IndexSampler(
         num_records=train_data.__len__(),
-        shard_options=grain.sharding.NoSharding,
+        shard_options=grain.sharding.NoSharding(),
         shuffle=True,
         num_epochs=1,
         seed=42,
@@ -42,7 +44,7 @@ def main():
 
     eval_sampler = IndexSampler(
         num_records=val_data.__len__(),
-        shard_options=grain.sharding.NoSharding,
+        shard_options=grain.sharding.NoSharding(),
         shuffle=False,
         num_epochs=1,
         seed=42,
@@ -81,11 +83,9 @@ def main():
         target_vocab_size=vocab_size,
         manager=manager,
     )
-    step = manager.latest_step()
-    # initialize the checkpoint manager
-    logging.info("Initializing the checkpoint manager ...")
+    step = 0 if manager.latest_step() is None else manager.latest_step()
 
-    logging.info("Training the model")
+    logging.info(f"Training the model from step {step}")
     if step != config.EPOCHS:
         train(
             model=model,

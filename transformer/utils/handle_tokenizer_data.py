@@ -44,6 +44,19 @@ def handle_tokenizer_data(logging) -> tuple[Tokenizer, dict, dict]:
         logging.info("Loading the tokenizer ...")
         tokenizer.load_tokenizer()
 
+    if Path(config.TOKENIZER_MODEL_PATH).exists() and config.SPLITS_PATH.exists():
+        dataset_one.buil_save_paths(
+            src_name=config.LANG_SRC_ONE,
+            target_name=config.LANG_TARGET_ONE,
+            splits_path=config.SPLITS_PATH,
+        )
+        dataset_two.buil_save_paths(
+            src_name=config.LANG_SRC_TWO,
+            target_name=config.LANG_TARGET_TWO,
+            splits_path=config.SPLITS_PATH,
+        )
+        return tokenizer, dataset_one.paths, dataset_two.paths
+
     if not config.SPLITS_PATH.exists():
         logging.info("Prepping the data ...")
         src, target = tokenizer.prep_data(
