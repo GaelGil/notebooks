@@ -3,62 +3,43 @@ This training and evaluation file is based on the implementation from
 https://wandb.ai/jax-series/simple-training-loop/reports/Writing-a-Training-Loop-in-JAX-and-Flax--VmlldzoyMzA4ODEy
 """
 
-from typing import Any
-
 import jax
 import jax.numpy as jnp
 import optax
 import orbax.checkpoint as ocp
-from flax.training import train_state
+from transformer.Transformer import Transformer
+from flax import nnx
 
 
 def train(
-    state: train_state.TrainState,
+    model: Transformer,
     train_loader,
     val_loader,
     epochs: int,
     manager: ocp.CheckpointManager,
     logger,
+    tokenizer,
     step: int = 0,
-    tokenizer=None,
 ):
     """
-    train the model
-    Args:
-        state: train_state.TrainState
-        train_loader: DataLoader
-        val_loader: DataLoader
-        epochs: int
-        manager: ocp.CheckpointManager
-        logger: logger
-
-    Returns:
-        None
+    Train the model
     """
 
     loader_rng = jax.random.PRNGKey(0)
-    # eval_accuracy, eval_loss = eval(state=state, loader=val_loader, rng=None)
-    # train_accuracy, train_loss = eval(state=state, loader=train_loader, rng=loader_rng)
 
     rng = jax.random.PRNGKey(0)
-    # loop over the dataset for num_epochs
     for epoch in range(step, epochs):
-        # split for this epoch once
         rng, loader_rng = jax.random.split(rng)
-        # print(f"Learning rate: {scheduler(step=epoch)}")
-        # iterate through each batch in the dataset
         for batch in train_loader.__iter__(rng=loader_rng):
-            # split again for dropout
             rng, dropout_base = jax.random.split(rng)
             dropout_base, dropout_rng = jax.random.split(dropout_base)
-            # train on batch
+            model, optimizer, loss = train_step(
+                model=model, batch=batch, dropout_rng=dropout_rng
+            )
 
-            state, loss = train_step(state=state, batch=batch, dropout_rng=dropout_rng)
-            # print(f"loss: {loss} epoch: {epoch}")
-        # train and val accuracy and loss
-        eval_accuracy, eval_loss = eval(state=state, loader=val_loader, rng=None)
+        eval_accuracy, eval_loss = eval(model=model, loader=val_loader, rng=None)
         train_accuracy, train_loss = eval(
-            state=state, loader=train_loader, rng=loader_rng
+            model=model, loader=train_loader, rng=loader_rng
         )
 
         # create metrics dictionary
@@ -71,10 +52,12 @@ def train(
         # log the metrics
         logger.info(f" EPOCH: {epoch} | METRICS: {metrics}")
         logger.info(f"Saving checkpoint at epoch {epoch}")
+        _, state = nnx.split(model, nnx.Param, nnx.State)
         manager.save(
             step=epoch,
             args=ocp.args.Composite(
                 state=ocp.args.StandardSave(state),
+                optimizer=ocp.args.StandardSave(optimizer),
                 metrics=ocp.args.JsonSave(metrics),
             ),
         )
@@ -86,75 +69,48 @@ def train(
 
 @jax.jit
 def train_step(
-    state: train_state.TrainState,
+    model: Transformer,
     batch,
+    optimizer: nnx.Optimizer,
     dropout_rng: jax.random.PRNGKey,
-) -> tuple[train_state.TrainState, Any]:
+) -> tuple[Transformer, nnx.Optimizer, float]:
     """
-    handle a single training step
-    get loss
-    get gradients
-    update parameters
-
+    Train the model on a single batch
     Args:
-        state: train_state.TrainState
+        model: Transformer
         batch: batch
-        dropout_rng: random number generator
+        optimizer: nnx.Optimizer
+        dropout_rng: jax.random.PRNGKey
 
     Returns:
-        train_state.TrainState and loss
+        state, loss
     """
 
-    src_input = batch["src_input"]
-    src_mask = batch["src_mask"]
-    target_input = batch["target_input"]
-    target_mask = batch["target_mask"]
-    target_output = batch["target_output"]
-    target_output_mask = batch["target_output_mask"]
+    x = batch["src"]
+    y = batch["target"]
 
     # define loss function
     def loss_fn(params):
         """
         Compute the loss function for a single batch
         """
-        logits = state.apply_fn(
-            {"params": params},
-            src=src_input,
-            src_mask=src_mask,
-            target=target_input,
-            target_mask=target_mask,
-            is_training=True,
-            rngs={"dropout": dropout_rng},
-        )
-
-        vocab_size = logits.shape[-1]
-        logits_flat = logits.reshape(-1, vocab_size)
-        labels_flat = target_output.reshape(-1)
-        mask_flat = target_output_mask.reshape(-1)
-
-        per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
-            logits=logits_flat,
-            labels=labels_flat,
-        )
-
-        masked_loss = per_token_loss * mask_flat
-        cross_entropy_loss = masked_loss.sum() / mask_flat.sum()
-
-        return cross_entropy_loss
+        logits = model(x, params, dropout_rng)
+        loss = optax.softmax_cross_entropy(logits=logits, labels=y)
+        return loss
 
     # compute loss and gradients
-    grad_fn = jax.value_and_grad(loss_fn)
-    loss, grads = grad_fn(state.params)
+    loss, grads = nnx.value_and_grad(loss_fn)(model.params)
     # update the the training state with the new gradients
-    state = state.apply_gradients(grads=grads)
+    optimizer.update(model, grads)
 
-    return state, loss
+    return model, optimizer, loss
 
 
 def eval(
-    state: train_state.TrainState,
+    model: Transformer,
     loader,
-    rng: jax.random.PRNGKey,
+    optimizer: nnx.Optimizer,
+    dropout_rng: jax.random.PRNGKey,
 ) -> tuple[float, float]:
     """
     evaluate the model on the validation set
@@ -169,8 +125,8 @@ def eval(
     total_loss = 0.0
     total_tokens = 0.0
     # loop over the dataset
-    for batch in loader.__iter__(rng=rng):
-        correct_tokens, batch_loss, num_tokens = eval_step(state=state, batch=batch)
+    for batch in loader.__iter__(rng=None):
+        correct_tokens, batch_loss, num_tokens = eval_step(moedl=model, batch=batch)
         total_correct += correct_tokens
         total_loss += batch_loss
         total_tokens += num_tokens
@@ -184,7 +140,7 @@ def eval(
 
 
 @jax.jit
-def eval_step(state: train_state.TrainState, batch):
+def eval_step(model: Transformer, batch) -> tuple[float, float, float]:
     """
     evaluate the model on a single batch
     Args:
@@ -194,41 +150,17 @@ def eval_step(state: train_state.TrainState, batch):
     Returns:
         predictions
     """
-    src_input = batch["src_input"]
-    src_mask = batch["src_mask"]
-    target_input = batch["target_input"]
-    target_mask = batch["target_mask"]
-    target_output = batch["target_output"]
-    target_output_mask = batch["target_output_mask"]
+    x = batch["src"]
+    y = batch["target"]
 
     # pass batch through the model in training state
-    logits = state.apply_fn(
-        {"params": state.params},
-        src=src_input,
-        src_mask=src_mask,
-        target=target_input,
-        target_mask=target_mask,
-        is_training=False,
-    )
+    logits = model(x)
 
-    vocab_size = logits.shape[-1]
-    logits_flat = logits.reshape(-1, vocab_size)
-    labels_flat = target_output.reshape(-1)
-    mask_flat = target_output_mask.reshape(-1)
+    # compute loss
+    cross_entropy_loss = optax.softmax_cross_entropy(logits=logits, labels=y)
 
-    per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
-        logits=logits_flat,
-        labels=labels_flat,
-    )
-    masked_loss = per_token_loss * mask_flat
-    num_tokens = mask_flat.sum()
-
-    masked_loss = per_token_loss * mask_flat
-
-    cross_entropy_loss = masked_loss.sum() / num_tokens
-
-    # Compute accuracy
-    pred = jnp.argmax(logits_flat, axis=-1)
-    correct_tokens = jnp.sum((pred == labels_flat) * mask_flat)
+    # compute accuracy
+    correct_tokens = jnp.sum(jnp.argmax(logits, axis=-1) == jnp.argmax(y, axis=-1))
+    num_tokens = jnp.size(correct_tokens)
 
     return correct_tokens, cross_entropy_loss, num_tokens

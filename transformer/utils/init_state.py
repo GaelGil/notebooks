@@ -34,6 +34,7 @@ def init_state(
         rngs=nnx.Rngs(0),
     )
     # get the absctract model state
+    # graphdef and state
     _, abs_state = nnx.split(abs_transformer, nnx.Param, nnx.State)
     # createa abstract optimizer
     abs_optimizer = nnx.eval_shape(
@@ -83,6 +84,7 @@ def init_state(
 
         nnx.update(optimizer, restored["optimizer"])
         nnx.update(model, restored["state"])
+        return model, optimizer
 
     # create dummy inputs
     dummy_src_input = jnp.zeros(

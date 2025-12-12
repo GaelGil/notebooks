@@ -124,36 +124,36 @@ def main():
 
     vocab_size = tokenizer.get_vocab_size()
 
-    # source = Source(num_samples=len(src_one_train))
-    # train_sampler = IndexSampler(
-    #     num_records=len(source),
-    #     shard_options=grain.sharding.NoSharding,
-    #     shuffle=True,
-    #     num_epochs=1,
-    #     seed=42,
-    # )
+    source = Source(num_samples=len(src_one_train))
+    train_sampler = IndexSampler(
+        num_records=len(source),
+        shard_options=grain.sharding.NoSharding,
+        shuffle=True,
+        num_epochs=1,
+        seed=42,
+    )
 
-    # eval_sampler = IndexSampler(
-    #     num_records=len(source),
-    #     shard_options=grain.sharding.NoSharding,
-    #     shuffle=False,
-    #     num_epochs=1,
-    #     seed=42,
-    # )
+    eval_sampler = IndexSampler(
+        num_records=len(source),
+        shard_options=grain.sharding.NoSharding,
+        shuffle=False,
+        num_epochs=1,
+        seed=42,
+    )
 
-    # train_loader = grain.DataLoader(
-    #     data_source=source,
-    #     sampler=train_sampler,
-    #     operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=True)],
-    #     worker_count=config.WORKER_COUNT,
-    # )
+    train_loader = grain.DataLoader(
+        data_source=source,
+        sampler=train_sampler,
+        operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=True)],
+        worker_count=config.WORKER_COUNT,
+    )
 
-    # val_loader = grain.DataLoader(
-    #     data_source=source,
-    #     sampler=eval_sampler,
-    #     operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=False)],
-    #     worker_count=config.WORKER_COUNT,
-    # )
+    val_loader = grain.DataLoader(
+        data_source=source,
+        sampler=eval_sampler,
+        operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=False)],
+        worker_count=config.WORKER_COUNT,
+    )
 
     checkpoint_options = ocp.CheckpointManagerOptions(
         max_to_keep=config.MAX_TO_KEEP,
