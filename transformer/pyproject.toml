@@ -21,4 +21,5 @@ dependencies = [
     "tokenizers>=0.22.1",
     "transformers>=4.57.1",
     "sentencepiece>=0.2.1",
+    "grain>=0.2.15",
 ]
