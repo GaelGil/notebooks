@@ -50,6 +50,7 @@ def init_train_state(
         (config.BATCH_SIZE, 1, 1, config.SEQ_LEN - 1), dtype=jnp.float32
     )
 
+    # nnx.TrainState()
     _ = model(
         src=dummy_src_input,
         src_mask=dummy_src_mask,
@@ -69,10 +70,10 @@ def init_train_state(
     # initliaze the optimizer
     optimizer = nnx.Optimizer(model, opt_adam_with_schedule, wrt=nnx.Param)
     graphdef, params = nnx.split(model)
-    state = nnx.TrainState.create(
+    state = nnx.TrainState(
         graphdef=graphdef,
         params=params,
-        opt_state=optimizer.opt_state(params.values),
-        tx=optax.GradientTransformation,
+        opt_state=optimizer.init_state(),
+        tx=optimizer.tx,
     )
     return state

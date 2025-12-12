@@ -23,9 +23,22 @@ index_sampler = IndexSampler(
     seed=42,
 )
 
-grain.sample
-
 data_loader = grain.DataLoader(
+    data_source=source,
+    sampler=index_sampler,
+    operations=[Batch(batch_size=2, drop_remainder=True)],
+    worker_count=2,
+)
+
+
+val_loader = grain.DataLoader(
+    data_source=source,
+    sampler=index_sampler,
+    operations=[Batch(batch_size=2, drop_remainder=False)],
+    worker_count=2,
+)
+
+train_loader = grain.DataLoader(
     data_source=source,
     sampler=index_sampler,
     operations=[Batch(batch_size=2, drop_remainder=True)],
