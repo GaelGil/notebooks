@@ -1,15 +1,14 @@
 import jax.numpy as jnp
 import optax
 
-# from flax.training import train_state
 from flax import nnx
 from transformer.Transformer import Transformer
 from utils.config import Config
 
 
-def init_train_state(
+def init_state(
     config: Config, src_vocab_size: int, target_vocab_size: int
-) -> nnx.TrainState:
+) -> tuple[nnx.GraphState, nnx.Optimizer]:
     """
     Initialize the train state
     Args:
@@ -50,7 +49,7 @@ def init_train_state(
         (config.BATCH_SIZE, 1, 1, config.SEQ_LEN - 1), dtype=jnp.float32
     )
 
-    # nnx.TrainState()
+    # run the model
     _ = model(
         src=dummy_src_input,
         src_mask=dummy_src_mask,
@@ -67,13 +66,16 @@ def init_train_state(
         end_value=1e-5,
     )
     opt_adam_with_schedule = optax.adam(learning_rate=lr_schedule_fn)
-    # initliaze the optimizer
     optimizer = nnx.Optimizer(model, opt_adam_with_schedule, wrt=nnx.Param)
-    graphdef, params = nnx.split(model)
-    state = nnx.TrainState(
-        graphdef=graphdef,
-        params=params,
-        opt_state=optimizer.init_state(),
-        tx=optimizer.tx,
-    )
-    return state
+    graphdef, params_state = nnx.split(model)
+    # k, v = optimizer.opt_state
+
+    # state = nnx.TrainState(
+    #     step=0,
+    #     graphdef=graphdef,
+    #     params=params_state,
+    #     opt_state=opt_adam_with_schedule.init(params_state),
+    #     tx=optimizer.tx,
+    # )
+
+    return params_state, optimizer
