@@ -21,18 +21,6 @@ def init_state(
     Returns:
        tuple[Transformer, nnx.Optimizer]
     """
-    # craete model abstraction
-    abs_transformer: Transformer = Transformer(
-        d_model=config.D_MODEL,
-        N=config.N,
-        n_heads=config.H,
-        d_ff=config.D_FF,
-        dropout=config.DROPOUT,
-        seq_len=config.SEQ_LEN,
-        src_vocab_size=src_vocab_size,
-        target_vocab_size=target_vocab_size,
-        rngs=nnx.Rngs(0),
-    )
 
     # create dummy inputs
     dummy_src_input = jnp.zeros(
