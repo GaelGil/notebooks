@@ -33,6 +33,7 @@ class LangDataset:
         self.seq_len: int = seq_len
         self.dataset: dict = {}
         self.dataset_name: str = dataset_name
+        self.paths = None
 
     def load_data(self):
         if self.src_file:
@@ -116,23 +117,30 @@ class LangDataset:
         )
         test_src, test_target = src[n_train + n_val :], target[n_train + n_val :]
 
-        jnp.save(f"{splits_path}/train_{src_name}.npy", train_src)
-        jnp.save(f"{splits_path}/val_{src_name}.npy", val_src)
-        jnp.save(f"{splits_path}/test_{src_name}.npy", test_src)
+        jnp.save(f"{splits_path}/train/_{src_name}.npy", train_src)
+        jnp.save(f"{splits_path}/val/_{src_name}.npy", val_src)
+        jnp.save(f"{splits_path}/test/_{src_name}.npy", test_src)
 
-        jnp.save(f"{splits_path}/train_{target_name}.npy", train_target)
-        jnp.save(f"{splits_path}/val_{target_name}.npy", val_target)
-        jnp.save(f"{splits_path}/test_{target_name}.npy", test_target)
+        jnp.save(f"{splits_path}/train/_{target_name}.npy", train_target)
+        jnp.save(f"{splits_path}/val/_{target_name}.npy", val_target)
+        jnp.save(f"{splits_path}/test/_{target_name}.npy", test_target)
 
-        return train_src, val_src, test_src, train_target, val_target, test_target
+        self.paths = {
+            "train_src": f"{splits_path}/train/_{src_name}.npy",
+            "val_src": f"{splits_path}/val/_{src_name}.npy",
+            "test_src": f"{splits_path}/test/_{src_name}.npy",
+            "train_target": f"{splits_path}/train/_{target_name}.npy",
+            "val_target": f"{splits_path}/val/_{target_name}.npy",
+            "test_target": f"{splits_path}/test/_{target_name}.npy",
+        }
 
     def load_splits(self, splits_path: str, src_name: str, target_name: str):
-        train_src = jnp.load(f"{splits_path}/train_{src_name}.npy")
-        val_src = jnp.load(f"{splits_path}/val_{src_name}.npy")
-        test_src = jnp.load(f"{splits_path}/test_{src_name}.npy")
+        train_src = jnp.load(f"{splits_path}/train/_{src_name}.npy")
+        val_src = jnp.load(f"{splits_path}/val/_{src_name}.npy")
+        test_src = jnp.load(f"{splits_path}/test/_{src_name}.npy")
 
-        train_target = jnp.load(f"{splits_path}/train_{target_name}.npy")
-        val_target = jnp.load(f"{splits_path}/val_{target_name}.npy")
-        test_target = jnp.load(f"{splits_path}/test_{target_name}.npy")
+        train_target = jnp.load(f"{splits_path}/train/_{target_name}.npy")
+        val_target = jnp.load(f"{splits_path}/val/_{target_name}.npy")
+        test_target = jnp.load(f"{splits_path}/test/_{target_name}.npy")
 
         return train_src, val_src, test_src, train_target, val_target, test_target
