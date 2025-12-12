@@ -1,21 +1,17 @@
-"""
-This training and evaluation file is based on the implementation from
-https://wandb.ai/jax-series/simple-training-loop/reports/Writing-a-Training-Loop-in-JAX-and-Flax--VmlldzoyMzA4ODEy
-"""
-
 import jax
 import jax.numpy as jnp
 import optax
 import orbax.checkpoint as ocp
 from transformer.Transformer import Transformer
 from flax import nnx
+import grain
 
 
 def train(
     model: Transformer,
     optimizer: nnx.Optimizer,
-    train_loader,
-    val_loader,
+    train_loader: grain.DataLoaderIterator,
+    val_loader: grain.DataLoaderIterator,
     epochs: int,
     manager: ocp.CheckpointManager,
     logger,

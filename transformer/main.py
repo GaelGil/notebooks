@@ -132,8 +132,8 @@ def main():
         worker_count=config.WORKER_COUNT,
     )
 
-    train_loader = iter(train_loader)
-    val_loader = iter(val_loader)
+    train_loader: grain.DataLoaderIterator = iter(train_loader)
+    val_loader: grain.DataLoaderIterator = iter(val_loader)
 
     logging.info("Training completed, training with new data")
     train(
