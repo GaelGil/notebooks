@@ -34,10 +34,10 @@ def train(
             )
 
         # after each batch evaluate
-        eval_accuracy, eval_loss = eval(model=model, loader=val_loader, rng=None)
         train_accuracy, train_loss = eval(
             model=model, loader=train_loader, rng=loader_rng
         )
+        eval_accuracy, eval_loss = eval(model=model, loader=val_loader, rng=None)
 
         # create metrics dictionary
         metrics = {
@@ -106,7 +106,6 @@ def train_step(
 def eval(
     model: Transformer,
     loader,
-    optimizer: nnx.Optimizer,
     dropout_rng: jax.random.PRNGKey,
 ) -> tuple[float, float]:
     """
@@ -123,7 +122,7 @@ def eval(
     total_tokens = 0.0
     # loop over the dataset
     for batch in loader.__iter__(rng=None):
-        correct_tokens, batch_loss, num_tokens = eval_step(moedl=model, batch=batch)
+        correct_tokens, batch_loss, num_tokens = eval_step(moedel=model, batch=batch)
         total_correct += correct_tokens
         total_loss += batch_loss
         total_tokens += num_tokens
