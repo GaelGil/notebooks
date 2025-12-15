@@ -89,7 +89,6 @@ class Encoder(nnx.Module):
         self.norm: nnx.LayerNorm = nnx.LayerNorm(num_features=d_model, rngs=rngs)
 
     def __call__(self, x: jnp.ndarray, mask: jnp.ndarray, is_training: bool):
-        mask = mask[:, None, None, :]  # FIX HERE
         for block in self.blocks:
             x = block(x=x, src_mask=mask, is_training=is_training)
         return self.norm(x)
