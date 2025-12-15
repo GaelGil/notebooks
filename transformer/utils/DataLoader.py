@@ -14,51 +14,59 @@ class Source(grain.DataLoader):
     def make_padding_mask(self, padded_ids):
         return padded_ids != self.pad_id
 
-    def make_causal_mask(self, target_ids):
+    def make_causal_mask(self, tgt_len: int):
         """
+        Returns a boolean mask shape (1, 1, tgt_len, tgt_len), True for allowed (i <= j).
         Returns lower-triangular boolean mask shape (1, 1, tgt_len, tgt_len),
         True for allowed (i >= j).
         """
-        target_len = self.make_padding_mask(padded_ids=target_ids).shape[-1]
-        tri = jnp.tril(jnp.ones((target_len, target_len), dtype=jnp.bool_))
-        return tri[None, None, :, :]  # will broadcast over batch
+        tri = jnp.tril(jnp.ones((tgt_len, tgt_len), dtype=jnp.bool_))
+        return tri[None, None, :, :]  # (1,1,T,T)
 
     def make_decoder_self_mask(self, decoder_input_ids):
-        """
-        Produces mask for decoder self-attention combining causal + decoder padding.
-        Output shape: (batch, 1, tgt_len, tgt_len), dtype bool.
-        semantics: True = allowed (query can attend to key)
-        """
-        batch, tgt_len = decoder_input_ids.shape
-        causal = self.make_causal_mask(tgt_len)  # (1,1,tgt,tgt)
-        key_nonpad = self.make_padding_mask(
-            decoder_input_ids, self.pad_id
-        )  # (batch, tgt)
-        key_nonpad = key_nonpad[:, None, None, :]  # (batch,1,1,tgt)
-        # Combine: a query position q can attend to key k iff k is not pad AND k<=q (causal)
-        return causal & key_nonpad
+        T = decoder_input_ids.shape[0]
+        causal = jnp.tril(jnp.ones((T, T), dtype=jnp.bool_))
+        key_nonpad = self.make_padding_mask(decoder_input_ids)
+        return causal & key_nonpad[None, :]
 
     def make_encoder_decoder_mask(self, encoder_input_ids, decoder_input_ids):
-        """
-        Mask for encoder->decoder cross-attention:
-        shape (batch, 1, tgt_len, src_len), dtype bool.
-        True = encoder token is not padding (decoder may attend to it).
-        """
-        batch, src_len = encoder_input_ids.shape
-        _, tgt_len = decoder_input_ids.shape
-        enc_nonpad = self.make_padding_mask(
-            encoder_input_ids, self.pad_id
-        )  # (batch, src_len)
-        enc_nonpad = enc_nonpad[:, None, None, :]  # (batch,1,1,src_len)
-        # Broadcast to (batch, 1, tgt_len, src_len)
-        return jnp.broadcast_to(enc_nonpad, (batch, 1, tgt_len, src_len))
+        src_len = encoder_input_ids.shape[0]
+        tgt_len = decoder_input_ids.shape[0]
+
+        enc_nonpad = self.make_padding_mask(encoder_input_ids)  # (S,)
+
+        # (1, T, S)
+        return jnp.broadcast_to(
+            enc_nonpad[None, None, :],
+            (1, tgt_len, src_len),
+        )
 
     def __getitem__(self, idx):
-        src_ids_padded = self.src[idx]
-        target_ids_padded = self.target[idx]
+        encoder_input = self.src[idx]  # encoder input ids padded
+        decoder_input = self.target[idx]  # decoder input ids padded
+        # print(encoder_input.shape)
 
-        src_mask = self.make_padding_mask(src_ids_padded)
-        target_mask = self.make_decoder_self_mask(target_ids_padded)
-        enc_dec_mask = self.make_encoder_decoder_mask(src_ids_padded, target_ids_padded)
+        labels = decoder_input[1:]  # the labels are the decoder input shifted by one
+        labels_mask = self.make_padding_mask(labels)
+        decoder_input = decoder_input[:-1]
 
-        return src_ids_padded, target_ids_padded, src_mask, target_mask, enc_dec_mask
+        encoder_padding_mask = self.make_padding_mask(
+            encoder_input
+        )  # mask for encoder to ignore padded tokens
+        decoder_self_attention_mask = self.make_decoder_self_mask(
+            decoder_input
+        )  # mask for decoder self-attention to ignore future tokens
+
+        encoder_decoder_mask = self.make_encoder_decoder_mask(
+            encoder_input, decoder_input
+        )
+
+        return (
+            encoder_input,
+            decoder_input,
+            labels,
+            labels_mask,
+            encoder_padding_mask,
+            decoder_self_attention_mask,
+            encoder_decoder_mask,
+        )

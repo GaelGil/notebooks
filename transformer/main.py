@@ -1,5 +1,4 @@
 import grain
-import jax
 import orbax.checkpoint as ocp
 from absl import logging
 from grain.samplers import IndexSampler
@@ -15,7 +14,7 @@ logging.set_verbosity(logging.INFO)
 
 
 def main():
-    logging.info(f"Using device: {jax.devices('gpu')[0]}")
+    # logging.info(f"Using device: {jax.devices('gpu')[0]}")
 
     # get the tokenizer and dataset paths
     tokenizer, dataset_one_paths, dataset_two_paths = handle_tokenizer_data(
@@ -68,6 +67,10 @@ def main():
     )
     train_loader = iter(train_loader)
     val_loader = iter(val_loader)
+
+    for batch in train_loader:
+        batch = next(train_loader)
+        print(batch)
 
     # initialize the checkpoint manager options
     checkpoint_options = ocp.CheckpointManagerOptions(
