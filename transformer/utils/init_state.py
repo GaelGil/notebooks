@@ -118,6 +118,7 @@ def init_state(
         self_mask=dummy_target_mask,
         cross_mask=dummy_src_mask,
         is_training=False,
+        rngs=rngs,
     )
 
     return model, optimizer
