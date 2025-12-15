@@ -38,27 +38,25 @@ class MultiHeadAttentionBlock(nnx.Module):
         mask: jnp.ndarray,
         dropout: nnx.Dropout,
         is_training: bool,
+        rngs: nnx.Rngs,
     ) -> jnp.ndarray:
         d_k = query.shape[-1]  # get dimension of last axis
         # (Q * K^T)/sqrt(d_k)
         attention_scores = jnp.matmul(query, key.swapaxes(-2, -1)) / jnp.sqrt(d_k)
-        print(f"attention_scores shape: {attention_scores.shape}")
-        print(f"mask shape: {mask.shape}    ")
+
         if mask is not None:
             # ensure mask shape is broadcastable to attention_scores
             if mask.ndim == 2:  # (B, Lk)
                 mask = mask[:, None, None, :]  # (B, 1, 1, Lk)
             attention_scores = jnp.where(mask == 0, -1e10, attention_scores)
 
-        print(f"attention_scores shape after mask: {attention_scores.shape}")
         # softmax(Q * K^T/sqrt(d_k))
-        print(f"attention_scores shape before softmax: {attention_scores.shape}")
         attention_scores = nnx.softmax(attention_scores, axis=-1)
-        print(f"attention_scores shape after softmax: {attention_scores.shape}")
         if dropout:
-            attention_scores = dropout(attention_scores, deterministic=not is_training)
+            attention_scores = dropout(
+                attention_scores, deterministic=not is_training, rngs=rngs
+            )
         # (Q * K^T)/sqrt(d_k) * V
-        print(f"attention_scores shape before matmul: {attention_scores.shape}")
         x = jnp.matmul(attention_scores, value)
 
         return x
@@ -70,6 +68,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         v: jnp.ndarray,
         mask: jnp.ndarray,
         is_training: bool,
+        rngs: nnx.Rngs,
     ):
         """
 
@@ -93,13 +92,11 @@ class MultiHeadAttentionBlock(nnx.Module):
         key = key.reshape(Bk, Lk, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
         value = value.reshape(Bk, Lk, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
 
-        print(f"query shape {query.shape} before attention")
         # attention
         x = self.scaled_dot_product_attention(
-            query, key, value, mask, self.dropout, is_training
+            query, key, value, mask, self.dropout, is_training, rngs=rngs
         )
 
-        print(f"x shape {x.shape} after attention")
         # merge heads -> (B, L, D_model)
         x = x.transpose(0, 2, 1, 3).reshape(Bq, Lq, d_model)
 
