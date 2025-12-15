@@ -48,27 +48,35 @@ class EncoderBlock(nnx.Module):
         )
         # Lastly there are two residual connections in the encoder block
         # that connect the multi head attention block and the feed forward block
-        self.dropout = nnx.Dropout(rate=dropout_rate)
+        self.dropout = nnx.Dropout(rate=dropout_rate, rngs=rngs)
         self.norm1 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
         self.norm2 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
 
-    def __call__(self, x: jnp.ndarray, src_mask: jnp.ndarray, is_training: bool):
+    def __call__(
+        self, x: jnp.ndarray, src_mask: jnp.ndarray, is_training: bool, rngs: nnx.Rngs
+    ):
         # attention block output
         multi_head_attention_output = self.multi_head_attention_block(
-            q=x, k=x, v=x, mask=src_mask, is_training=is_training
+            q=x, k=x, v=x, mask=src_mask, is_training=is_training, rngs=rngs
         )
 
         # add and norm output
         x = self.dropout(
-            self.norm1(multi_head_attention_output + x), deterministic=not is_training
+            self.norm1(multi_head_attention_output + x),
+            deterministic=not is_training,
+            rngs=rngs,
         )
 
         # pass in new x into feed forward and get output
-        feed_forward_output = self.feed_forward_block(x, is_training=is_training)
+        feed_forward_output = self.feed_forward_block(
+            x, is_training=is_training, rngs=rngs
+        )
 
         # add and norm ff output
         output = self.dropout(
-            self.norm2(feed_forward_output + x), deterministic=not is_training
+            self.norm2(feed_forward_output + x),
+            deterministic=not is_training,
+            rngs=rngs,
         )
 
         return output
@@ -88,7 +96,9 @@ class Encoder(nnx.Module):
         self.blocks: nnx.List[EncoderBlock] = encoder_blocks
         self.norm: nnx.LayerNorm = nnx.LayerNorm(num_features=d_model, rngs=rngs)
 
-    def __call__(self, x: jnp.ndarray, mask: jnp.ndarray, is_training: bool):
+    def __call__(
+        self, x: jnp.ndarray, mask: jnp.ndarray, is_training: bool, rngs: nnx.Rngs
+    ):
         for block in self.blocks:
-            x = block(x=x, src_mask=mask, is_training=is_training)
+            x = block(x=x, src_mask=mask, is_training=is_training, rngs=rngs)
         return self.norm(x)

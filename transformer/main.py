@@ -82,28 +82,6 @@ def main():
         options=checkpoint_options,
     )
 
-    for batch in train_loader:
-        batch = next(train_loader)
-        (
-            encoder_input,
-            decoder_input,
-            labels,
-            labels_mask,
-            encoder_padding_mask,
-            decoder_self_attention_mask,
-            encoder_decoder_mask,
-        ) = batch
-        print(f"encoder_input shape: {encoder_input.shape}  ")
-        print(f"decoder_input shape: {decoder_input.shape}  ")
-        print(f"labels shape: {labels.shape}  ")
-        print(f"labels_mask shape: {labels_mask.shape}  ")
-        print(f"encoder_padding_mask shape: {encoder_padding_mask.shape}  ")
-        print(
-            f"decoder_self_attention_mask shape: {decoder_self_attention_mask.shape}  "
-        )
-        print(f"encoder_decoder_mask shape: {encoder_decoder_mask.shape}  ")
-        break
-
     logging.info("Initializing the the model state ...")
     model, optimizer = init_state(
         config=config,
