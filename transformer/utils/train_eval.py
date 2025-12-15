@@ -1,10 +1,11 @@
+import grain
 import jax
 import jax.numpy as jnp
 import optax
 import orbax.checkpoint as ocp
-from transformer.Transformer import Transformer
 from flax import nnx
-import grain
+
+from transformer.Transformer import Transformer
 
 
 def train(
@@ -27,7 +28,7 @@ def train(
     rng = jax.random.PRNGKey(0)
     for epoch in range(step, epochs):
         rng, loader_rng = jax.random.split(rng)
-        for batch in train_loader.__iter__():
+        for batch in train_loader:
             batch = next(train_loader)
             model, optimizer, batch_loss = train_step(
                 model=model, batch=batch, optimizer=optimizer, dropout_rng=loader_rng
@@ -83,16 +84,34 @@ def train_step(
         state, loss
     """
 
-    x = batch["src"]
-    y = batch["target"]
+    (
+        encoder_input,
+        decoder_input,
+        labels,
+        labels_mask,
+        encoder_padding_mask,
+        decoder_self_attention_mask,
+        encoder_decoder_mask,
+    ) = batch
 
     # define loss function
     def loss_fn(params):
         """
         Compute the loss function for a single batch
         """
-        logits = model(x, params, dropout_rng)
-        loss = optax.softmax_cross_entropy(logits=logits, labels=y)
+        logits = model(
+            params,
+            dropout_rng,
+            src=encoder_input,
+            src_mask=encoder_padding_mask,
+            target=decoder_input,
+            self_mask=decoder_self_attention_mask,
+            cross_mask=encoder_decoder_mask,
+            is_training=True,
+        )
+        loss = optax.softmax_cross_entropy_with_integer_labels(
+            logits=logits, labels=labels
+        )
         return loss
 
     # compute loss and gradients
