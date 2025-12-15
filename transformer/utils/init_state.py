@@ -115,7 +115,8 @@ def init_state(
         src=dummy_src_input,
         src_mask=dummy_src_mask,
         target=dummy_target_input,
-        target_mask=dummy_target_mask,
+        self_mask=dummy_target_mask,
+        cross_mask=dummy_src_mask,
         is_training=False,
     )
 
