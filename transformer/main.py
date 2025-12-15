@@ -68,10 +68,6 @@ def main():
     train_loader = iter(train_loader)
     val_loader = iter(val_loader)
 
-    for batch in train_loader:
-        batch = next(train_loader)
-        print(batch)
-
     # initialize the checkpoint manager options
     checkpoint_options = ocp.CheckpointManagerOptions(
         max_to_keep=config.MAX_TO_KEEP,

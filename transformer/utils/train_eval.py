@@ -100,8 +100,6 @@ def train_step(
         Compute the loss function for a single batch
         """
         logits = model(
-            params,
-            dropout_rng,
             src=encoder_input,
             src_mask=encoder_padding_mask,
             target=decoder_input,
@@ -115,7 +113,7 @@ def train_step(
         return loss
 
     # compute loss and gradients
-    loss, grads = nnx.value_and_grad(loss_fn)(model.params)
+    loss, grads = nnx.value_and_grad(loss_fn)(model)
     # update the the training state with the new gradients
     optimizer.update(model, grads)
 
