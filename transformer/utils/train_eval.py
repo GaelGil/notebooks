@@ -96,6 +96,15 @@ def train_step(
         decoder_self_attention_mask,
         encoder_decoder_mask,
     ) = batch
+    jax.debug.print("encoder input shape {}", encoder_input.shape)
+    jax.debug.print("decoder input shape {}", decoder_input.shape)
+    jax.debug.print("labels shape {}", labels.shape)
+    jax.debug.print("labels mask shape {}", labels_mask.shape)
+    jax.debug.print("encoder padding mask shape {}", encoder_padding_mask.shape)
+    jax.debug.print(
+        "decoder self attention mask shape {}", decoder_self_attention_mask.shape
+    )
+    jax.debug.print("encoder decoder mask shape {}", encoder_decoder_mask.shape)
 
     # define loss function
     def loss_fn(model: Transformer):
