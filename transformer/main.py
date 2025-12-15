@@ -1,16 +1,15 @@
+import grain
 import jax
 import orbax.checkpoint as ocp
 from absl import logging
-
-from utils.config import config
-
-from utils.init_state import init_state
-from utils.train_eval import train
-import grain
-from utils.handle_tokenizer_data import handle_tokenizer_data
-from utils.DataLoader import Source
 from grain.samplers import IndexSampler
 from grain.transforms import Batch
+
+from utils.config import config
+from utils.DataLoader import Source
+from utils.handle_tokenizer_data import handle_tokenizer_data
+from utils.init_state import init_state
+from utils.train_eval import train
 
 logging.set_verbosity(logging.INFO)
 
@@ -30,10 +29,12 @@ def main():
     train_data = Source(
         src_path=dataset_one_paths["train_src"],
         target_path=dataset_one_paths["train_target"],
+        pad_id=tokenizer.sp.pad_id(),
     )
     val_data = Source(
         src_path=dataset_one_paths["val_src"],
         target_path=dataset_one_paths["val_target"],
+        pad_id=tokenizer.sp.pad_id(),
     )
 
     # initialize the sampler
