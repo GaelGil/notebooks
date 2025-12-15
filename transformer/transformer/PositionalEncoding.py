@@ -23,7 +23,7 @@ class PositionalEncoding(nnx.Module):
         # )
         self.pe = nnx.Param(jax.random.uniform(rngs.params(), (1, seq_len, d_model)))
 
-    def __call__(self, x: jnp.ndarray, is_training: bool):
+    def __call__(self, x: jnp.ndarray, is_training: bool, rngs: nnx.Rngs):
         """
         Args:
             x: input tensor of shape (batch_size, seq_len, d_model)
@@ -33,4 +33,4 @@ class PositionalEncoding(nnx.Module):
         pe = self.pe[:, :seq_len, :]  # slice to match
 
         x = x + pe
-        return self.dropout(x, deterministic=not is_training)
+        return self.dropout(x, deterministic=not is_training, rngs=rngs)

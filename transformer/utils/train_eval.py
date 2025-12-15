@@ -31,7 +31,10 @@ def train(
         for batch in train_loader:
             batch = next(train_loader)
             model, optimizer, batch_loss = train_step(
-                model=model, batch=batch, optimizer=optimizer, dropout_rng=loader_rng
+                model=model,
+                batch=batch,
+                optimizer=optimizer,
+                dropout_rng=loader_rng,
             )
 
         # after each batch evaluate
@@ -95,10 +98,13 @@ def train_step(
     ) = batch
 
     # define loss function
-    def loss_fn(params):
+    def loss_fn(model: Transformer):
         """
         Compute the loss function for a single batch
         """
+        key = jax.random.PRNGKey(0)
+
+        rngs = nnx.Rngs(dropout=key)
         logits = model(
             src=encoder_input,
             src_mask=encoder_padding_mask,
@@ -106,6 +112,7 @@ def train_step(
             self_mask=decoder_self_attention_mask,
             cross_mask=encoder_decoder_mask,
             is_training=True,
+            rngs=rngs,
         )
         loss = optax.softmax_cross_entropy_with_integer_labels(
             logits=logits, labels=labels

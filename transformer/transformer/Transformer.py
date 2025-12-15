@@ -98,16 +98,19 @@ class Transformer(nnx.Module):
         self_mask: jnp.ndarray,
         cross_mask: jnp.ndarray,
         is_training: bool,
+        rngs: nnx.Rngs,
     ):
         # get the embeddings for the src
         src_embeddings = self.src_embeddings(x=src)
         # apply positional encoding to the src embeddings
-        src_pos = self.src_pe(x=src_embeddings, is_training=is_training)
+        src_pos = self.src_pe(x=src_embeddings, is_training=is_training, rngs=rngs)
 
         # get the embeddings for the target
         target_embeddings = self.target_embeddings(x=target)
         # apply positonal encoding to the target embeddings
-        target_pos = self.target_pe(x=target_embeddings, is_training=is_training)
+        target_pos = self.target_pe(
+            x=target_embeddings, is_training=is_training, rngs=rngs
+        )
 
         # pass the input embeddings with positinal encoding through the encoder
         encoder_output = self.encoder(x=src_pos, mask=src_mask, is_training=is_training)
