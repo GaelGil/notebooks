@@ -1,7 +1,8 @@
-from utils.config import config
-from utils.Tokenizer import Tokenizer
-from utils.LangDataset import LangDataset
 from pathlib import Path
+
+from utils.config import config
+from utils.LangDataset import LangDataset
+from utils.Tokenizer import Tokenizer
 
 
 def handle_tokenizer_data(logging) -> tuple[Tokenizer, dict, dict]:
@@ -98,24 +99,16 @@ def handle_tokenizer_data(logging) -> tuple[Tokenizer, dict, dict]:
             target_name=config.LANG_TARGET_TWO,
             splits_path=config.SPLITS_PATH,
         )
-    src_one_train, src_one_val, _, target_one_train, target_one_val, _ = (
         dataset_one.load_splits(
             splits_path=config.SPLITS_PATH,
             src_name=config.LANG_SRC_ONE,
             target_name=config.LANG_TARGET_ONE,
         )
-    )
-    (
-        src_two_train,
-        src_two_val,
-        _,
-        target_two_train,
-        target_two_val,
-        _,
-    ) = dataset_two.load_splits(
-        splits_path=config.SPLITS_PATH,
-        src_name=config.LANG_SRC_TWO,
-        target_name=config.LANG_TARGET_TWO,
-    )
+
+        dataset_two.load_splits(
+            splits_path=config.SPLITS_PATH,
+            src_name=config.LANG_SRC_TWO,
+            target_name=config.LANG_TARGET_TWO,
+        )
 
     return tokenizer, dataset_one.paths, dataset_two.paths
