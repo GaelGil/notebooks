@@ -1,7 +1,8 @@
-from transformer.AttentionBlock import MultiHeadAttentionBlock
-from transformer.FeedForwardBlock import FeedForwardBlock
 from flax import nnx
 from jax import numpy as jnp
+
+from transformer.AttentionBlock import MultiHeadAttentionBlock
+from transformer.FeedForwardBlock import FeedForwardBlock
 
 
 class DecoderBlock(nnx.Module):
@@ -31,13 +32,13 @@ class DecoderBlock(nnx.Module):
         self,
         x: jnp.ndarray,
         encoder_output: jnp.ndarray,
-        src_mask: jnp.ndarray,
-        target_mask: jnp.ndarray,
+        self_mask: jnp.ndarray,
+        cross_mask: jnp.ndarray,
         is_training: bool,
     ):
         # masked multi head attention block output
         masked_multi_head_attention_output = self.masked_multi_head_attention_block(
-            q=x, k=x, v=x, mask=target_mask, is_training=is_training
+            q=x, k=x, v=x, mask=self_mask, is_training=is_training
         )
 
         # add and norm the masked multi head attention
@@ -51,7 +52,7 @@ class DecoderBlock(nnx.Module):
             q=x,
             k=encoder_output,
             v=encoder_output,
-            mask=src_mask,
+            mask=cross_mask,
             is_training=is_training,
         )
 
@@ -89,16 +90,16 @@ class Decoder(nnx.Module):
         self,
         x: jnp.ndarray,
         encoder_output: jnp.ndarray,
-        src_mask: jnp.ndarray,
-        target_mask: jnp.ndarray,
+        self_mask: jnp.ndarray,
+        cross_mask: jnp.ndarray,
         is_training: bool,
     ):
         for block in self.blocks:
             x = block(
                 x=x,
                 encoder_output=encoder_output,
-                src_mask=src_mask,
-                target_mask=target_mask,
+                self_mask=self_mask,
+                cross_mask=cross_mask,
                 is_training=is_training,
             )
         return self.norm(x)

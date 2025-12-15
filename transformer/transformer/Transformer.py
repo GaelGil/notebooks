@@ -1,7 +1,8 @@
 from flax import nnx
 from jax import numpy as jnp
-from transformer.Encoder import Encoder, EncoderBlock
+
 from transformer.Decoder import Decoder, DecoderBlock
+from transformer.Encoder import Encoder, EncoderBlock
 from transformer.InputEmbeddings import InputEmbeddings
 from transformer.PositionalEncoding import PositionalEncoding
 from transformer.ProjectionLayer import ProjectionLayer
@@ -94,7 +95,8 @@ class Transformer(nnx.Module):
         src: jnp.ndarray,
         src_mask: jnp.ndarray,
         target: jnp.ndarray,
-        target_mask: jnp.ndarray,
+        self_mask: jnp.ndarray,
+        cross_mask: jnp.ndarray,
         is_training: bool,
     ):
         # get the embeddings for the src
@@ -115,15 +117,12 @@ class Transformer(nnx.Module):
         decoder_output = self.decoder(
             x=target_pos,
             encoder_output=encoder_output,
-            src_mask=src_mask,
-            target_mask=target_mask,
+            self_mask=self_mask,
+            cross_mask=cross_mask,
             is_training=is_training,
         )
 
         # project the decoder output into vocab size and get outputs
         output = self.projection(decoder_output)
-
-        # jax.debug.print("encoder_output.shape = {}", encoder_output.shape)
-        # jax.debug.print("decoder_output.shape = {}", decoder_output.shape)
 
         return output
