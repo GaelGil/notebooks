@@ -48,6 +48,9 @@ class MultiHeadAttentionBlock(nnx.Module):
             # ensure mask shape is broadcastable to attention_scores
             if mask.ndim == 2:  # (B, Lk)
                 mask = mask[:, None, None, :]  # (B, 1, 1, Lk)
+            elif mask.ndim == 3:  # (B, Lq, Lk) typical for decoder self-attention
+                mask = mask[:, None, :, :]  # (B, 1, Lq, Lk)
+            # else assume already broadcastable (e.g., (B, H, Lq, Lk))
             attention_scores = jnp.where(mask == 0, -1e10, attention_scores)
 
         # softmax(Q * K^T/sqrt(d_k))
