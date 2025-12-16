@@ -29,19 +29,20 @@ def train(
     for epoch in range(step, epochs):
         rng, loader_rng = jax.random.split(rng)
         for batch in train_loader:
-            batch = next(train_loader)
-            model, optimizer, batch_loss = train_step(
-                model=model,
-                batch=batch,
-                optimizer=optimizer,
-                dropout_rng=loader_rng,
-            )
+            try:
+                batch = next(train_loader)
+                model, optimizer, batch_loss = train_step(
+                    model=model,
+                    batch=batch,
+                    optimizer=optimizer,
+                    dropout_rng=loader_rng,
+                )
+            except StopIteration:
+                break
 
         # after each batch evaluate
-        train_accuracy, train_loss = eval(
-            model=model, loader=train_loader, rng=loader_rng
-        )
-        eval_accuracy, eval_loss = eval(model=model, loader=val_loader, rng=None)
+        train_accuracy, train_loss = eval(model=model, loader=train_loader)
+        eval_accuracy, eval_loss = eval(model=model, loader=val_loader)
 
         # create metrics dictionary
         metrics = {
@@ -96,15 +97,6 @@ def train_step(
         decoder_self_attention_mask,
         encoder_decoder_mask,
     ) = batch
-    jax.debug.print("encoder input shape {}", encoder_input.shape)
-    jax.debug.print("decoder input shape {}", decoder_input.shape)
-    jax.debug.print("labels shape {}", labels.shape)
-    jax.debug.print("labels mask shape {}", labels_mask.shape)
-    jax.debug.print("encoder padding mask shape {}", encoder_padding_mask.shape)
-    jax.debug.print(
-        "decoder self attention mask shape {}", decoder_self_attention_mask.shape
-    )
-    jax.debug.print("encoder decoder mask shape {}", encoder_decoder_mask.shape)
 
     # define loss function
     def loss_fn(model: Transformer):
@@ -123,9 +115,10 @@ def train_step(
             is_training=True,
             rngs=rngs,
         )
-        loss = optax.softmax_cross_entropy_with_integer_labels(
+        per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
             logits=logits, labels=labels
         )
+        loss = (per_token_loss * labels_mask).sum() / labels_mask.sum()
         return loss
 
     # compute loss and gradients
@@ -139,7 +132,6 @@ def train_step(
 def eval(
     model: Transformer,
     loader,
-    dropout_rng: jax.random.PRNGKey,
 ) -> tuple[float, float]:
     """
     evaluate the model on the validation set
@@ -154,8 +146,14 @@ def eval(
     total_loss = 0.0
     total_tokens = 0.0
     # loop over the dataset
-    for batch in loader.__iter__(rng=None):
-        correct_tokens, batch_loss, num_tokens = eval_step(moedel=model, batch=batch)
+    for batch in loader:
+        try:
+            batch = next(loader)
+            correct_tokens, batch_loss, num_tokens = eval_step(
+                moedel=model, batch=batch
+            )
+        except StopIteration:
+            break
         total_correct += correct_tokens
         total_loss += batch_loss
         total_tokens += num_tokens
@@ -179,17 +177,35 @@ def eval_step(model: Transformer, batch) -> tuple[float, float, float]:
     Returns:
         predictions
     """
-    x = batch["src"]
-    y = batch["target"]
+    (
+        encoder_input,
+        decoder_input,
+        labels,
+        labels_mask,
+        encoder_padding_mask,
+        decoder_self_attention_mask,
+        encoder_decoder_mask,
+    ) = batch
 
     # pass batch through the model in training state
-    logits = model(x)
+    key = jax.random.PRNGKey(0)
+
+    rngs = nnx.Rngs(dropout=key)
+    logits = model(
+        src=encoder_input,
+        src_mask=encoder_padding_mask,
+        target=decoder_input,
+        self_mask=decoder_self_attention_mask,
+        cross_mask=encoder_decoder_mask,
+        is_training=True,
+        rngs=rngs,
+    )
 
     # compute loss
-    cross_entropy_loss = optax.softmax_cross_entropy(logits=logits, labels=y)
+    cross_entropy_loss = optax.softmax_cross_entropy(logits=logits, labels=labels)
 
     # compute accuracy
-    correct_tokens = jnp.sum(jnp.argmax(logits, axis=-1) == jnp.argmax(y, axis=-1))
-    num_tokens = jnp.size(correct_tokens)
+    correct_tokens = jnp.sum(jnp.argmax(logits, axis=-1) == jnp.argmax(labels, axis=-1))
+    num_tokens = correct_tokens.shape[0]
 
     return correct_tokens, cross_entropy_loss, num_tokens
