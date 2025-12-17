@@ -14,8 +14,6 @@ logging.set_verbosity(logging.INFO)
 
 
 def main():
-    # logging.info(f"Using device: {jax.devices('gpu')[0]}")
-
     # get the tokenizer and dataset paths
     tokenizer, dataset_one_paths, dataset_two_paths = handle_tokenizer_data(
         logging=logging
@@ -36,19 +34,19 @@ def main():
         pad_id=tokenizer.sp.pad_id(),
     )
 
-    # initialize the sampler
+    # initialize the index sampler
     train_sampler = IndexSampler(
         num_records=train_data.__len__(),
         shard_options=grain.sharding.NoSharding(),
         shuffle=True,
-        num_epochs=1,
+        num_epochs=config.EPOCHS * 2,
         seed=42,
     )
     eval_sampler = IndexSampler(
         num_records=val_data.__len__(),
         shard_options=grain.sharding.NoSharding(),
         shuffle=False,
-        num_epochs=1,
+        num_epochs=config.EPOCHS,
         seed=42,
     )
 
@@ -65,28 +63,8 @@ def main():
         operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=False)],
         worker_count=config.WORKER_COUNT,
     )
-    train_loader = iter(train_loader)
-    val_loader = iter(val_loader)
-
-    # for batch in train_loader:
-    #     try:
-    #         batch = next(train_loader)
-    #         (
-    #             encoder_input,
-    #             decoder_input,
-    #             labels,
-    #             labels_mask,
-    #             encoder_padding_mask,
-    #             decoder_self_attention_mask,
-    #             encoder_decoder_mask,
-    #         ) = batch
-    #         print(f"labels: {labels}")
-    #         print(f"labels shape: {labels.shape}")
-    #         print(f"labels mask: {labels_mask}")
-    #         print(f"labels mask shape: {labels_mask.shape}")
-    #         print()
-    #     except StopIteration:
-    #         break
+    train_loader: grain.DataLoaderIterator = iter(train_loader)
+    val_loader: grain.DataLoaderIterator = iter(val_loader)
 
     # initialize the checkpoint manager options
     checkpoint_options = ocp.CheckpointManagerOptions(
@@ -122,36 +100,32 @@ def main():
             manager=manager,
             logger=logging,
             step=step,
-            tokenizer=tokenizer,
         )
 
-    train_data = Source(
-        src_path=dataset_two_paths["train_src"],
-        target_path=dataset_two_paths["train_target"],
-    )
+    # update the dataset paths
+    train_data.src = dataset_two_paths["train_src"]
+    train_data.target = dataset_two_paths["train_target"]
 
-    val_data = Source(
-        src_path=dataset_two_paths["val_src"],
-        target_path=dataset_two_paths["val_target"],
-    )
+    val_data.src = dataset_two_paths["val_src"]
+    val_data.target = dataset_two_paths["val_target"]
 
+    # update the index sampler
     train_sampler._num_records = train_data.__len__()
     eval_sampler._num_records = val_data.__len__()
 
+    # initialize the dataloaders
     train_loader = grain.DataLoader(
         data_source=train_data,
         sampler=train_sampler,
         operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=True)],
         worker_count=config.WORKER_COUNT,
     )
-
     val_loader = grain.DataLoader(
         data_source=val_data,
         sampler=eval_sampler,
         operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=False)],
         worker_count=config.WORKER_COUNT,
     )
-
     train_loader: grain.DataLoaderIterator = iter(train_loader)
     val_loader: grain.DataLoaderIterator = iter(val_loader)
 
