@@ -24,13 +24,15 @@ def train(
     """
 
     loader_rng = jax.random.PRNGKey(0)
+    # train_accuracy, train_loss = eval(model=model, loader=val_loader)
 
+    # print(f"train perplexity: {jnp.exp(train_loss)} | train accuracy: {train_accuracy}")
     rng = jax.random.PRNGKey(0)
     for epoch in range(step, epochs):
         rng, loader_rng = jax.random.split(rng)
         for batch in train_loader:
             try:
-                batch = next(train_loader)
+                # batch = next(train_loader)
                 model, optimizer, batch_loss = train_step(
                     model=model,
                     batch=batch,
@@ -148,15 +150,13 @@ def eval(
     # loop over the dataset
     for batch in loader:
         try:
-            batch = next(loader)
-            correct_tokens, batch_loss, num_tokens = eval_step(
-                moedel=model, batch=batch
-            )
+            # batch = next(loader)
+            correct_tokens, batch_loss, num_tokens = eval_step(model=model, batch=batch)
+            total_correct += correct_tokens.item()
+            total_loss += batch_loss.item()
+            total_tokens += num_tokens.item()
         except StopIteration:
             break
-        total_correct += correct_tokens
-        total_loss += batch_loss
-        total_tokens += num_tokens
 
     # Compute final metrics
     accuracy = total_correct / total_tokens
@@ -167,7 +167,9 @@ def eval(
 
 
 @jax.jit
-def eval_step(model: Transformer, batch) -> tuple[float, float, float]:
+def eval_step(
+    model: Transformer, batch
+) -> tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]:
     """
     evaluate the model on a single batch
     Args:
@@ -181,12 +183,13 @@ def eval_step(model: Transformer, batch) -> tuple[float, float, float]:
         encoder_input,
         decoder_input,
         labels,
-        labels_mask,
+        _,
         encoder_padding_mask,
         decoder_self_attention_mask,
         encoder_decoder_mask,
     ) = batch
 
+    labels_mask = labels != 0  # ✅ CORRECT loss mask
     # pass batch through the model in training state
     key = jax.random.PRNGKey(0)
 
@@ -197,15 +200,19 @@ def eval_step(model: Transformer, batch) -> tuple[float, float, float]:
         target=decoder_input,
         self_mask=decoder_self_attention_mask,
         cross_mask=encoder_decoder_mask,
-        is_training=True,
+        is_training=False,
         rngs=rngs,
     )
 
     # compute loss
-    cross_entropy_loss = optax.softmax_cross_entropy(logits=logits, labels=labels)
+    cross_entropy_loss = optax.softmax_cross_entropy_with_integer_labels(
+        logits=logits, labels=labels
+    )
 
-    # compute accuracy
-    correct_tokens = jnp.sum(jnp.argmax(logits, axis=-1) == jnp.argmax(labels, axis=-1))
-    num_tokens = correct_tokens.shape[0]
+    loss_sum = jnp.sum(cross_entropy_loss * labels_mask)
+    num_tokens = jnp.sum(labels_mask)
 
-    return correct_tokens, cross_entropy_loss, num_tokens
+    preds = jnp.argmax(logits, axis=-1)
+    correct_tokens = jnp.sum((preds == labels) & labels_mask)
+
+    return correct_tokens, loss_sum, num_tokens

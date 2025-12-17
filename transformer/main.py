@@ -68,6 +68,26 @@ def main():
     train_loader = iter(train_loader)
     val_loader = iter(val_loader)
 
+    # for batch in train_loader:
+    #     try:
+    #         batch = next(train_loader)
+    #         (
+    #             encoder_input,
+    #             decoder_input,
+    #             labels,
+    #             labels_mask,
+    #             encoder_padding_mask,
+    #             decoder_self_attention_mask,
+    #             encoder_decoder_mask,
+    #         ) = batch
+    #         print(f"labels: {labels}")
+    #         print(f"labels shape: {labels.shape}")
+    #         print(f"labels mask: {labels_mask}")
+    #         print(f"labels mask shape: {labels_mask.shape}")
+    #         print()
+    #     except StopIteration:
+    #         break
+
     # initialize the checkpoint manager options
     checkpoint_options = ocp.CheckpointManagerOptions(
         max_to_keep=config.MAX_TO_KEEP,
