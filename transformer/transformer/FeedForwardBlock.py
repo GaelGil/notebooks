@@ -3,6 +3,14 @@ from jax import numpy as jnp
 
 
 class FeedForwardBlock(nnx.Module):
+    """
+    Feed forward block
+    Attributes:
+        linear_1: nnx.Linear
+        dropout: nnx.Dropout
+        linear_2: nnx.Linear
+    """
+
     def __init__(
         self, d_model: int, d_ff: int, dropout_rate: float, rngs: nnx.Rngs
     ) -> None:

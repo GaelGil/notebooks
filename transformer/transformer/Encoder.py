@@ -6,12 +6,13 @@ from jax import numpy as jnp
 
 class EncoderBlock(nnx.Module):
     """
-    Atttributes:
-        d_model: dimension of model
-        n_heads: number of heads
-        d_ff: dimension of feed forward network
-        dropout_rate: dropout rate
-        training: whether in training mode
+    Decoder block
+
+    Attributes:
+        multi_head_attention_block: MultiHeadAttentionBlock
+        norm1: nnx.LayerNorm
+        feed_forward_block: FeedForwardBlock
+        norm2: nnx.LayerNorm
     """
 
     def __init__(
@@ -24,10 +25,13 @@ class EncoderBlock(nnx.Module):
     ) -> None:
         """
         Set up encoder block
-        Each encoder block has one multi head attention block and one feed forward block.
-        There is also the residual connections of which it has two.
+
         Args:
-            None
+            d_model: dimension of the model
+            n_heads: number of heads
+            d_ff: dimension of the feed forward network
+            dropout: dropout probability
+            rngs: rngs
 
         Returns:
             None
@@ -55,12 +59,24 @@ class EncoderBlock(nnx.Module):
     def __call__(
         self, x: jnp.ndarray, src_mask: jnp.ndarray, is_training: bool, rngs: nnx.Rngs
     ):
+        """
+        Args:
+            x: input
+            src_mask: source mask
+            is_training: is training
+            rngs: rngs
+
+        Returns:
+            jnp.ndarray
+        """
         # attention block output
+        # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
         multi_head_attention_output = self.multi_head_attention_block(
             q=x, k=x, v=x, mask=src_mask, is_training=is_training, rngs=rngs
         )
 
         # add and norm output
+        # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
         x = self.dropout(
             self.norm1(multi_head_attention_output + x),
             deterministic=not is_training,
@@ -68,11 +84,13 @@ class EncoderBlock(nnx.Module):
         )
 
         # pass in new x into feed forward and get output
+        # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
         feed_forward_output = self.feed_forward_block(
             x, is_training=is_training, rngs=rngs
         )
 
         # add and norm ff output
+        # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
         output = self.dropout(
             self.norm2(feed_forward_output + x),
             deterministic=not is_training,
@@ -89,6 +107,8 @@ class Encoder(nnx.Module):
         """
         Args:
             blocks: list of encoder blocks
+            d_model: dimension of the model
+            rngs: rngs
 
         Returns:
             None
@@ -99,6 +119,16 @@ class Encoder(nnx.Module):
     def __call__(
         self, x: jnp.ndarray, mask: jnp.ndarray, is_training: bool, rngs: nnx.Rngs
     ):
+        """
+        Args:
+            x: input
+            mask: mask
+            is_training: is training
+            rngs: rngs
+
+        Returns:
+            jnp.ndarray
+        """
         for block in self.blocks:
             x = block(x=x, src_mask=mask, is_training=is_training, rngs=rngs)
         return self.norm(x)

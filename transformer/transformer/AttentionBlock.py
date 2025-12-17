@@ -5,6 +5,16 @@ from jax import numpy as jnp
 class MultiHeadAttentionBlock(nnx.Module):
     """
     Multi Head Attention Block
+
+    In multi head attention we split the original input sequence
+    (seq_len, d_model) into (n_heads, seq_len, d_k).
+
+    Each head has its own fragments of query, key and value
+
+    This way each head can focus on learning different representations
+    of the sequence rather than learning the same representation for
+    every part of the sequence.
+
     """
 
     def __init__(
@@ -15,7 +25,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         Args:
             d_model: dimension of the model
             n_heads: number of heads
-            dropout: dropout probability
+            dropout_rate: dropout probability
 
         Returns:
             None
@@ -24,17 +34,19 @@ class MultiHeadAttentionBlock(nnx.Module):
         assert d_model % n_heads == 0, "d_model must be divisible by n_heads"
         self.d_k = d_model // n_heads
         self.n_heads = n_heads
+
         self.w_q = nnx.Linear(in_features=d_model, out_features=d_model, rngs=rngs)
         self.w_k = nnx.Linear(in_features=d_model, out_features=d_model, rngs=rngs)
         self.w_v = nnx.Linear(in_features=d_model, out_features=d_model, rngs=rngs)
+
         self.w_o = nnx.Linear(in_features=d_model, out_features=d_model, rngs=rngs)
         self.dropout = nnx.Dropout(rate=dropout_rate)
 
     @staticmethod
     def scaled_dot_product_attention(
-        query: jnp.ndarray,  # (B, H, Q, Dk)
-        key: jnp.ndarray,  # (B, H, K, Dk)
-        value: jnp.ndarray,  # (B, H, K, Dk)
+        query: jnp.ndarray,  # (batch_size, n_heads, seq_len, d_k)
+        key: jnp.ndarray,  # (batch_size, n_heads, seq_len, d_k)
+        value: jnp.ndarray,  # (batch_size, n_heads, seq_len, d_k)
         mask: jnp.ndarray,
         dropout: nnx.Dropout,
         is_training: bool,
@@ -76,33 +88,46 @@ class MultiHeadAttentionBlock(nnx.Module):
         """
 
         Args:
-            q: query
-            k: key
-            v: value
+            q: query (seq_len, d_model)
+            k: key (seq_len, d_model)
+            v: value (seq_len, d_model)
             mask: mask
+            is_training: is training
+            rngs: rngs
 
         Returns:
-            None
+            jnp.ndarray
         """
-        query = self.w_q(q)
-        key = self.w_k(k)
-        value = self.w_v(v)
+        query = self.w_q(q)  # (batch_size, seq_len, d_model)
+        key = self.w_k(k)  # (batch_size, seq_len, d_model)
+        value = self.w_v(v)  # (batch_size, seq_len, d_model)
 
-        Bq, Lq, _ = query.shape  # decoder query
-        Bk, Lk, d_model = key.shape  # encoder key/value
+        # these will be the same in the encoder
+        batch_size_q, seq_len_q, _ = query.shape  # decoder query
+        batch_size_k, seq_len_k, d_model = key.shape  # encoder key/value
 
-        query = query.reshape(Bq, Lq, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
-        key = key.reshape(Bk, Lk, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
-        value = value.reshape(Bk, Lk, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
+        # (batch_size, seq_len, d_model) -> (batch_size, n_heads, seq_len, d_k)
+        # reshape n samples of size (seq_len, d_model) into n samples where each sample
+        # has a n heads (matrices) of size (seq_len, d_k)
+        query = query.reshape(
+            batch_size_q, seq_len_q, self.n_heads, self.d_k
+        ).transpose(0, 2, 1, 3)
+        key = key.reshape(batch_size_k, seq_len_k, self.n_heads, self.d_k).transpose(
+            0, 2, 1, 3
+        )
+        value = value.reshape(
+            batch_size_k, seq_len_k, self.n_heads, self.d_k
+        ).transpose(0, 2, 1, 3)
 
-        # attention
+        # scaled dot product
+        # (batch_size, n_heads, seq_len, d_k) -> (batch_size, n_heads, seq_len, d_k)
         x = self.scaled_dot_product_attention(
             query, key, value, mask, self.dropout, is_training, rngs=rngs
         )
 
-        # merge heads -> (B, L, D_model)
-        x = x.transpose(0, 2, 1, 3).reshape(Bq, Lq, d_model)
+        # merge heads from (batch_size, n_heads, seq_len, d_k) back to (batch_size, seq_len, D_model)
+        x = x.transpose(0, 2, 1, 3).reshape(batch_size_q, seq_len_q, d_model)
 
         # final linear
-        x = self.w_o(x)
+        x = self.w_o(x)  # (batch_size, seq_len, d_model)
         return x
