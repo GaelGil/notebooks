@@ -4,6 +4,8 @@ import jax.numpy as jnp
 import optax
 import orbax.checkpoint as ocp
 from flax import nnx
+from absl import logging
+
 
 from transformer.Transformer import Transformer
 
@@ -15,8 +17,7 @@ def train(
     val_loader: grain.DataLoaderIterator,
     epochs: int,
     manager: ocp.CheckpointManager,
-    logger,
-    tokenizer,
+    logger: logging,
     step: int = 0,
 ):
     """
@@ -24,10 +25,9 @@ def train(
     """
 
     loader_rng = jax.random.PRNGKey(0)
-    # train_accuracy, train_loss = eval(model=model, loader=val_loader)
 
-    # print(f"train perplexity: {jnp.exp(train_loss)} | train accuracy: {train_accuracy}")
     rng = jax.random.PRNGKey(0)
+    logger.info(f"Starting training from epoch {step}")
     for epoch in range(step, epochs):
         rng, loader_rng = jax.random.split(rng)
         for batch in train_loader:
@@ -42,9 +42,10 @@ def train(
             except StopIteration:
                 break
 
-        # after each batch evaluate
-        train_accuracy, train_loss = eval(model=model, loader=train_loader)
+        logger.info(f"Epoch {epoch} complete, loss: {batch_loss}, evaluating ...")
+        # evaluate the model
         eval_accuracy, eval_loss = eval(model=model, loader=val_loader)
+        train_accuracy, train_loss = eval(model=model, loader=train_loader)
 
         # create metrics dictionary
         metrics = {
@@ -56,7 +57,9 @@ def train(
         # log the metrics
         logger.info(f" EPOCH: {epoch} | METRICS: {metrics}")
         logger.info(f"Saving checkpoint at epoch {epoch}")
+        # split the graphdef and state
         _, state = nnx.split(model, nnx.Param, nnx.State)
+        # save the state, optimizer and metrics and step
         manager.save(
             step=epoch,
             args=ocp.args.Composite(
@@ -152,12 +155,17 @@ def eval(
         try:
             # batch = next(loader)
             correct_tokens, batch_loss, num_tokens = eval_step(model=model, batch=batch)
-            total_correct += correct_tokens.item()
-            total_loss += batch_loss.item()
-            total_tokens += num_tokens.item()
+            total_correct += correct_tokens
+            total_loss += batch_loss
+            total_tokens += num_tokens
+            # if num_tokens == 0:
+            #     print("num tokens is 0")
+            # else:
+            #     print(f"num tokens: {num_tokens}")
         except StopIteration:
             break
 
+    # print(f"total tokens: {total_tokens}")
     # Compute final metrics
     accuracy = total_correct / total_tokens
     avg_cross_entropy = total_loss / total_tokens
@@ -183,13 +191,12 @@ def eval_step(
         encoder_input,
         decoder_input,
         labels,
-        _,
+        labels_mask,
         encoder_padding_mask,
         decoder_self_attention_mask,
         encoder_decoder_mask,
     ) = batch
 
-    labels_mask = labels != 0  # ✅ CORRECT loss mask
     # pass batch through the model in training state
     key = jax.random.PRNGKey(0)
 
@@ -209,10 +216,13 @@ def eval_step(
         logits=logits, labels=labels
     )
 
-    loss_sum = jnp.sum(cross_entropy_loss * labels_mask)
-    num_tokens = jnp.sum(labels_mask)
+    loss = (cross_entropy_loss * labels_mask).sum() / labels_mask.sum()
 
-    preds = jnp.argmax(logits, axis=-1)
-    correct_tokens = jnp.sum((preds == labels) & labels_mask)
+    predictions = jnp.argmax(logits, axis=-1)
 
-    return correct_tokens, loss_sum, num_tokens
+    correct = predictions == labels
+    correct = correct * labels_mask
+
+    # accuracy = jnp.sum(correct) / jnp.sum(labels_mask)
+
+    return jnp.sum(correct), loss, jnp.sum(labels_mask)

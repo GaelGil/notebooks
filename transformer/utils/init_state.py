@@ -14,7 +14,7 @@ def init_state(
     manager: ocp.CheckpointManager,
 ) -> tuple[Transformer, nnx.Optimizer]:
     """
-    Initialize the train state
+    Initialize the state from a checkpoint or create a new one
     Args:
         config: Config
 
@@ -40,9 +40,8 @@ def init_state(
     dummy_target_mask = jnp.ones(
         (config.BATCH_SIZE, 1, 1, config.SEQ_LEN - 1), dtype=jnp.float32
     )
-    # get the absctract model state
-    # graphdef and state
 
+    # create abstract model
     abs_model = nnx.eval_shape(
         lambda: Transformer(
             d_model=config.D_MODEL,
@@ -56,15 +55,18 @@ def init_state(
             rngs=nnx.Rngs(0),
         )
     )
+    # create abstract optimizer
     abs_opt = nnx.eval_shape(
         lambda: nnx.Optimizer(abs_model, optax.adam(1e-3), wrt=nnx.Param)
     )
 
+    # split model into graphdef, state and rng
     _graphdef, abs_state, _rng = nnx.split(
         abs_model,
         nnx.Param,  # trainable weights
         nnx.RngState,  # dropout RNGs
     )
+    # get the optimizer state
     abs_opt_state = nnx.state(abs_opt)
 
     # create model
@@ -106,8 +108,10 @@ def init_state(
             ),
         )
 
+        # update the model and optimizer with the restored state and optimizer
         nnx.update(optimizer, restored["optimizer"])
         nnx.update(model, restored["state"])
+        # return the model and optimizer
         return model, optimizer
 
     # run the model
