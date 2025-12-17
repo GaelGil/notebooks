@@ -33,4 +33,5 @@ class PositionalEncoding(nnx.Module):
         pe = self.pe[:, :seq_len, :]  # slice to match
 
         x = x + pe
+        # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
         return self.dropout(x, deterministic=not is_training, rngs=rngs)

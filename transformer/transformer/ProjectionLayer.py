@@ -4,17 +4,23 @@ from jax import numpy as jnp
 
 class ProjectionLayer(nnx.Module):
     """
-    Projection layer to map the output of the decoder to the vocabulary. This gives us the logits
+    Projection Layerr
+    Used to map the output of the decoder to the vocabulary. This gives us the logits
 
-    Args:
-        d_model: dimension of the model
-        vocab_size: size of the vocabulary
-
-    Returns:
-        None
+    Attributes:
+        linear: nnx.Linear
     """
 
     def __init__(self, vocab_size: int, d_model: int, rngs: nnx.Rngs) -> None:
+        """
+        Args:
+            d_model: dimension of the model
+            vocab_size: size of the vocabulary
+            rngs: rngs
+
+        Returns:
+            None
+        """
         self.linear = nnx.Linear(
             in_features=d_model, out_features=vocab_size, dtype=jnp.float32, rngs=rngs
         )
