@@ -14,6 +14,9 @@ class Source(grain.DataLoader):
     def make_padding_mask(self, padded_ids):
         return padded_ids != self.pad_id
 
+    def make_src_mask(self, encoder_input_ids):
+        return self.make_padding_mask(encoder_input_ids)
+
     def make_causal_mask(self, tgt_len: int):
         """
         Returns a boolean mask shape (1, 1, tgt_len, tgt_len), True for allowed (i <= j).
