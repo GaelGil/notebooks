@@ -39,7 +39,7 @@ def main():
         num_records=train_data.__len__(),
         shard_options=grain.sharding.NoSharding(),
         shuffle=True,
-        num_epochs=config.EPOCHS * 2,
+        num_epochs=config.EPOCHS,
         seed=42,
     )
     eval_sampler = IndexSampler(
@@ -88,6 +88,8 @@ def main():
         manager=manager,
     )
 
+    batches_per_epoch = train_data.__len__() // config.BATCH_SIZE
+    total_batches = batches_per_epoch * config.EPOCHS
     step = 0 if manager.latest_step() is None else manager.latest_step()
     logging.info(f"Training the model from step {step}")
     if step != config.EPOCHS:
@@ -99,6 +101,8 @@ def main():
             epochs=config.EPOCHS,
             manager=manager,
             logger=logging,
+            batches_per_epoch=batches_per_epoch,
+            total_batches=total_batches,
             step=step,
         )
 
