@@ -18,35 +18,25 @@ def train(
     epochs: int,
     manager: ocp.CheckpointManager,
     logger: logging,
-    num_records: int,
     batches_per_epoch: int,
     total_batches: int,
-    step: int = 0,
 ):
     """
     Train the model
     """
 
     loader_rng = jax.random.PRNGKey(0)
-    batches_per_epoch = num_records // batch_size
 
     current_epoch = 0
     batch_in_epoch = 0
-    epoch_losses = []
+    # epoch_losses = []
 
     pbar = tqdm(
         total=batches_per_epoch,
-        desc=f"Epoch {current_epoch}/{config.EPOCHS}",
+        desc=f"Epoch {current_epoch}/{epochs}",
     )
 
-    batch_indices = []
-
     for batch in train_loader:
-        batch_indices.append(batch)
-
-        if len(batch_indices) < batch_size:
-            continue
-
         try:
             # batch = next(train_loader)
             model, optimizer, batch_loss = train_step(
@@ -71,13 +61,13 @@ def train(
             )
             # evaluate the model
             eval_accuracy, eval_loss = eval(model=model, loader=val_loader)
-            train_accuracy, train_loss = eval(model=model, loader=train_loader)
+            # train_accuracy, train_loss = eval(model=model, loader=train_loader)
 
             # create metrics dictionary
             metrics = {
-                "train_perplexity": float(jnp.exp(train_loss)),
+                # "train_perplexity": float(jnp.exp(train_loss)),
                 "eval_perplexity": float(jnp.exp(eval_loss)),
-                "train_accuracy": float(train_accuracy),
+                # "train_accuracy": float(train_accuracy),
                 "eval_accuracy": float(eval_accuracy),
             }
             # log the metrics
@@ -95,16 +85,16 @@ def train(
                 ),
             )
             current_epoch += 1
-            if current_epoch == config.EPOCHS:
+            if current_epoch == epochs:
                 break
 
             batch_in_epoch = 0
-            epoch_losses.clear()
+            # epoch_losses.clear()
 
             pbar.close()
             pbar = tqdm(
                 total=batches_per_epoch,
-                desc=f"Epoch {current_epoch + 1}/{config.EPOCHS}",
+                desc=f"Epoch {current_epoch + 1}/{epochs}",
             )
 
     manager.wait_until_finished()
