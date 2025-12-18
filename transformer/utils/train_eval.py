@@ -28,20 +28,22 @@ def train(
     """
 
     loader_rng = jax.random.PRNGKey(0)
-    logger.info(f"Starting training from epoch {step}")
-    is_main = jax.process_index() == 0
-
-    pbar = tqdm(
-        total=total_batches,
-        desc="Training",
-        dynamic_ncols=True,
-        disable=not is_main,
-    )
+    num_records = len(train_loader)
+    steps_per_epoch = num_records // batches_per_epoch
 
     current_epoch = 0
+    step_in_epoch = 0
 
-    # ---- training loop ----
-    for step, batch in enumerate(train_loader):
+    pbar = tqdm(total=steps_per_epoch, desc=f"Epoch {current_epoch + 1}/{epochs}")
+
+    batch_indices = []
+
+    for batch in train_loader:
+        batch_indices.append(batch)
+
+        if len(batch_indices) == batch_size:
+            break
+
         try:
             # batch = next(train_loader)
             model, optimizer, batch_loss = train_step(
@@ -52,6 +54,8 @@ def train(
             )
         except StopIteration:
             break
+
+        step_in_epoch += 1
 
         current_epoch = step // batches_per_epoch
 
