@@ -3,10 +3,9 @@ import jax
 import jax.numpy as jnp
 import optax
 import orbax.checkpoint as ocp
-from flax import nnx
 from absl import logging
+from flax import nnx
 from tqdm import tqdm
-
 
 from transformer.Transformer import Transformer
 
@@ -19,6 +18,7 @@ def train(
     epochs: int,
     manager: ocp.CheckpointManager,
     logger: logging,
+    num_records: int,
     batches_per_epoch: int,
     total_batches: int,
     step: int = 0,
@@ -28,21 +28,24 @@ def train(
     """
 
     loader_rng = jax.random.PRNGKey(0)
-    num_records = len(train_loader)
-    steps_per_epoch = num_records // batches_per_epoch
+    batches_per_epoch = num_records // batch_size
 
     current_epoch = 0
-    step_in_epoch = 0
+    batch_in_epoch = 0
+    epoch_losses = []
 
-    pbar = tqdm(total=steps_per_epoch, desc=f"Epoch {current_epoch + 1}/{epochs}")
+    pbar = tqdm(
+        total=batches_per_epoch,
+        desc=f"Epoch {current_epoch}/{config.EPOCHS}",
+    )
 
     batch_indices = []
 
     for batch in train_loader:
         batch_indices.append(batch)
 
-        if len(batch_indices) == batch_size:
-            break
+        if len(batch_indices) < batch_size:
+            continue
 
         try:
             # batch = next(train_loader)
@@ -55,20 +58,14 @@ def train(
         except StopIteration:
             break
 
-        step_in_epoch += 1
+        batch_in_epoch += 1
 
-        current_epoch = step // batches_per_epoch
+        # ----- progress -----
+        pbar.update(1)
+        pbar.set_postfix(loss=f"{batch_loss:.4f}")
 
         # update progress bar
-        if is_main:
-            pbar.update(1)
-            pbar.set_postfix(
-                epoch=current_epoch + 1,
-                loss=float(batch_loss),
-                refresh=False,
-            )
-
-        if (step + 1) % batches_per_epoch == 0:
+        if batch_in_epoch == batches_per_epoch:
             logger.info(
                 f"Epoch {current_epoch} complete, loss: {batch_loss}, evaluating ..."
             )
@@ -84,7 +81,7 @@ def train(
                 "eval_accuracy": float(eval_accuracy),
             }
             # log the metrics
-            logger.info(f" EPOCH: {current_epoch} | METRICS: {metrics}")
+            logger.info(f" EPOCH: {current_epoch} | METRICS: {metrics}, ")
             logger.info(f"Saving checkpoint at epoch {current_epoch}")
             # split the graphdef and state
             _, state = nnx.split(model, nnx.Param, nnx.State)
@@ -96,6 +93,18 @@ def train(
                     optimizer=ocp.args.StandardSave(optimizer),
                     metrics=ocp.args.JsonSave(metrics),
                 ),
+            )
+            current_epoch += 1
+            if current_epoch == config.EPOCHS:
+                break
+
+            batch_in_epoch = 0
+            epoch_losses.clear()
+
+            pbar.close()
+            pbar = tqdm(
+                total=batches_per_epoch,
+                desc=f"Epoch {current_epoch + 1}/{config.EPOCHS}",
             )
 
     manager.wait_until_finished()
