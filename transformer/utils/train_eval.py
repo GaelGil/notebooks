@@ -5,6 +5,7 @@ import optax
 import orbax.checkpoint as ocp
 from flax import nnx
 from absl import logging
+from tqdm import tqdm
 
 
 from transformer.Transformer import Transformer
@@ -18,6 +19,8 @@ def train(
     epochs: int,
     manager: ocp.CheckpointManager,
     logger: logging,
+    batches_per_epoch: int,
+    total_batches: int,
     step: int = 0,
 ):
     """
@@ -25,49 +28,71 @@ def train(
     """
 
     loader_rng = jax.random.PRNGKey(0)
-
-    rng = jax.random.PRNGKey(0)
     logger.info(f"Starting training from epoch {step}")
-    for epoch in range(step, epochs):
-        rng, loader_rng = jax.random.split(rng)
-        for batch in train_loader:
-            try:
-                # batch = next(train_loader)
-                model, optimizer, batch_loss = train_step(
-                    model=model,
-                    batch=batch,
-                    optimizer=optimizer,
-                    dropout_rng=loader_rng,
-                )
-            except StopIteration:
-                break
+    is_main = jax.process_index() == 0
 
-        logger.info(f"Epoch {epoch} complete, loss: {batch_loss}, evaluating ...")
-        # evaluate the model
-        eval_accuracy, eval_loss = eval(model=model, loader=val_loader)
-        train_accuracy, train_loss = eval(model=model, loader=train_loader)
+    pbar = tqdm(
+        total=total_batches,
+        desc="Training",
+        dynamic_ncols=True,
+        disable=not is_main,
+    )
 
-        # create metrics dictionary
-        metrics = {
-            "train_perplexity": float(jnp.exp(train_loss)),
-            "eval_perplexity": float(jnp.exp(eval_loss)),
-            "train_accuracy": float(train_accuracy),
-            "eval_accuracy": float(eval_accuracy),
-        }
-        # log the metrics
-        logger.info(f" EPOCH: {epoch} | METRICS: {metrics}")
-        logger.info(f"Saving checkpoint at epoch {epoch}")
-        # split the graphdef and state
-        _, state = nnx.split(model, nnx.Param, nnx.State)
-        # save the state, optimizer and metrics and step
-        manager.save(
-            step=epoch,
-            args=ocp.args.Composite(
-                state=ocp.args.StandardSave(state),
-                optimizer=ocp.args.StandardSave(optimizer),
-                metrics=ocp.args.JsonSave(metrics),
-            ),
-        )
+    current_epoch = 0
+
+    # ---- training loop ----
+    for step, batch in enumerate(train_loader):
+        try:
+            # batch = next(train_loader)
+            model, optimizer, batch_loss = train_step(
+                model=model,
+                batch=batch,
+                optimizer=optimizer,
+                dropout_rng=loader_rng,
+            )
+        except StopIteration:
+            break
+
+        current_epoch = step // batches_per_epoch
+
+        # update progress bar
+        if is_main:
+            pbar.update(1)
+            pbar.set_postfix(
+                epoch=current_epoch + 1,
+                loss=float(batch_loss),
+                refresh=False,
+            )
+
+        if (step + 1) % batches_per_epoch == 0:
+            logger.info(
+                f"Epoch {current_epoch} complete, loss: {batch_loss}, evaluating ..."
+            )
+            # evaluate the model
+            eval_accuracy, eval_loss = eval(model=model, loader=val_loader)
+            train_accuracy, train_loss = eval(model=model, loader=train_loader)
+
+            # create metrics dictionary
+            metrics = {
+                "train_perplexity": float(jnp.exp(train_loss)),
+                "eval_perplexity": float(jnp.exp(eval_loss)),
+                "train_accuracy": float(train_accuracy),
+                "eval_accuracy": float(eval_accuracy),
+            }
+            # log the metrics
+            logger.info(f" EPOCH: {current_epoch} | METRICS: {metrics}")
+            logger.info(f"Saving checkpoint at epoch {current_epoch}")
+            # split the graphdef and state
+            _, state = nnx.split(model, nnx.Param, nnx.State)
+            # save the state, optimizer and metrics and step
+            manager.save(
+                step=current_epoch,
+                args=ocp.args.Composite(
+                    state=ocp.args.StandardSave(state),
+                    optimizer=ocp.args.StandardSave(optimizer),
+                    metrics=ocp.args.JsonSave(metrics),
+                ),
+            )
 
     manager.wait_until_finished()
 
