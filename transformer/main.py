@@ -46,7 +46,7 @@ def main():
         num_records=val_data.__len__(),
         shard_options=grain.sharding.NoSharding(),
         shuffle=False,
-        num_epochs=config.EPOCHS,
+        num_epochs=1,
         seed=42,
     )
 
@@ -63,8 +63,8 @@ def main():
         operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=False)],
         worker_count=config.WORKER_COUNT,
     )
-    train_loader: grain.DataLoaderIterator = iter(train_loader)
-    val_loader: grain.DataLoaderIterator = iter(val_loader)
+    # train_loader: grain.DataLoaderIterator = iter(train_loader)
+    # val_loader: grain.DataLoaderIterator = iter(val_loader)
 
     # initialize the checkpoint manager options
     checkpoint_options = ocp.CheckpointManagerOptions(
@@ -89,7 +89,8 @@ def main():
     )
 
     batches_per_epoch = train_data.__len__() // config.BATCH_SIZE
-    total_batches = batches_per_epoch * config.EPOCHS
+    val_batches_per_epoch = val_data.__len__() // config.BATCH_SIZE
+
     step = 0 if manager.latest_step() is None else manager.latest_step()
     logging.info(f"Training the model from step {step}")
     if step != config.EPOCHS:
@@ -102,8 +103,7 @@ def main():
             manager=manager,
             logger=logging,
             batches_per_epoch=batches_per_epoch,
-            total_batches=total_batches,
-            step=step,
+            val_batches_per_epoch=val_batches_per_epoch,
         )
 
     # update the dataset paths

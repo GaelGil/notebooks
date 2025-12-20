@@ -19,7 +19,7 @@ def train(
     manager: ocp.CheckpointManager,
     logger: logging,
     batches_per_epoch: int,
-    total_batches: int,
+    val_batches_per_epoch: int,
 ):
     """
     Train the model
@@ -29,7 +29,7 @@ def train(
 
     current_epoch = 0
     batch_in_epoch = 0
-    # epoch_losses = []
+    epoch_losses = []
 
     pbar = tqdm(
         total=batches_per_epoch,
@@ -50,6 +50,8 @@ def train(
 
         batch_in_epoch += 1
 
+        # update epoch losses
+        epoch_losses.append(batch_loss)
         # ----- progress -----
         pbar.update(1)
         pbar.set_postfix(loss=f"{batch_loss:.4f}")
@@ -57,24 +59,28 @@ def train(
         # update progress bar
         if batch_in_epoch == batches_per_epoch:
             logger.info(
-                f"Epoch {current_epoch} complete, loss: {batch_loss}, evaluating ..."
+                f"Epoch {current_epoch} complete, Avg loss at epoch: {jnp.mean(jnp.array(epoch_losses)):.4f}, evaluating ..."
             )
             # evaluate the model
-            eval_accuracy, eval_loss = eval(model=model, loader=val_loader)
-            # train_accuracy, train_loss = eval(model=model, loader=train_loader)
+            eval_accuracy, eval_loss = eval(
+                model=model, loader=val_loader, batches_per_epoch=val_batches_per_epoch
+            )
 
             # create metrics dictionary
             metrics = {
-                # "train_perplexity": float(jnp.exp(train_loss)),
+                "train_perplexity": float(jnp.mean(jnp.array(epoch_losses))),
                 "eval_perplexity": float(jnp.exp(eval_loss)),
-                # "train_accuracy": float(train_accuracy),
                 "eval_accuracy": float(eval_accuracy),
             }
             # log the metrics
             logger.info(f" EPOCH: {current_epoch} | METRICS: {metrics}, ")
             logger.info(f"Saving checkpoint at epoch {current_epoch}")
             # split the graphdef and state
-            _, state = nnx.split(model, nnx.Param, nnx.State)
+            _graphdef, state, _rng = nnx.split(
+                model,
+                nnx.Param,  # trainable weights
+                nnx.RngState,  # dropout RNGs
+            )
             # save the state, optimizer and metrics and step
             manager.save(
                 step=current_epoch,
@@ -165,6 +171,7 @@ def train_step(
 def eval(
     model: Transformer,
     loader,
+    batches_per_epoch: int,
 ) -> tuple[float, float]:
     """
     evaluate the model on the validation set
@@ -178,18 +185,21 @@ def eval(
     total_correct = 0.0
     total_loss = 0.0
     total_tokens = 0.0
+    current_epoch = 1
+
+    pbar = tqdm(
+        total=batches_per_epoch,
+        desc=f"Epoch {current_epoch}/{1}",
+    )
     # loop over the dataset
     for batch in loader:
         try:
-            # batch = next(loader)
             correct_tokens, batch_loss, num_tokens = eval_step(model=model, batch=batch)
             total_correct += correct_tokens
             total_loss += batch_loss
             total_tokens += num_tokens
-            # if num_tokens == 0:
-            #     print("num tokens is 0")
-            # else:
-            #     print(f"num tokens: {num_tokens}")
+            pbar.update(1)
+            pbar.set_postfix(loss=f"{batch_loss:.4f}")
         except StopIteration:
             break
 
@@ -198,6 +208,7 @@ def eval(
     accuracy = total_correct / total_tokens
     avg_cross_entropy = total_loss / total_tokens
     # perplexity = jnp.exp(avg_cross_entropy)
+    pbar.close()
 
     return float(accuracy), float(avg_cross_entropy)
 
