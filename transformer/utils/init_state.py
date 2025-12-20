@@ -5,6 +5,7 @@ from flax import nnx
 from transformer.Transformer import Transformer
 from utils.config import Config
 import orbax.checkpoint as ocp
+from absl import logging
 
 
 def init_state(
@@ -12,6 +13,7 @@ def init_state(
     src_vocab_size: int,
     target_vocab_size: int,
     manager: ocp.CheckpointManager,
+    logger: logging,
 ) -> tuple[Transformer, nnx.Optimizer]:
     """
     Initialize the state from a checkpoint or create a new one
@@ -98,6 +100,7 @@ def init_state(
     # restore the state
     step = manager.latest_step()
     if step is not None:
+        logger.info(f"Restoring from step {step}")
         restored = (
             manager.restore(
                 step=step,
