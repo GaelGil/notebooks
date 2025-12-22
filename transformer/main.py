@@ -22,7 +22,7 @@ def main():
     # get the vocab size
     vocab_size = tokenizer.get_vocab_size()
 
-    # initialize the data source
+    # initialize the data source with the paths to the source and target data
     train_data = Source(
         src_path=dataset_one_paths["train_src"],
         target_path=dataset_one_paths["train_target"],
@@ -63,8 +63,6 @@ def main():
         operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=False)],
         worker_count=config.WORKER_COUNT,
     )
-    # train_loader: grain.DataLoaderIterator = iter(train_loader)
-    # val_loader: grain.DataLoaderIterator = iter(val_loader)
 
     # initialize the checkpoint manager options
     checkpoint_options = ocp.CheckpointManagerOptions(
@@ -81,7 +79,7 @@ def main():
     )
 
     logging.info("Initializing the the model state ...")
-    model, optimizer = init_state(
+    model, optimizer, step = init_state(
         config=config,
         src_vocab_size=vocab_size,
         target_vocab_size=vocab_size,
@@ -89,10 +87,10 @@ def main():
         logger=logging,
     )
 
+    # get the number of batches per epoch
     batches_per_epoch = train_data.__len__() // config.BATCH_SIZE
     val_batches_per_epoch = val_data.__len__() // config.BATCH_SIZE
 
-    step = 0 if manager.latest_step() is None else manager.latest_step()
     logging.info(f"Training the model from step {step}")
     if step != config.EPOCHS:
         train(

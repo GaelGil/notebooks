@@ -99,12 +99,13 @@ def init_state(
     optimizer = nnx.Optimizer(model, opt_adam_with_schedule, wrt=nnx.Param)
 
     # restore the state
-    step = manager.latest_step()
+    step = 0 if manager.best_step() is None else manager.best_step()
     if step is not None:
+        step = manager.best_step()
         logger.info(f"Restoring from step {manager.best_step()}")
         # restore the state
         restored = manager.restore(
-            step=manager.best_step(),
+            step=step,
             args=ocp.args.Composite(
                 state=ocp.args.StandardRestore(abs_state),
                 # optimizer=ocp.args.StandardRestore(abs_opt_state),
@@ -115,7 +116,7 @@ def init_state(
         # nnx.update(optimizer, restored["optimizer"])
         nnx.update(model, restored["state"])
         # return the restored model and optimizer
-        return model, optimizer
+        return model, optimizer, step
 
     # run the model with dummy inputs
     _ = model(
