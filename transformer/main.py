@@ -70,6 +70,7 @@ def main():
         save_interval_steps=config.SAVE_INTERVAL,
         enable_async_checkpointing=config.ASYNC_CHECKPOINTING,
         best_fn=lambda metrics: metrics[config.BEST_FN],
+        best_mode="min",
     )
 
     # initialize the checkpoint manager with the options
