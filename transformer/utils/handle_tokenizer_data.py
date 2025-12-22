@@ -3,9 +3,10 @@ from pathlib import Path
 from utils.config import config
 from utils.LangDataset import LangDataset
 from utils.Tokenizer import Tokenizer
+from absl import logging
 
 
-def handle_tokenizer_data(logging) -> tuple[Tokenizer, dict, dict]:
+def handle_tokenizer_data(logging: logging) -> tuple[Tokenizer, dict, dict]:
     """
     Handles the tokenizer and dataset instances
 
@@ -40,6 +41,8 @@ def handle_tokenizer_data(logging) -> tuple[Tokenizer, dict, dict]:
     # load the data
     raw_src_one, raw_target_one = dataset_one.load_data()
     raw_src_two, raw_target_two = dataset_two.load_data()
+    # if the tokenizer model does not exist we train one
+    # with the raw data and if not we just load the trained one
     if not Path(config.TOKENIZER_MODEL_PATH).exists():
         logging.info("Training the tokenizer ...")
         tokenizer.train_tokenizer(
@@ -53,6 +56,8 @@ def handle_tokenizer_data(logging) -> tuple[Tokenizer, dict, dict]:
         logging.info("Loading the tokenizer ...")
         tokenizer.load_tokenizer()
 
+    # if the data splits (train, eval, test) exist we build the paths
+    # then return the paths of the splits and the tokenizer
     if Path(config.TOKENIZER_MODEL_PATH).exists() and config.SPLITS_PATH.exists():
         logging.info("Tokenizer and data already exist returning ...")
         dataset_one.buil_save_paths(
@@ -67,6 +72,8 @@ def handle_tokenizer_data(logging) -> tuple[Tokenizer, dict, dict]:
         )
         return tokenizer, dataset_one.paths, dataset_two.paths
 
+    # if the data splits (train, eval, test) do not exist we prep the data
+    # then split the data and return the paths of the splits
     if not config.SPLITS_PATH.exists():
         logging.info("Prepping the data ...")
         src, target = tokenizer.prep_data(
