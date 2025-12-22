@@ -29,16 +29,13 @@ def init_state(
         (config.BATCH_SIZE, config.SEQ_LEN),
         dtype=jnp.int32,
     )
-
     dummy_src_mask = jnp.ones(
         (config.BATCH_SIZE, 1, 1, config.SEQ_LEN), dtype=jnp.float32
     )
-
     dummy_target_input = jnp.zeros(
         (config.BATCH_SIZE, config.SEQ_LEN - 1),
         dtype=jnp.int32,
     )
-
     dummy_target_mask = jnp.ones(
         (config.BATCH_SIZE, 1, 1, config.SEQ_LEN - 1), dtype=jnp.float32
     )
@@ -57,19 +54,22 @@ def init_state(
             rngs=nnx.Rngs(0),
         )
     )
-    # create abstract optimizer
-    abs_opt = nnx.eval_shape(
-        lambda: nnx.Optimizer(abs_model, optax.adam(1e-3), wrt=nnx.Param)
-    )
+    # we dont need to save the optimizer for our purpose but its nice to have it
+    # if we wanted to save the optimizer we could do it like this. also schedule
+    # causes issues with checkpointing/restoring
+    # # create abstract optimizer
+    # abs_opt = nnx.eval_shape(
+    #     lambda: nnx.Optimizer(abs_model, optax.adam(1e-3), wrt=nnx.Param)
+    # )
+    # # get the optimizer state
+    # abs_opt_state = nnx.state(abs_opt)
 
-    # split model into graphdef, state and rng
+    # split the abstract model into graphdef, state and rng
     _graphdef, abs_state, _rng = nnx.split(
         abs_model,
         nnx.Param,  # trainable weights
         nnx.RngState,  # dropout RNGs
     )
-    # get the optimizer state
-    abs_opt_state = nnx.state(abs_opt)
 
     # create model
     rngs = nnx.Rngs(0)
@@ -84,6 +84,7 @@ def init_state(
         target_vocab_size=target_vocab_size,
         rngs=rngs,
     )
+
     # define the learning rate schedule
     lr_schedule_fn = optax.warmup_cosine_decay_schedule(
         init_value=0.0,
@@ -100,9 +101,10 @@ def init_state(
     # restore the state
     step = manager.latest_step()
     if step is not None:
-        logger.info(f"Restoring from step {step}")
+        logger.info(f"Restoring from step {manager.best_step()}")
+        # restore the state
         restored = manager.restore(
-            step=step,
+            step=manager.best_step(),
             args=ocp.args.Composite(
                 state=ocp.args.StandardRestore(abs_state),
                 # optimizer=ocp.args.StandardRestore(abs_opt_state),
@@ -112,10 +114,10 @@ def init_state(
         # update the model and optimizer with the restored state and optimizer
         # nnx.update(optimizer, restored["optimizer"])
         nnx.update(model, restored["state"])
-        # return the model and optimizer
+        # return the restored model and optimizer
         return model, optimizer
 
-    # run the model
+    # run the model with dummy inputs
     _ = model(
         src=dummy_src_input,
         src_mask=dummy_src_mask,
