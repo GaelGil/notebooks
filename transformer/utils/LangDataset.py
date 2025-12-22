@@ -38,7 +38,7 @@ class LangDataset:
         self.dataset: dict = {}
         self.dataset_name: str = dataset_name
         self.paths = {str: str}
-        self.splits_path: str = None
+        self.splits_path: str = splits_path
 
     def load_data(self):
         """

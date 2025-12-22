@@ -30,12 +30,14 @@ def handle_tokenizer_data(logging: logging) -> tuple[Tokenizer, dict, dict]:
         src_lang=config.LANG_SRC_ONE,
         target_lang=config.LANG_TARGET_ONE,
         seq_len=config.SEQ_LEN,
+        splits_path=config.SPLITS_PATH,
     )
     dataset_two = LangDataset(
         dataset_name=config.DATA_PATH,
         src_lang=config.LANG_SRC_TWO,
         target_lang=config.LANG_TARGET_TWO,
         seq_len=config.SEQ_LEN,
+        splits_path=config.SPLITS_PATH,
     )
 
     # load the data
