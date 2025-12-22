@@ -60,16 +60,8 @@ def handle_tokenizer_data(logging: logging) -> tuple[Tokenizer, dict, dict]:
     # then return the paths of the splits and the tokenizer
     if Path(config.TOKENIZER_MODEL_PATH).exists() and config.SPLITS_PATH.exists():
         logging.info("Tokenizer and data already exist returning ...")
-        dataset_one.buil_save_paths(
-            src_name=config.LANG_SRC_ONE,
-            target_name=config.LANG_TARGET_ONE,
-            splits_path=config.SPLITS_PATH,
-        )
-        dataset_two.buil_save_paths(
-            src_name=config.LANG_SRC_TWO,
-            target_name=config.LANG_TARGET_TWO,
-            splits_path=config.SPLITS_PATH,
-        )
+        dataset_one.buil_save_paths()
+        dataset_two.buil_save_paths()
         return tokenizer, dataset_one.paths, dataset_two.paths
 
     # if the data splits (train, eval, test) do not exist we prep the data
@@ -93,29 +85,12 @@ def handle_tokenizer_data(logging: logging) -> tuple[Tokenizer, dict, dict]:
             target=target,
             train_size=config.TRAIN_SPLIT,
             val_size=config.VAL_SPLIT,
-            src_name=config.LANG_SRC_ONE,
-            target_name=config.LANG_TARGET_ONE,
-            splits_path=config.SPLITS_PATH,
         )
         dataset_two.split(
             src=src_one,
             target=target_one,
             train_size=config.TRAIN_SPLIT,
             val_size=config.VAL_SPLIT,
-            src_name=config.LANG_SRC_TWO,
-            target_name=config.LANG_TARGET_TWO,
-            splits_path=config.SPLITS_PATH,
-        )
-        dataset_one.load_splits(
-            splits_path=config.SPLITS_PATH,
-            src_name=config.LANG_SRC_ONE,
-            target_name=config.LANG_TARGET_ONE,
-        )
-
-        dataset_two.load_splits(
-            splits_path=config.SPLITS_PATH,
-            src_name=config.LANG_SRC_TWO,
-            target_name=config.LANG_TARGET_TWO,
         )
 
     return tokenizer, dataset_one.paths, dataset_two.paths
