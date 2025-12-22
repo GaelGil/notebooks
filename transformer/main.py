@@ -71,7 +71,7 @@ def main():
         max_to_keep=config.MAX_TO_KEEP,
         save_interval_steps=config.SAVE_INTERVAL,
         enable_async_checkpointing=config.ASYNC_CHECKPOINTING,
-        best_fn=config.BEST_FN,
+        best_fn=lambda metrics: metrics[config.BEST_FN],
     )
 
     # initialize the checkpoint manager with the options
@@ -105,6 +105,7 @@ def main():
             logger=logging,
             batches_per_epoch=batches_per_epoch,
             val_batches_per_epoch=val_batches_per_epoch,
+            step=step,
         )
 
     # update the dataset paths
