@@ -13,8 +13,8 @@ from transformer.Transformer import Transformer
 def train(
     model: Transformer,
     optimizer: nnx.Optimizer,
-    train_loader: grain.DataLoaderIterator,
-    val_loader: grain.DataLoaderIterator,
+    train_loader: grain.DataLoader,
+    val_loader: grain.DataLoader,
     epochs: int,
     manager: ocp.CheckpointManager,
     logger: logging,
@@ -26,12 +26,12 @@ def train(
     Train the model
     """
 
-    loader_rng = jax.random.PRNGKey(0)
-
     current_epoch = step
     batch_in_epoch = 0
     epoch_losses = []
-
+    # create progress bar
+    # total is number of batches per epoch
+    # desc is current epoch over total epochs
     pbar = tqdm(
         total=batches_per_epoch,
         desc=f"Epoch {current_epoch}/{epochs}",
@@ -39,25 +39,24 @@ def train(
 
     for batch in train_loader:
         try:
-            # batch = next(train_loader)
             model, optimizer, batch_loss = train_step(
                 model=model,
                 batch=batch,
                 optimizer=optimizer,
-                dropout_rng=loader_rng,
             )
         except StopIteration:
             break
 
+        # update current batch in epoch
         batch_in_epoch += 1
 
-        # update epoch losses
+        # append loss to epoch losses
         epoch_losses.append(batch_loss)
-        # ----- progress -----
+        # update progress bar
         pbar.update(1)
         pbar.set_postfix(loss=f"{batch_loss:.4f}")
 
-        # update progress bar
+        # check if epoch is complete (the current batch is number of batches per epoch)
         if batch_in_epoch == batches_per_epoch:
             logger.info(
                 f"Epoch {current_epoch} complete, Avg loss at epoch: {jnp.mean(jnp.array(epoch_losses)):.4f}, evaluating ..."
@@ -80,26 +79,31 @@ def train(
             _graphdef, state, _rng = nnx.split(
                 model,
                 nnx.Param,  # trainable weights
-                nnx.RngState,  # dropout RNGs
+                nnx.RngState,
             )
-            # save the state, optimizer and metrics and step
-            opt_state = nnx.state(optimizer)
+            # save the state, metrics and step
+            # opt_state = nnx.state(optimizer)
             manager.save(
                 step=current_epoch,
                 args=ocp.args.Composite(
                     state=ocp.args.StandardSave(state),
-                    optimizer=ocp.args.StandardSave(opt_state),
+                    # optimizer=ocp.args.StandardSave(opt_state),
                     metrics=ocp.args.JsonSave(metrics),
                 ),
             )
+            # update current epoch
             current_epoch += 1
+            # if current epoch is equal to total epochs, break
             if current_epoch == epochs:
                 break
-
+            # since we have completed an epoch, reset the batch in epoch
             batch_in_epoch = 0
-            # epoch_losses.clear()
+            # reset the epoch losses
+            epoch_losses = []
 
+            # close the progress bar
             pbar.close()
+            # create a new progress bar
             pbar = tqdm(
                 total=batches_per_epoch,
                 desc=f"Epoch {current_epoch + 1}/{epochs}",
@@ -115,7 +119,6 @@ def train_step(
     model: Transformer,
     batch,
     optimizer: nnx.Optimizer,
-    dropout_rng: jax.random.PRNGKey,
 ) -> tuple[Transformer, nnx.Optimizer, float]:
     """
     Train the model on a single batch
@@ -123,7 +126,6 @@ def train_step(
         model: Transformer
         batch: batch
         optimizer: nnx.Optimizer
-        dropout_rng: jax.random.PRNGKey
 
     Returns:
         state, loss
@@ -139,13 +141,11 @@ def train_step(
         encoder_decoder_mask,
     ) = batch
 
-    # define loss function
     def loss_fn(model: Transformer):
         """
         Compute the loss function for a single batch
         """
         key = jax.random.PRNGKey(0)
-
         rngs = nnx.Rngs(dropout=key)
         logits = model(
             src=encoder_input,
@@ -164,7 +164,7 @@ def train_step(
 
     # compute loss and gradients
     loss, grads = nnx.value_and_grad(loss_fn)(model)
-    # update the the training state with the new gradients
+    # update the model state with the new gradients
     optimizer.update(model, grads)
 
     return model, optimizer, loss
@@ -172,7 +172,7 @@ def train_step(
 
 def eval(
     model: Transformer,
-    loader,
+    loader: grain.DataLoader,
     batches_per_epoch: int,
 ) -> tuple[float, float]:
     """
@@ -189,11 +189,11 @@ def eval(
     total_tokens = 0.0
     current_epoch = 1
 
+    # create a progress bar
     pbar = tqdm(
         total=batches_per_epoch,
         desc=f"Epoch {current_epoch}/{1}",
     )
-    # loop over the dataset
     for batch in loader:
         try:
             correct_tokens, batch_loss, num_tokens = eval_step(model=model, batch=batch)
@@ -205,11 +205,10 @@ def eval(
         except StopIteration:
             break
 
-    # print(f"total tokens: {total_tokens}")
     # Compute final metrics
     accuracy = total_correct / total_tokens
     avg_cross_entropy = total_loss / total_tokens
-    # perplexity = jnp.exp(avg_cross_entropy)
+    # close the progress bar
     pbar.close()
 
     return float(accuracy), float(avg_cross_entropy)
@@ -240,7 +239,6 @@ def eval_step(
 
     # pass batch through the model in training state
     key = jax.random.PRNGKey(0)
-
     rngs = nnx.Rngs(dropout=key)
     logits = model(
         src=encoder_input,
@@ -253,17 +251,15 @@ def eval_step(
     )
 
     # compute loss
-    cross_entropy_loss = optax.softmax_cross_entropy_with_integer_labels(
+    per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
         logits=logits, labels=labels
     )
+    loss = (per_token_loss * labels_mask).sum() / labels_mask.sum()
 
-    loss = (cross_entropy_loss * labels_mask).sum() / labels_mask.sum()
-
+    # get predictions
     predictions = jnp.argmax(logits, axis=-1)
-
+    # get correct predictions
     correct = predictions == labels
     correct = correct * labels_mask
-
-    # accuracy = jnp.sum(correct) / jnp.sum(labels_mask)
 
     return jnp.sum(correct), loss, jnp.sum(labels_mask)
