@@ -101,18 +101,16 @@ def init_state(
     step = manager.latest_step()
     if step is not None:
         logger.info(f"Restoring from step {step}")
-        restored = (
-            manager.restore(
-                step=step,
-                args=ocp.args.Composite(
-                    state=ocp.args.StandardRestore(abs_state),
-                    optimizer=ocp.args.StandardRestore(abs_opt_state),
-                ),
+        restored = manager.restore(
+            step=step,
+            args=ocp.args.Composite(
+                state=ocp.args.StandardRestore(abs_state),
+                # optimizer=ocp.args.StandardRestore(abs_opt_state),
             ),
         )
 
         # update the model and optimizer with the restored state and optimizer
-        nnx.update(optimizer, restored["optimizer"])
+        # nnx.update(optimizer, restored["optimizer"])
         nnx.update(model, restored["state"])
         # return the model and optimizer
         return model, optimizer

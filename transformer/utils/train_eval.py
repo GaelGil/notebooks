@@ -20,6 +20,7 @@ def train(
     logger: logging,
     batches_per_epoch: int,
     val_batches_per_epoch: int,
+    step: int,
 ):
     """
     Train the model
@@ -27,7 +28,7 @@ def train(
 
     loader_rng = jax.random.PRNGKey(0)
 
-    current_epoch = 0
+    current_epoch = step
     batch_in_epoch = 0
     epoch_losses = []
 
