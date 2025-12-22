@@ -13,6 +13,18 @@ class Tokenizer:
         seq_len: int = None,
         prefix: str = None,
     ):
+        """
+        Args:
+            corpus_path: path to the joint corpus
+            tokenizer_path: path to the tokenizer
+            tokenizer_model_path: path to the tokenizer model
+            model_prefix: model prefix
+            seq_len: sequence length
+            prefix: prefix
+
+        Returns:
+            None
+        """
         self.corpus_path = corpus_path
         self.tokenizer_path = tokenizer_path
         self.tokenizer_model_path = tokenizer_model_path
@@ -23,6 +35,15 @@ class Tokenizer:
         self.prefix: str = prefix
 
     def write_txt(self, data: list, f: object):
+        """
+        Writes a list of strings to a file
+        Args:
+            data: list of strings
+            f: file object
+
+        Returns:
+            None
+        """
         # Write list to file
         for line in data:
             # strip whitespace just in case
@@ -30,13 +51,14 @@ class Tokenizer:
             if line:  # skip empty lines
                 f.write(line + "\n")
 
-    def create_joint_corpus(self, src, target, target_one):
+    def create_joint_corpus(self, src: list, target: list, target_one: list):
         """
-        Creates a joint for the text
+        Creates a joint corpus for the text
 
         Args:
-            text_one: list of strings
-            text_two: list of strings
+            src: list of strings
+            target: list of strings (first target language)
+            target_one: list of strings (second target language)
 
         Returns:
             None
@@ -84,16 +106,27 @@ class Tokenizer:
         )
         self.load_tokenizer()
 
-    def get_vocab_size(self):
+    def get_vocab_size(self) -> int:
+        """
+        Returns:
+            vocab size
+        """
         return self.sp.GetPieceSize()
 
     def load_tokenizer(self):
+        """
+        Loads the tokenizer
+
+        Returns:
+            None
+        """
         self.sp.Load(f"{self.tokenizer_model_path}/{self.model_prefix}.model")
 
     def pad_sequences(
         self, sequences: list, pad_id: int = 0, max_len: int = None
     ) -> jnp.ndarray:
         """
+        Function to pad sequences
         Args:
             sequences: list of list of token ids
             pad_id: integer used for padding
@@ -104,19 +137,28 @@ class Tokenizer:
         """
         padded = []
         for seq in sequences:
-            seq = seq[:max_len]  # truncate if too long
+            seq = seq[:max_len]
             padding = [pad_id] * (max_len - len(seq))
             padded.append(seq + padding)
         return jnp.array(padded, dtype=jnp.int32)
 
-    def prep_data(self, src, target, prefix=None):
+    def prep_data(self, src: list[str], target: list[str], prefix: str = None):
+        """
+        Encode the data and pad it
+        Args:
+            src: list of strings
+            target: list of strings
+            prefix: str
+
+        Returns:
+            src_ids_padded: numpy array of shape [N, seq_len]
+            target_two_ids_padded: numpy array of shape [N, seq_len]
+        """
         src_ids = []
         target_ids = []
 
-        # prefix = f"Translate {src_fname} to {target_fname} "
-        # prefix = tokenizer.encode(text=prefix, add_bos=False, add_eos=False)
         for src, target in zip(src, target):
-            # encode and add bos and eos
+            # encode and add prefix
             src_ids.append(
                 self.encode(
                     text=src,
@@ -125,6 +167,7 @@ class Tokenizer:
                     prefix=prefix,
                 )
             )
+            # encode and add bos and eos
             target_ids.append(
                 self.encode(
                     text=target,
@@ -132,17 +175,6 @@ class Tokenizer:
                     add_eos=True,
                 )
             )
-        src_seq_len = 0
-        target_seq_len = 0
-        max_src_seq_len = 0
-        max_target_seq_len = 0
-        for i in range(len(src_ids)):
-            src_seq_len += len(src_ids[i])
-            target_seq_len += len(target_ids[i])
-            if len(src_ids[i]) > max_src_seq_len:
-                max_src_seq_len = len(src_ids[i])
-            if len(target_ids[i]) > max_target_seq_len:
-                max_target_seq_len = len(target_ids[i])
 
         # pad sequences up to seq_len
         src_ids_padded: jnp.ndarray = self.pad_sequences(
@@ -166,6 +198,7 @@ class Tokenizer:
             text: string
             add_bos: boolean
             add_eos: boolean
+            prefix: string
 
         Returns:
             ids: list of integers
@@ -179,5 +212,12 @@ class Tokenizer:
             ids = ids + [self.sp.eos_id()]
         return ids
 
-    def decode(self, ids):
+    def decode(self, ids: list[int]):
+        """
+        Args:
+            ids: list of integers
+
+        Returns:
+            text: string
+        """
         return self.sp.Decode(ids)
