@@ -1,5 +1,6 @@
 from flax import nnx
 from jax import numpy as jnp
+from jax import Array
 
 
 class LayerNorm(nnx.Module):
@@ -20,7 +21,7 @@ class LayerNorm(nnx.Module):
         self.bias = nnx.Param("bias", nnx.initializers.zeros, (d_model))
         self.eps = eps
 
-    def __call__(self, x: jnp.ndarray):
+    def __call__(self, x: Array):
         # compute mean and std for each patch in the sequence
         # (batch, seq_len, d_model)
         # axis=-1 means along the last dimension which is d_model

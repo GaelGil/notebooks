@@ -100,7 +100,8 @@ def init_state(
 
     # restore the state
     step = 0 if manager.best_step() is None else manager.best_step()
-    if step is not None:
+
+    if step is not None and step > 0:
         step = manager.best_step()
         logger.info(f"Restoring from step {manager.best_step()}")
         # restore the state
@@ -129,4 +130,4 @@ def init_state(
         rngs=rngs,
     )
 
-    return model, optimizer
+    return model, optimizer, step

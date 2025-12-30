@@ -1,6 +1,6 @@
 from flax import nnx
-from jax import numpy as jnp
 import jax
+from jax import Array
 
 
 class CustomVariable(nnx.Variable):
@@ -23,7 +23,7 @@ class PositionalEncoding(nnx.Module):
         # )
         self.pe = nnx.Param(jax.random.uniform(rngs.params(), (1, seq_len, d_model)))
 
-    def __call__(self, x: jnp.ndarray, is_training: bool, rngs: nnx.Rngs):
+    def __call__(self, x: Array, is_training: bool, rngs: nnx.Rngs):
         """
         Args:
             x: input tensor of shape (batch_size, seq_len, d_model)

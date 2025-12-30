@@ -1,5 +1,5 @@
 from flax import nnx
-from jax import numpy as jnp
+from jax import Array
 
 
 class InputEmbeddings(nnx.Module):
@@ -32,7 +32,7 @@ class InputEmbeddings(nnx.Module):
 
         self.d_model = d_model
 
-    def __call__(self, x: jnp.ndarray):
+    def __call__(self, x: Array):
         # Get the embedding for each word in x
         # multiply by the square root of d_model for normalization and stability during training
         # (batch_size, seq_len) --> (batch_size, seq_len, d_model

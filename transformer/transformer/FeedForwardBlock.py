@@ -1,5 +1,6 @@
 from flax import nnx
 from jax import numpy as jnp
+from jax import Array
 
 
 class FeedForwardBlock(nnx.Module):
@@ -32,7 +33,7 @@ class FeedForwardBlock(nnx.Module):
             in_features=d_ff, out_features=d_model, dtype=jnp.float32, rngs=rngs
         )
 
-    def __call__(self, x: jnp.ndarray, is_training: bool, rngs: nnx.Rngs):
+    def __call__(self, x: Array, is_training: bool, rngs: nnx.Rngs):
         # simple feed forward network
         # (seq_len, d_model) --> (dff, d_model) --> (seq_len, d_model)
         x = nnx.leaky_relu(self.linear_1(x))

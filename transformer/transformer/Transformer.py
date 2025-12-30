@@ -1,5 +1,5 @@
 from flax import nnx
-from jax import numpy as jnp
+from jax import Array
 
 from transformer.Decoder import Decoder, DecoderBlock
 from transformer.Encoder import Encoder, EncoderBlock
@@ -104,11 +104,11 @@ class Transformer(nnx.Module):
 
     def __call__(
         self,
-        src: jnp.ndarray,
-        src_mask: jnp.ndarray,
-        target: jnp.ndarray,
-        self_mask: jnp.ndarray,
-        cross_mask: jnp.ndarray,
+        src: Array,
+        src_mask: Array,
+        target: Array,
+        self_mask: Array,
+        cross_mask: Array,
         is_training: bool,
         rngs: nnx.Rngs,
     ):
