@@ -1,5 +1,7 @@
 import grain
+
 from jax import numpy as jnp
+import numpy as np
 
 
 class Source(grain.DataLoader):
@@ -17,8 +19,8 @@ class Source(grain.DataLoader):
         Returns:
             None
         """
-        self.src = jnp.load(src_path)
-        self.target = jnp.load(target_path)
+        self.src = np.load(src_path)
+        self.target = np.load(target_path)
         self.pad_id = pad_id
 
     def __len__(self):
@@ -82,8 +84,10 @@ class Source(grain.DataLoader):
         )
 
     def __getitem__(self, idx):
-        encoder_input = self.src[idx]  # encoder input ids already padded
-        decoder_input = self.target[idx]  # decoder input ids already padded
+        encoder_input = jnp.array(self.src[idx])  # encoder input ids already padded
+        decoder_input = jnp.asarray(
+            self.target[idx]
+        )  # decoder input ids already padded
 
         labels = decoder_input[1:]  # the labels are the decoder input shifted by one
         labels_mask = self.make_padding_mask(
