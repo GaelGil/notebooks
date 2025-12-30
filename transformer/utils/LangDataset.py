@@ -1,7 +1,6 @@
 import random
 
-import jax
-import jax.numpy as jnp
+import numpy as np
 from datasets import load_dataset
 import os
 
@@ -169,8 +168,8 @@ class LangDataset:
             None
         """
         os.makedirs(self.splits_path, exist_ok=True)
-        indices = jnp.arange(len(src))
-        indices = jax.random.permutation(key=jax.random.PRNGKey(0), x=indices)
+        rng = np.random.default_rng(seed=0)
+        indices = rng.permutation(len(src))
         src = src[indices]
         target = target[indices]
 
@@ -187,10 +186,10 @@ class LangDataset:
 
         self.buil_save_paths()
 
-        jnp.save(self.paths["train_src"], train_src)
-        jnp.save(self.paths["val_src"], val_src)
-        jnp.save(self.paths["test_src"], test_src)
+        np.save(self.paths["train_src"], train_src)
+        np.save(self.paths["val_src"], val_src)
+        np.save(self.paths["test_src"], test_src)
 
-        jnp.save(self.paths["train_target"], train_target)
-        jnp.save(self.paths["val_target"], val_target)
-        jnp.save(self.paths["test_target"], test_target)
+        np.save(self.paths["train_target"], train_target)
+        np.save(self.paths["val_target"], val_target)
+        np.save(self.paths["test_target"], test_target)
