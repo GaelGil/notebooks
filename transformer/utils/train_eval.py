@@ -6,7 +6,7 @@ import orbax.checkpoint as ocp
 from absl import logging
 from flax import nnx
 from tqdm import tqdm
-
+from jax import Array
 from transformer.Transformer import Transformer
 
 
@@ -56,6 +56,9 @@ def train(
             break
 
         # update current batch in epoch
+        print(f"type avg_batch_loss {type(avg_batch_loss)}")
+        print(f"type num_non_padded_tokens {type(num_non_padded_tokens)}")
+        print(f"type non_padded_loss {type(non_padded_loss)}")
         batch_in_epoch += 1
         epoch_token_count += (
             num_non_padded_tokens  # number of non padded tokens in the batch
@@ -64,13 +67,16 @@ def train(
 
         # update progress bar
         pbar.update(1)
-        pbar.set_postfix(loss=f"{jnp.exp(avg_batch_loss):.4f}")
+        pbar.set_postfix(
+            loss=f"{jnp.exp(avg_batch_loss):.4f}"
+        )  # non padded loss over number of non padded tokens in the batch
 
         # check if epoch is complete (the current batch is number of batches per epoch)
         if batch_in_epoch == batches_per_epoch:
+            # non padded loss over number of non padded tokens for all batches in the epoch
             epoch_loss = epoch_loss_sum / epoch_token_count
             logger.info(
-                f"Epoch {current_epoch} complete, Avg loss at epoch: {jnp.exp(epoch_loss):.4f}, evaluating ..."
+                f"Epoch {current_epoch} complete, Loss at epoch: {jnp.exp(epoch_loss):.4f}, evaluating ..."
             )
             # evaluate the model
             eval_accuracy, eval_loss = eval(
@@ -132,7 +138,7 @@ def train_step(
     model: Transformer,
     batch,
     optimizer: nnx.Optimizer,
-) -> tuple[Transformer, nnx.Optimizer, float]:
+) -> tuple[Transformer, nnx.Optimizer, Array, Array, Array]:
     """
     Train the model on a single batch
     Args:
@@ -169,22 +175,28 @@ def train_step(
             is_training=True,
             rngs=rngs,
         )
-        per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
+        per_token_loss: Array = optax.softmax_cross_entropy_with_integer_labels(
             logits=logits, labels=labels
         )  # loss per token in the batch (B, seq_len)
-        num_non_padded_tokens = labels_mask.sum()  # number of non padded tokens
-        non_padded_loss = (
+        num_non_padded_tokens: Array = labels_mask.sum()  # number of non padded tokens
+        non_padded_loss: Array = (
             per_token_loss * labels_mask
         ).sum()  # loss over non padded tokens
-        loss = non_padded_loss / num_non_padded_tokens
+        loss: Array = non_padded_loss / num_non_padded_tokens
         return (
             loss,
-            non_padded_loss,
-            num_non_padded_tokens,
-        )  # avg loss over batch of non padded tokens, loss over non padded tokens, number of non padded tokens
+            (
+                non_padded_loss,
+                num_non_padded_tokens,
+            ),
+        )
+        # avg loss over batch of non padded tokens, loss over non padded tokens, number of non padded tokens
 
     # compute loss and gradients
-    (loss, non_padded_loss, num_tokens), grads = nnx.value_and_grad(loss_fn)(model)
+    (loss, (non_padded_loss, num_tokens)), grads = nnx.value_and_grad(
+        loss_fn,
+        has_aux=True,
+    )(model)
     # update the model state with the new gradients
     optimizer.update(model, grads)
 
@@ -205,10 +217,10 @@ def eval(
     Returns:
         accuracy, loss
     """
-    total_correct = 0.0
-    total_loss = 0.0
-    total_tokens = 0.0
-    current_epoch = 1
+    total_correct = 0.0  # total number of correct predictions
+    eval_loss = 0.0  # total loss
+    total_tokens = 0.0  # total number of tokens
+    current_epoch = 1  # current epoch
 
     # create a progress bar
     pbar = tqdm(
@@ -221,7 +233,7 @@ def eval(
                 model=model, batch=batch
             )
             total_correct += correct_tokens
-            total_loss += batch_loss
+            eval_loss += non_padded_loss
             total_tokens += num_tokens
             pbar.update(1)
             pbar.set_postfix(loss=f"{batch_loss:.4f}")
@@ -230,17 +242,15 @@ def eval(
 
     # Compute final metrics
     accuracy = total_correct / total_tokens
-    avg_cross_entropy = total_loss / total_tokens
+    eval_loss = eval_loss / total_tokens
     # close the progress bar
     pbar.close()
 
-    return float(accuracy), float(avg_cross_entropy)
+    return accuracy, eval_loss
 
 
 @jax.jit
-def eval_step(
-    model: Transformer, batch
-) -> tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]:
+def eval_step(model: Transformer, batch) -> tuple[Array, Array, Array]:
     """
     evaluate the model on a single batch
     Args:
@@ -260,7 +270,7 @@ def eval_step(
         encoder_decoder_mask,
     ) = batch
 
-    # pass batch through the model in training state
+    # pass batch through the model in eval mode
     key = jax.random.PRNGKey(0)
     rngs = nnx.Rngs(dropout=key)
     logits = model(
@@ -288,6 +298,7 @@ def eval_step(
     predictions = jnp.argmax(logits, axis=-1)
     # get correct predictions
     correct = predictions == labels
+    # mask out the padded tokens
     correct = correct * labels_mask
 
     return jnp.sum(correct), avg_loss_over_batch, num_non_padded_tokens, non_padded_loss

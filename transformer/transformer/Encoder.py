@@ -1,7 +1,7 @@
 from transformer.AttentionBlock import MultiHeadAttentionBlock
 from transformer.FeedForwardBlock import FeedForwardBlock
 from flax import nnx
-from jax import numpy as jnp
+from jax import Array
 
 
 class EncoderBlock(nnx.Module):
@@ -56,9 +56,7 @@ class EncoderBlock(nnx.Module):
         self.norm1 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
         self.norm2 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
 
-    def __call__(
-        self, x: jnp.ndarray, src_mask: jnp.ndarray, is_training: bool, rngs: nnx.Rngs
-    ):
+    def __call__(self, x: Array, src_mask: Array, is_training: bool, rngs: nnx.Rngs):
         """
         Args:
             x: input
@@ -67,7 +65,7 @@ class EncoderBlock(nnx.Module):
             rngs: rngs
 
         Returns:
-            jnp.ndarray
+            Array
         """
         # attention block output
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
@@ -116,9 +114,7 @@ class Encoder(nnx.Module):
         self.blocks: nnx.List[EncoderBlock] = encoder_blocks
         self.norm: nnx.LayerNorm = nnx.LayerNorm(num_features=d_model, rngs=rngs)
 
-    def __call__(
-        self, x: jnp.ndarray, mask: jnp.ndarray, is_training: bool, rngs: nnx.Rngs
-    ):
+    def __call__(self, x: Array, mask: Array, is_training: bool, rngs: nnx.Rngs):
         """
         Args:
             x: input
@@ -127,7 +123,7 @@ class Encoder(nnx.Module):
             rngs: rngs
 
         Returns:
-            jnp.ndarray
+            Array
         """
         for block in self.blocks:
             x = block(x=x, src_mask=mask, is_training=is_training, rngs=rngs)

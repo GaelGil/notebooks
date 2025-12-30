@@ -1,5 +1,6 @@
 from flax import nnx
 from jax import numpy as jnp
+from jax import Array
 
 
 class MultiHeadAttentionBlock(nnx.Module):
@@ -44,14 +45,14 @@ class MultiHeadAttentionBlock(nnx.Module):
 
     @staticmethod
     def scaled_dot_product_attention(
-        query: jnp.ndarray,  # (batch_size, n_heads, seq_len, d_k)
-        key: jnp.ndarray,  # (batch_size, n_heads, seq_len, d_k)
-        value: jnp.ndarray,  # (batch_size, n_heads, seq_len, d_k)
-        mask: jnp.ndarray,
+        query: Array,  # (batch_size, n_heads, seq_len, d_k)
+        key: Array,  # (batch_size, n_heads, seq_len, d_k)
+        value: Array,  # (batch_size, n_heads, seq_len, d_k)
+        mask: Array,
         dropout: nnx.Dropout,
         is_training: bool,
         rngs: nnx.Rngs,
-    ) -> jnp.ndarray:
+    ) -> Array:
         d_k = query.shape[-1]  # get dimension of last axis
         # (Q * K^T)/sqrt(d_k)
         attention_scores = jnp.matmul(query, key.swapaxes(-2, -1)) / jnp.sqrt(d_k)
@@ -78,10 +79,10 @@ class MultiHeadAttentionBlock(nnx.Module):
 
     def __call__(
         self,
-        q: jnp.ndarray,
-        k: jnp.ndarray,
-        v: jnp.ndarray,
-        mask: jnp.ndarray,
+        q: Array,
+        k: Array,
+        v: Array,
+        mask: Array,
         is_training: bool,
         rngs: nnx.Rngs,
     ):
@@ -96,7 +97,7 @@ class MultiHeadAttentionBlock(nnx.Module):
             rngs: rngs
 
         Returns:
-            jnp.ndarray
+            Array
         """
         query = self.w_q(q)  # (batch_size, seq_len, d_model)
         key = self.w_k(k)  # (batch_size, seq_len, d_model)

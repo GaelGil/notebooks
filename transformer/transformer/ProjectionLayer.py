@@ -1,5 +1,6 @@
 from flax import nnx
 from jax import numpy as jnp
+from jax import Array
 
 
 class ProjectionLayer(nnx.Module):
@@ -25,6 +26,6 @@ class ProjectionLayer(nnx.Module):
             in_features=d_model, out_features=vocab_size, dtype=jnp.float32, rngs=rngs
         )
 
-    def __call__(self, x: jnp.ndarray):
+    def __call__(self, x: Array):
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, vocab_size)
         return self.linear(x)

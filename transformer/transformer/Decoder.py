@@ -1,5 +1,5 @@
 from flax import nnx
-from jax import numpy as jnp
+from jax import Array
 
 from transformer.AttentionBlock import MultiHeadAttentionBlock
 from transformer.FeedForwardBlock import FeedForwardBlock
@@ -54,10 +54,10 @@ class DecoderBlock(nnx.Module):
 
     def __call__(
         self,
-        x: jnp.ndarray,
-        encoder_output: jnp.ndarray,
-        self_mask: jnp.ndarray,
-        cross_mask: jnp.ndarray,
+        x: Array,
+        encoder_output: Array,
+        self_mask: Array,
+        cross_mask: Array,
         is_training: bool,
         rngs: nnx.Rngs,
     ):
@@ -71,7 +71,7 @@ class DecoderBlock(nnx.Module):
             rngs: rngs
 
         Returns:
-            jnp.ndarray
+            Array
         """
         # masked multi head attention block output
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
@@ -147,10 +147,10 @@ class Decoder(nnx.Module):
 
     def __call__(
         self,
-        x: jnp.ndarray,
-        encoder_output: jnp.ndarray,
-        self_mask: jnp.ndarray,
-        cross_mask: jnp.ndarray,
+        x: Array,
+        encoder_output: Array,
+        self_mask: Array,
+        cross_mask: Array,
         is_training: bool,
         rngs: nnx.Rngs,
     ):
@@ -164,7 +164,7 @@ class Decoder(nnx.Module):
             rngs: rngs
 
         Returns:
-            jnp.ndarray
+            Array
         """
         for block in self.blocks:
             x = block(
