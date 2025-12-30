@@ -29,6 +29,8 @@ def train(
     current_epoch = step
     batch_in_epoch = 0
     epoch_losses = []
+    epoch_token_count = 0
+    epoch_loss_sum = 0
     # create progress bar
     # total is number of batches per epoch
     # desc is current epoch over total epochs
@@ -39,22 +41,29 @@ def train(
 
     for batch in train_loader:
         try:
-            model, optimizer, batch_loss = train_step(
+            (
+                model,
+                optimizer,
+                _,
+                non_padded_loss,
+                num_non_padded_tokens,
+            ) = train_step(
                 model=model,
                 batch=batch,
                 optimizer=optimizer,
             )
+            epoch_token_count += num_non_padded_tokens
+            epoch_loss_sum += non_padded_loss
         except StopIteration:
             break
 
         # update current batch in epoch
         batch_in_epoch += 1
+        epoch_loss = epoch_loss_sum / epoch_token_count
 
-        # append loss to epoch losses
-        epoch_losses.append(batch_loss)
         # update progress bar
         pbar.update(1)
-        pbar.set_postfix(loss=f"{batch_loss:.4f}")
+        pbar.set_postfix(loss=f"{jnp.exp(epoch_loss):.4f}")
 
         # check if epoch is complete (the current batch is number of batches per epoch)
         if batch_in_epoch == batches_per_epoch:
@@ -158,16 +167,24 @@ def train_step(
         )
         per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
             logits=logits, labels=labels
-        )
-        loss = (per_token_loss * labels_mask).sum() / labels_mask.sum()
-        return loss
+        )  # loss per token in the batch (B, seq_len)
+        num_non_padded_tokens = labels_mask.sum()  # number of non padded tokens
+        non_padded_loss = (
+            per_token_loss * labels_mask
+        ).sum()  # loss over non padded tokens
+        loss = non_padded_loss / num_non_padded_tokens
+        return (
+            loss,
+            non_padded_loss,
+            num_non_padded_tokens,
+        )  # avg loss over batch of non padded tokens
 
     # compute loss and gradients
-    loss, grads = nnx.value_and_grad(loss_fn)(model)
+    (loss, non_padded_loss, num_tokens), grads = nnx.value_and_grad(loss_fn)(model)
     # update the model state with the new gradients
     optimizer.update(model, grads)
 
-    return model, optimizer, loss
+    return model, optimizer, loss, non_padded_loss, num_tokens
 
 
 def eval(
@@ -250,11 +267,16 @@ def eval_step(
         rngs=rngs,
     )
 
-    # compute loss
     per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
         logits=logits, labels=labels
-    )
-    loss = (per_token_loss * labels_mask).sum() / labels_mask.sum()
+    )  # loss per token in the batch (B, seq_len)
+    num_non_padded_tokens = labels_mask.sum()  # number of non padded tokens
+    non_padded_loss = (
+        per_token_loss * labels_mask
+    ).sum()  # loss over non padded tokens
+    loss = (
+        non_padded_loss / num_non_padded_tokens
+    )  # avg loss over batch of non padded tokens
 
     # get predictions
     predictions = jnp.argmax(logits, axis=-1)
@@ -262,4 +284,4 @@ def eval_step(
     correct = predictions == labels
     correct = correct * labels_mask
 
-    return jnp.sum(correct), loss, jnp.sum(labels_mask)
+    return jnp.sum(correct), loss, num_non_padded_tokens
