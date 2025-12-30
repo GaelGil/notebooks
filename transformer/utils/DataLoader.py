@@ -84,7 +84,7 @@ class Source(grain.DataLoader):
         )
 
     def __getitem__(self, idx):
-        encoder_input = jnp.array(self.src[idx])  # encoder input ids already padded
+        encoder_input = jnp.asarray(self.src[idx])  # encoder input ids already padded
         decoder_input = jnp.asarray(
             self.target[idx]
         )  # decoder input ids already padded
