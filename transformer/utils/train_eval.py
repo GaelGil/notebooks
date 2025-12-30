@@ -181,7 +181,7 @@ def train_step(
             loss,
             non_padded_loss,
             num_non_padded_tokens,
-        )  # avg loss over batch of non padded tokens
+        )  # avg loss over batch of non padded tokens, loss over non padded tokens, number of non padded tokens
 
     # compute loss and gradients
     (loss, non_padded_loss, num_tokens), grads = nnx.value_and_grad(loss_fn)(model)
@@ -217,7 +217,9 @@ def eval(
     )
     for batch in loader:
         try:
-            correct_tokens, batch_loss, num_tokens = eval_step(model=model, batch=batch)
+            correct_tokens, batch_loss, num_tokens, non_padded_loss = eval_step(
+                model=model, batch=batch
+            )
             total_correct += correct_tokens
             total_loss += batch_loss
             total_tokens += num_tokens
@@ -278,7 +280,7 @@ def eval_step(
     non_padded_loss = (
         per_token_loss * labels_mask
     ).sum()  # loss over non padded tokens
-    loss = (
+    avg_loss_over_batch = (
         non_padded_loss / num_non_padded_tokens
     )  # avg loss over batch of non padded tokens
 
@@ -288,4 +290,4 @@ def eval_step(
     correct = predictions == labels
     correct = correct * labels_mask
 
-    return jnp.sum(correct), loss, num_non_padded_tokens
+    return jnp.sum(correct), avg_loss_over_batch, num_non_padded_tokens, non_padded_loss
