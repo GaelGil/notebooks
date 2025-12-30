@@ -28,7 +28,6 @@ def train(
 
     current_epoch = step
     batch_in_epoch = 0
-    epoch_losses = []
     epoch_token_count = 0
     epoch_loss_sum = 0
     # create progress bar
@@ -44,7 +43,7 @@ def train(
             (
                 model,
                 optimizer,
-                _,
+                avg_batch_loss,
                 non_padded_loss,
                 num_non_padded_tokens,
             ) = train_step(
@@ -52,23 +51,26 @@ def train(
                 batch=batch,
                 optimizer=optimizer,
             )
-            epoch_token_count += num_non_padded_tokens
-            epoch_loss_sum += non_padded_loss
+
         except StopIteration:
             break
 
         # update current batch in epoch
         batch_in_epoch += 1
-        epoch_loss = epoch_loss_sum / epoch_token_count
+        epoch_token_count += (
+            num_non_padded_tokens  # number of non padded tokens in the batch
+        )
+        epoch_loss_sum += non_padded_loss  # loss over non padded tokens
 
         # update progress bar
         pbar.update(1)
-        pbar.set_postfix(loss=f"{jnp.exp(epoch_loss):.4f}")
+        pbar.set_postfix(loss=f"{jnp.exp(avg_batch_loss):.4f}")
 
         # check if epoch is complete (the current batch is number of batches per epoch)
         if batch_in_epoch == batches_per_epoch:
+            epoch_loss = epoch_loss_sum / epoch_token_count
             logger.info(
-                f"Epoch {current_epoch} complete, Avg loss at epoch: {jnp.mean(jnp.array(epoch_losses)):.4f}, evaluating ..."
+                f"Epoch {current_epoch} complete, Avg loss at epoch: {jnp.exp(epoch_loss):.4f}, evaluating ..."
             )
             # evaluate the model
             eval_accuracy, eval_loss = eval(
@@ -77,7 +79,7 @@ def train(
 
             # create metrics dictionary
             metrics = {
-                "train_perplexity": float(jnp.mean(jnp.array(epoch_losses))),
+                "train_perplexity": float(jnp.exp(epoch_loss)),
                 "eval_perplexity": float(jnp.exp(eval_loss)),
                 "eval_accuracy": float(eval_accuracy),
             }
@@ -91,7 +93,7 @@ def train(
                 nnx.RngState,
             )
             # save the state, metrics and step
-            # opt_state = nnx.state(optimizer)
+            # opt_state = nnx.state(optimizer)  # optimizer state
             manager.save(
                 step=current_epoch,
                 args=ocp.args.Composite(
@@ -107,8 +109,10 @@ def train(
                 break
             # since we have completed an epoch, reset the batch in epoch
             batch_in_epoch = 0
-            # reset the epoch losses
-            epoch_losses = []
+            # reset the epoch loss sum
+            epoch_loss_sum = 0
+            # reset the epoch token count
+            epoch_token_count = 0
 
             # close the progress bar
             pbar.close()
