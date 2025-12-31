@@ -56,9 +56,7 @@ def train(
             break
 
         # update current batch in epoch
-        print(f"type avg_batch_loss {type(avg_batch_loss)}")
-        print(f"type num_non_padded_tokens {type(num_non_padded_tokens)}")
-        print(f"type non_padded_loss {type(non_padded_loss)}")
+
         batch_in_epoch += 1
         epoch_token_count += (
             num_non_padded_tokens  # number of non padded tokens in the batch
@@ -125,7 +123,7 @@ def train(
             # create a new progress bar
             pbar = tqdm(
                 total=batches_per_epoch,
-                desc=f"Epoch {current_epoch + 1}/{epochs}",
+                desc=f"Epoch {current_epoch}/{epochs}",
             )
 
     manager.wait_until_finished()
@@ -250,7 +248,7 @@ def eval(
 
 
 @jax.jit
-def eval_step(model: Transformer, batch) -> tuple[Array, Array, Array]:
+def eval_step(model: Transformer, batch) -> tuple[Array, Array, Array, Array]:
     """
     evaluate the model on a single batch
     Args:
@@ -286,11 +284,11 @@ def eval_step(model: Transformer, batch) -> tuple[Array, Array, Array]:
     per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
         logits=logits, labels=labels
     )  # loss per token in the batch (B, seq_len)
-    num_non_padded_tokens = labels_mask.sum()  # number of non padded tokens
-    non_padded_loss = (
+    num_non_padded_tokens: Array = labels_mask.sum()  # number of non padded tokens
+    non_padded_loss: Array = (
         per_token_loss * labels_mask
     ).sum()  # loss over non padded tokens
-    avg_loss_over_batch = (
+    avg_loss_over_batch: Array = (
         non_padded_loss / num_non_padded_tokens
     )  # avg loss over batch of non padded tokens
 
