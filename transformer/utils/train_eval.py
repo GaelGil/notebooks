@@ -225,8 +225,10 @@ def eval(
         total=batches_per_epoch,
         desc=f"Epoch {current_epoch}/{1}",
     )
+    rng_key: jax.Array = jax.random.PRNGKey(0)
     for batch in loader:
         try:
+            key, subkey = jax.random.split(rng_key)
             correct_tokens, batch_loss, num_tokens, non_padded_loss = eval_step(
                 model=model, batch=batch
             )
@@ -248,7 +250,11 @@ def eval(
 
 
 @jax.jit
-def eval_step(model: Transformer, batch) -> tuple[Array, Array, Array, Array]:
+def eval_step(
+    model: Transformer,
+    batch,
+    rng: jax.Array,
+) -> tuple[Array, Array, Array, Array]:
     """
     evaluate the model on a single batch
     Args:
@@ -268,9 +274,8 @@ def eval_step(model: Transformer, batch) -> tuple[Array, Array, Array, Array]:
         encoder_decoder_mask,
     ) = batch
 
+    rngs = nnx.Rngs(dropout=rng)
     # pass batch through the model in eval mode
-    key = jax.random.PRNGKey(0)
-    rngs = nnx.Rngs(dropout=key)
     logits = model(
         src=encoder_input,
         src_mask=encoder_padding_mask,
