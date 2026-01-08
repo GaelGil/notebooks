@@ -85,17 +85,26 @@ def init_state(
         rngs=rngs,
     )
 
-    # define the learning rate schedule
-    lr_schedule_fn = optax.warmup_cosine_decay_schedule(
-        init_value=0.0,
-        peak_value=1e-3,
-        warmup_steps=int(1000 * 0.1),
-        decay_steps=int(1000 * (1 - 0.1)),
-        end_value=1e-5,
+    warmup_steps = int((config.EPOCHS * 0.1) * 100)
+    lr_schedule_fn = optax.join_schedules(
+        schedules=[
+            optax.linear_schedule(
+                init_value=0.0,
+                end_value=3e-4,
+                transition_steps=warmup_steps,
+            ),
+            optax.constant_schedule(3e-4),
+        ],
+        boundaries=[warmup_steps],
     )
 
     # create optimizer
-    opt_adam_with_schedule = optax.adam(learning_rate=lr_schedule_fn)
+    opt_adam_with_schedule = optax.adam(
+        learning_rate=lr_schedule_fn,
+        b1=0.9,
+        b2=0.98,
+        eps=1e-9,
+    )
     optimizer = nnx.Optimizer(model, opt_adam_with_schedule, wrt=nnx.Param)
 
     # restore the state
