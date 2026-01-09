@@ -230,7 +230,7 @@ def eval(
         try:
             key, subkey = jax.random.split(rng_key)
             correct_tokens, batch_loss, num_tokens, non_padded_loss = eval_step(
-                model=model, batch=batch
+                model=model, batch=batch, rng=subkey
             )
             total_correct += correct_tokens
             eval_loss += non_padded_loss
