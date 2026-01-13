@@ -25,7 +25,7 @@ def train(
     """
     Train the model
     """
-
+    rng = jax.random.PRNGKey(0)
     current_epoch = step
     batch_in_epoch = 0
     epoch_token_count = 0
@@ -50,6 +50,7 @@ def train(
                 model=model,
                 batch=batch,
                 optimizer=optimizer,
+                rng=rng,
             )
 
         except StopIteration:
@@ -136,6 +137,7 @@ def train_step(
     model: Transformer,
     batch,
     optimizer: nnx.Optimizer,
+    rng: jax.Array,
 ) -> tuple[Transformer, nnx.Optimizer, Array, Array, Array]:
     """
     Train the model on a single batch
@@ -158,12 +160,14 @@ def train_step(
         encoder_decoder_mask,
     ) = batch
 
+    rng, dropout_key = jax.random.split(rng)
+
     def loss_fn(model: Transformer):
         """
         Compute the loss function for a single batch
         """
-        key = jax.random.PRNGKey(0)
-        rngs = nnx.Rngs(dropout=key)
+        # key = jax.random.PRNGKey(0)
+        # rngs = nnx.Rngs(dropout=key)
         logits = model(
             src=encoder_input,
             src_mask=encoder_padding_mask,
@@ -171,7 +175,7 @@ def train_step(
             self_mask=decoder_self_attention_mask,
             cross_mask=encoder_decoder_mask,
             is_training=True,
-            rngs=rngs,
+            rngs=nnx.Rngs(dropout=dropout_key),
         )
         per_token_loss: Array = optax.softmax_cross_entropy_with_integer_labels(
             logits=logits, labels=labels
