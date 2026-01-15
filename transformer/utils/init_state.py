@@ -121,7 +121,10 @@ def init_state(
                 # optimizer=ocp.args.StandardRestore(abs_opt_state),
             ),
         )
-
+        all_steps = manager.all_steps()
+        steps_to_delete = [s for s in all_steps if s > step]  # [5,6,7,8,9,10]
+        for s in steps_to_delete:
+            manager.delete(s)
         # update the model and optimizer with the restored state and optimizer
         # nnx.update(optimizer, restored["optimizer"])
         nnx.update(model, restored["state"])
