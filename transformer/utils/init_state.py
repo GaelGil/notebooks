@@ -85,22 +85,22 @@ def init_state(
         rngs=rngs,
     )
 
-    warmup_steps = int((config.EPOCHS * 0.1) * 100)
-    lr_schedule_fn = optax.join_schedules(
-        schedules=[
-            optax.linear_schedule(
-                init_value=0.0,
-                end_value=3e-4,
-                transition_steps=warmup_steps,
-            ),
-            optax.constant_schedule(3e-4),
-        ],
-        boundaries=[warmup_steps],
-    )
+    # warmup_steps = int((config.EPOCHS * 0.1) * 100)
+    # lr_schedule_fn = optax.join_schedules(
+    #     schedules=[
+    #         optax.linear_schedule(
+    #             init_value=0.0,
+    #             end_value=3e-4,
+    #             transition_steps=warmup_steps,
+    #         ),
+    #         optax.constant_schedule(3e-4),
+    #     ],
+    #     boundaries=[warmup_steps],
+    # )
 
     # create optimizer
     opt_adam_with_schedule = optax.adam(
-        learning_rate=lr_schedule_fn,
+        learning_rate=config.LR,
         b1=0.9,
         b2=0.98,
         eps=1e-9,
@@ -111,8 +111,8 @@ def init_state(
     step = 0 if manager.best_step() is None else manager.best_step()
 
     if step is not None and step > 0:
-        step = manager.best_step()
-        logger.info(f"Restoring from step {manager.best_step()}")
+        step = manager.latest_step()
+        logger.info(f"Restoring from step {step}")
         # restore the state
         restored = manager.restore(
             step=step,
@@ -121,10 +121,10 @@ def init_state(
                 # optimizer=ocp.args.StandardRestore(abs_opt_state),
             ),
         )
-        all_steps = manager.all_steps()
-        steps_to_delete = [s for s in all_steps if s > step]  # [5,6,7,8,9,10]
-        for s in steps_to_delete:
-            manager.delete(s)
+        # all_steps = manager.all_steps()
+        # steps_to_delete = [s for s in all_steps if s > step]  # [5,6,7,8,9,10]
+        # for s in steps_to_delete:
+        #     manager.delete(s)
         # update the model and optimizer with the restored state and optimizer
         # nnx.update(optimizer, restored["optimizer"])
         nnx.update(model, restored["state"])
@@ -139,7 +139,6 @@ def init_state(
         self_mask=dummy_target_mask,
         cross_mask=dummy_src_mask,
         is_training=False,
-        rngs=rngs,
     )
 
     return model, optimizer, step
