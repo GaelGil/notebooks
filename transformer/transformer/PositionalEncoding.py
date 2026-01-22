@@ -16,14 +16,13 @@ class PositionalEncoding(nnx.Module):
             dropout: dropout rate (used during training)
         """
 
-        self.dropout = nnx.Dropout(rate=dropout_rate)
+        self.dropout = nnx.Dropout(rate=dropout_rate, rngs=rngs)
 
-        # self.pe = CustomVariable(
-        #     jnp.zeros((1, seq_len, d_model), dtype=jnp.float32), mutable=False
-        # )
-        self.pe = nnx.Param(jax.random.uniform(rngs.params(), (1, seq_len, d_model)))
+        self.pe = nnx.Param(
+            jax.random.normal(rngs.params(), (1, seq_len, d_model)) * 0.02
+        )
 
-    def __call__(self, x: Array, is_training: bool, rngs: nnx.Rngs):
+    def __call__(self, x: Array, is_training: bool):
         """
         Args:
             x: input tensor of shape (batch_size, seq_len, d_model)
@@ -34,4 +33,4 @@ class PositionalEncoding(nnx.Module):
 
         x = x + pe
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
-        return self.dropout(x, deterministic=not is_training, rngs=rngs)
+        return self.dropout(x, deterministic=not is_training)

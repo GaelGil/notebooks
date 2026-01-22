@@ -33,10 +33,10 @@ class FeedForwardBlock(nnx.Module):
             in_features=d_ff, out_features=d_model, dtype=jnp.float32, rngs=rngs
         )
 
-    def __call__(self, x: Array, is_training: bool, rngs: nnx.Rngs):
+    def __call__(self, x: Array, is_training: bool):
         # simple feed forward network
         # (seq_len, d_model) --> (dff, d_model) --> (seq_len, d_model)
         x = nnx.leaky_relu(self.linear_1(x))
-        x = self.dropout(x, deterministic=not is_training, rngs=rngs)
+        x = self.dropout(x, deterministic=not is_training)
         x = self.linear_2(x)
         return x

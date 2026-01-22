@@ -56,13 +56,12 @@ class EncoderBlock(nnx.Module):
         self.norm1 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
         self.norm2 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
 
-    def __call__(self, x: Array, src_mask: Array, is_training: bool, rngs: nnx.Rngs):
+    def __call__(self, x: Array, src_mask: Array, is_training: bool):
         """
         Args:
             x: input
             src_mask: source mask
             is_training: is training
-            rngs: rngs
 
         Returns:
             Array
@@ -70,7 +69,7 @@ class EncoderBlock(nnx.Module):
         # attention block output
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
         multi_head_attention_output = self.multi_head_attention_block(
-            q=x, k=x, v=x, mask=src_mask, is_training=is_training, rngs=rngs
+            q=x, k=x, v=x, mask=src_mask, is_training=is_training
         )
 
         # add and norm output
@@ -78,21 +77,17 @@ class EncoderBlock(nnx.Module):
         x = self.dropout(
             self.norm1(multi_head_attention_output + x),
             deterministic=not is_training,
-            rngs=rngs,
         )
 
         # pass in new x into feed forward and get output
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
-        feed_forward_output = self.feed_forward_block(
-            x, is_training=is_training, rngs=rngs
-        )
+        feed_forward_output = self.feed_forward_block(x, is_training=is_training)
 
         # add and norm ff output
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
         output = self.dropout(
             self.norm2(feed_forward_output + x),
             deterministic=not is_training,
-            rngs=rngs,
         )
 
         return output
@@ -114,7 +109,7 @@ class Encoder(nnx.Module):
         self.blocks: nnx.List[EncoderBlock] = encoder_blocks
         self.norm: nnx.LayerNorm = nnx.LayerNorm(num_features=d_model, rngs=rngs)
 
-    def __call__(self, x: Array, mask: Array, is_training: bool, rngs: nnx.Rngs):
+    def __call__(self, x: Array, mask: Array, is_training: bool):
         """
         Args:
             x: input
@@ -126,5 +121,5 @@ class Encoder(nnx.Module):
             Array
         """
         for block in self.blocks:
-            x = block(x=x, src_mask=mask, is_training=is_training, rngs=rngs)
+            x = block(x=x, src_mask=mask, is_training=is_training)
         return self.norm(x)

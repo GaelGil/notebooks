@@ -59,7 +59,6 @@ class DecoderBlock(nnx.Module):
         self_mask: Array,
         cross_mask: Array,
         is_training: bool,
-        rngs: nnx.Rngs,
     ):
         """
         Args:
@@ -68,7 +67,6 @@ class DecoderBlock(nnx.Module):
             self_mask: self mask
             cross_mask: cross mask
             is_training: is training
-            rngs: rngs
 
         Returns:
             Array
@@ -76,7 +74,11 @@ class DecoderBlock(nnx.Module):
         # masked multi head attention block output
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
         masked_multi_head_attention_output = self.masked_multi_head_attention_block(
-            q=x, k=x, v=x, mask=self_mask, is_training=is_training, rngs=rngs
+            q=x,
+            k=x,
+            v=x,
+            mask=self_mask,
+            is_training=is_training,
         )
 
         # add and norm the masked multi head attention
@@ -84,7 +86,6 @@ class DecoderBlock(nnx.Module):
         x = self.dropout(
             self.norm1(masked_multi_head_attention_output + x),
             deterministic=not is_training,
-            rngs=rngs,
         )
 
         # cross attention
@@ -95,7 +96,6 @@ class DecoderBlock(nnx.Module):
             v=encoder_output,
             mask=cross_mask,
             is_training=is_training,
-            rngs=rngs,
         )
 
         # add and norm the cross attention
@@ -103,21 +103,17 @@ class DecoderBlock(nnx.Module):
         x = self.dropout(
             self.norm2(cross_attention_output + x),
             deterministic=not is_training,
-            rngs=rngs,
         )
 
         # feed forward
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
-        feed_forward_output = self.feed_forward_block(
-            x, is_training=is_training, rngs=rngs
-        )
+        feed_forward_output = self.feed_forward_block(x, is_training=is_training)
 
         # final add and norm
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
         output = self.dropout(
             self.norm3(feed_forward_output + x),
             deterministic=not is_training,
-            rngs=rngs,
         )
 
         return output
@@ -152,7 +148,6 @@ class Decoder(nnx.Module):
         self_mask: Array,
         cross_mask: Array,
         is_training: bool,
-        rngs: nnx.Rngs,
     ):
         """
         Args:
@@ -161,7 +156,6 @@ class Decoder(nnx.Module):
             self_mask: self mask
             cross_mask: cross mask
             is_training: is training
-            rngs: rngs
 
         Returns:
             Array
@@ -173,6 +167,5 @@ class Decoder(nnx.Module):
                 self_mask=self_mask,
                 cross_mask=cross_mask,
                 is_training=is_training,
-                rngs=rngs,
             )
         return self.norm(x)

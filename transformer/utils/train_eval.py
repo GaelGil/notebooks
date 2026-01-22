@@ -175,7 +175,6 @@ def train_step(
             self_mask=decoder_self_attention_mask,
             cross_mask=encoder_decoder_mask,
             is_training=True,
-            rngs=nnx.Rngs(dropout=dropout_key),
         )
         per_token_loss: Array = optax.softmax_cross_entropy_with_integer_labels(
             logits=logits, labels=labels
@@ -287,7 +286,6 @@ def eval_step(
         self_mask=decoder_self_attention_mask,
         cross_mask=encoder_decoder_mask,
         is_training=False,
-        rngs=rngs,
     )
 
     per_token_loss = optax.softmax_cross_entropy_with_integer_labels(

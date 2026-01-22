@@ -41,7 +41,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         self.w_v = nnx.Linear(in_features=d_model, out_features=d_model, rngs=rngs)
 
         self.w_o = nnx.Linear(in_features=d_model, out_features=d_model, rngs=rngs)
-        self.dropout = nnx.Dropout(rate=dropout_rate)
+        self.dropout = nnx.Dropout(rate=dropout_rate, rngs=rngs)
 
     @staticmethod
     def scaled_dot_product_attention(
@@ -51,7 +51,6 @@ class MultiHeadAttentionBlock(nnx.Module):
         mask: Array,
         dropout: nnx.Dropout,
         is_training: bool,
-        rngs: nnx.Rngs,
     ) -> Array:
         d_k = query.shape[-1]  # get dimension of last axis
         # (Q * K^T)/sqrt(d_k)
@@ -69,9 +68,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         # softmax(Q * K^T/sqrt(d_k))
         attention_scores = nnx.softmax(attention_scores, axis=-1)
         if dropout:
-            attention_scores = dropout(
-                attention_scores, deterministic=not is_training, rngs=rngs
-            )
+            attention_scores = dropout(attention_scores, deterministic=not is_training)
         # (Q * K^T)/sqrt(d_k) * V
         x = jnp.matmul(attention_scores, value)
 
@@ -84,7 +81,6 @@ class MultiHeadAttentionBlock(nnx.Module):
         v: Array,
         mask: Array,
         is_training: bool,
-        rngs: nnx.Rngs,
     ):
         """
 
@@ -123,7 +119,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         # scaled dot product
         # (batch_size, n_heads, seq_len, d_k) -> (batch_size, n_heads, seq_len, d_k)
         x = self.scaled_dot_product_attention(
-            query, key, value, mask, self.dropout, is_training, rngs=rngs
+            query, key, value, mask, self.dropout, is_training
         )
 
         # merge heads from (batch_size, n_heads, seq_len, d_k) back to (batch_size, seq_len, D_model)

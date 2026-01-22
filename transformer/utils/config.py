@@ -42,7 +42,7 @@ class Config(BaseModel):
 config = Config(
     BATCH_SIZE=32,
     EPOCHS=300,
-    LR=3e-4,
+    LR=0.0001,
     SEQ_LEN=128,
     D_MODEL=512,
     D_FF=2048,
