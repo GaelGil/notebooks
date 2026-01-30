@@ -21,7 +21,7 @@ class VisionTransformer(nnx.Module):
 
     """
 
-    def setup(
+    def __init__(
         self,
         N: int,
         n_heads: int,

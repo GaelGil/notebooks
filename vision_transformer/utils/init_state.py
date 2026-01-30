@@ -4,10 +4,10 @@ import optax
 from flax.training import train_state
 
 from utils.config import Config
-from vision_transformer.model import VisionTransformer
+from vision_transformer.VisionTransformer import VisionTransformer
 
 
-def init_train_state(config: Config) -> train_state.TrainState:
+def init_state(config: Config) -> train_state.TrainState:
     """
     Initializes the train state
 
