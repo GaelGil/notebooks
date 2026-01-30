@@ -127,6 +127,23 @@ wheels = [
 ]
 
 [[package]]
+name = "array-record"
+version = "0.8.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "absl-py" },
+    { name = "etils", extra = ["epath"] },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d6/63/fd734c5f2be8017d4f33cff0dd3d3e2f91de3ab988f93755cdc54d67b654/array_record-0.8.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:fa94fa053c1afaecc183a1c31463fd89d1b7b148cc526095bfc50ab58967e47c", size = 3989122, upload-time = "2025-11-13T16:15:38.375Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/b0/9f649781c8e630cbb8724fb56627430b4249b51e8536e6e0a31d6f85f147/array_record-0.8.3-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:adfe6c92918363747539c0caa579f568f75aac079ad7bbd4ebcf7fdb02e5461b", size = 4838733, upload-time = "2025-11-13T16:15:39.767Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/6d/5575a1d64cffecb72de5743b35a1532b1801a0350b9b45f277090d02b3c2/array_record-0.8.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:13df1aec9b38afe98973bf5fe3cf523f83ca904b0423d85319930877145b8f28", size = 4995837, upload-time = "2025-11-13T16:15:40.973Z" },
+    { url = "https://files.pythonhosted.org/packages/99/46/1449f2c36f75e563c5bdd59133146a10110bcf3a3cd53d7d74a535579603/array_record-0.8.3-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:14facb713fc55ea612cf853c0abbc602032ae619eb85037af3aa41dc4e27eed6", size = 3989205, upload-time = "2025-11-13T16:15:42.156Z" },
+    { url = "https://files.pythonhosted.org/packages/35/ef/f85d329ac6cdcc8c3e8af832c30a9a0b719c6719a09191056ef7342a3627/array_record-0.8.3-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:06b17a0a90bc74a80c4ebad0b99f0e039adb01746b673db3d7a5632d8b138ddd", size = 4839320, upload-time = "2025-11-13T16:15:43.617Z" },
+    { url = "https://files.pythonhosted.org/packages/f2/89/510594ff506d456d7dc0e8dfa9095f078e5f98da49d1b8f7be1fd9c0717e/array_record-0.8.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:89d2cf5f4709be3c6c2b30c0d366005223375633ffce66dcb13d927a0bdc5228", size = 4995667, upload-time = "2025-11-13T16:15:45.092Z" },
+]
+
+[[package]]
 name = "arrow"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -283,6 +300,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/77/70/53c7d404ce9e2a94009aea7f77ef6e392f6740e071c62683a506647c520f/chex-0.1.90.tar.gz", hash = "sha256:d3c375aeb6154b08f1cccd2bee4ed83659ee2198a6acf1160d2fe2e4a6c87b5c", size = 92363, upload-time = "2025-07-23T19:50:47.945Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6f/3d/46bb04776c465cea2dd8aa2d4b61ab610b707f798f47838ef7e6105b025c/chex-0.1.90-py3-none-any.whl", hash = "sha256:fce3de82588f72d4796e545e574a433aa29229cbdcf792555e41bead24b704ae", size = 101047, upload-time = "2025-07-23T19:50:46.603Z" },
+]
+
+[[package]]
+name = "cloudpickle"
+version = "3.1.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/27/fb/576f067976d320f5f0114a8d9fa1215425441bb35627b1993e5afd8111e5/cloudpickle-3.1.2.tar.gz", hash = "sha256:7fda9eb655c9c230dab534f1983763de5835249750e85fbcef43aaa30a9a2414", size = 22330, upload-time = "2025-11-03T09:25:26.604Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/88/39/799be3f2f0f38cc727ee3b4f1445fe6d5e4133064ec2e4115069418a5bb6/cloudpickle-3.1.2-py3-none-any.whl", hash = "sha256:9acb47f6afd73f60dc1df93bb801b472f05ff42fa6c84167d25cb206be1fbf4a", size = 22228, upload-time = "2025-11-03T09:25:25.534Z" },
 ]
 
 [[package]]
@@ -515,6 +541,29 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/de/e0/bab50af11c2d75c9c4a2a26a5254573c0bd97cea152254401510950486fa/fsspec-2025.9.0.tar.gz", hash = "sha256:19fd429483d25d28b65ec68f9f4adc16c17ea2c7c7bf54ec61360d478fb19c19", size = 304847, upload-time = "2025-09-02T19:10:49.215Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/47/71/70db47e4f6ce3e5c37a607355f80da8860a33226be640226ac52cb05ef2e/fsspec-2025.9.0-py3-none-any.whl", hash = "sha256:530dc2a2af60a414a832059574df4a6e10cce927f6f4a78209390fe38955cfb7", size = 199289, upload-time = "2025-09-02T19:10:47.708Z" },
+]
+
+[[package]]
+name = "grain"
+version = "0.2.15"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "absl-py" },
+    { name = "array-record", marker = "sys_platform != 'win32'" },
+    { name = "cloudpickle" },
+    { name = "etils", extra = ["epath", "epy"] },
+    { name = "numpy" },
+    { name = "protobuf" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/58/35/3a342a358e3a2bb8327bdc3fa4f50999928809f067fda428280e4f9e7ec0/grain-0.2.15-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:df0c4af1442f71effc80a5b44bb33fe5aabb7b3d82d5a3ac035ae40431935c77", size = 453407, upload-time = "2025-11-25T20:17:20.834Z" },
+    { url = "https://files.pythonhosted.org/packages/49/8f/2f1dbcf35703bef636f39e77230a53b704576978a6aab66047015abd31d3/grain-0.2.15-cp313-cp313-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:4766dc1355448cf7b3bdd3cc4f4639bc3433c66c5502954380b9a8f4c2b3fc94", size = 503565, upload-time = "2025-11-25T20:17:21.948Z" },
+    { url = "https://files.pythonhosted.org/packages/84/f9/376c47f9ebbe2be10605f4860e254a1633aed90405bcc25a089b787abce9/grain-0.2.15-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ae2635e3bd18b77a7add7152ee91b22aba553fa44a066aefa009d1b923ade4f2", size = 504557, upload-time = "2025-11-25T20:17:23.057Z" },
+    { url = "https://files.pythonhosted.org/packages/87/e7/334f97d5a6a65470b18256dfc64ae62416c0404b028186844bc7adc43508/grain-0.2.15-cp313-cp313-win_amd64.whl", hash = "sha256:9d3cc6edfa4d0de341de0d03ba4a8612d94639bed97fe63af3951db8305c96c0", size = 445101, upload-time = "2025-11-25T20:17:32.278Z" },
+    { url = "https://files.pythonhosted.org/packages/08/7c/674cd938b010c776bb2695bbca4a24e2db8e25c86edf0c113a637ef1834d/grain-0.2.15-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:36e1413c275741712918e528f3f65ca254ce51d60160a2b9558c020147f38e98", size = 453433, upload-time = "2025-11-25T20:17:33.973Z" },
+    { url = "https://files.pythonhosted.org/packages/1c/e1/f9b2b6a2fd9094a43a8b4a10092a464c18eef949c20b23fd31f266443aaf/grain-0.2.15-cp314-cp314-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:fedbb410486890c6e410c8d78934097b2755aa2363fbd6137b920ea5be104530", size = 503572, upload-time = "2025-11-25T20:17:35.413Z" },
+    { url = "https://files.pythonhosted.org/packages/62/c9/2708bddbd4ee834c1da87211dce06b47133ca222e2b3355104f1e22d755f/grain-0.2.15-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:e1a5e20ffc29391c48b5d8f818742f4ecce957fe59ccff971c139721d31a0bf4", size = 504505, upload-time = "2025-11-25T20:17:36.753Z" },
+    { url = "https://files.pythonhosted.org/packages/01/9f/79da919a231f525145c6038d4e8a9200caef0f6c93e0e0239626f00759ae/grain-0.2.15-cp314-cp314-win_amd64.whl", hash = "sha256:d57493fa4361316755cb0564f87e62d1da1dedae4eed53acf179ec029668dee5", size = 451279, upload-time = "2025-11-25T20:17:37.834Z" },
 ]
 
 [[package]]
@@ -2712,6 +2761,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "flax" },
+    { name = "grain" },
     { name = "jax", extra = ["cuda13"] },
     { name = "jupyterlab" },
     { name = "numpy" },
@@ -2728,6 +2778,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "flax", specifier = ">=0.8.4" },
+    { name = "grain", specifier = ">=0.2.15" },
     { name = "jax", extras = ["cuda13"], specifier = ">=0.5.0" },
     { name = "jupyterlab", specifier = ">=4.4.5" },
     { name = "numpy", specifier = ">=2.3.2" },
