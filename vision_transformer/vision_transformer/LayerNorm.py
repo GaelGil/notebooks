@@ -1,4 +1,5 @@
 from flax import nnx
+from jax import numpy as jnp
 
 
 class LayerNorm(nnx.Module):
@@ -13,7 +14,7 @@ class LayerNorm(nnx.Module):
     # d_model: int
     # eps: float = 1e-6  # helps avoid division by zero
 
-    def setup(self, d_model, eps: float = 1e-6) -> None:
+    def __init__(self, d_model, eps: float = 1e-6) -> None:
         """Set up layer norm
         Args:
             None

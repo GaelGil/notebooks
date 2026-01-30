@@ -12,7 +12,7 @@ class MultiLayerPerceptron(nnx.Module):
         linear_2: nnx.Linear
     """
 
-    def setup(
+    def __init__(
         self, d_model: int, d_ff: int, dropout_rate: float, rngs: nnx.Rngs
     ) -> None:
         """
