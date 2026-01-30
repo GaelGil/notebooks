@@ -69,7 +69,7 @@ class Encoder(nnx.Module):
         d_model: dimension of model
     """
 
-    def setup(self, encoder_blocks: nnx.List[EncoderBlock], d_model: int) -> None:
+    def __init__(self, encoder_blocks: nnx.List[EncoderBlock], d_model: int) -> None:
         """
         Set up encoder with a sequence of encoder blocks
         Args:
