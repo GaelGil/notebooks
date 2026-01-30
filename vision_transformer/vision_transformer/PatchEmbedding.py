@@ -12,9 +12,6 @@ class PatchEmbedding(nnx.Module):
 
     """
 
-    # patch_size: int
-    # d_model: int
-
     def __init__(self, patch_size: int, d_model: int, rngs: nnx.Rngs) -> None:
         """
         Create the patch embedding layer. This is a convolutional that will
