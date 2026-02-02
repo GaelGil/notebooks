@@ -9,9 +9,7 @@ from vision_transformer.VisionTransformer import VisionTransformer
 
 
 def init_state(
-    config: Config,
-    manager: ocp.CheckpointManager,
-    logger: logging,
+    config: Config, manager: ocp.CheckpointManager, logger: logging.ABSLLogger
 ) -> tuple[VisionTransformer, nnx.Optimizer[VisionTransformer], int]:
     """
     Initializes the train state
@@ -22,6 +20,7 @@ def init_state(
     Returns:
         train_state.TrainState
     """
+    logger.info("Initializng abstract model and optimizer")
     # initialize the abstract model
     abs_model = nnx.eval_shape(
         lambda: VisionTransformer(
@@ -89,6 +88,7 @@ def init_state(
             ),
         )
         all_steps = manager.all_steps()
+        logger.info("Deleting old steps")
         steps_to_delete = [s for s in all_steps if s > step]  # ie [5,6,7,8,9,10]
         for s in steps_to_delete:
             manager.delete(s)
