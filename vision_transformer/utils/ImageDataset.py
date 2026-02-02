@@ -1,9 +1,5 @@
-import os
-
-import jax.numpy as jnp
 import torch
-from jax.tree_util import tree_map
-from torch.utils.data import DataLoader, default_collate
+from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
@@ -28,17 +24,8 @@ class ImageDataset:
         """
         return self.dataset_len
 
-    def numpy_collate(self, batch):
-        """
-        Collate function for DataLoader
-
-        Args:
-            batch: batch
-
-        Returns:
-            batch: batch
-        """
-        return tree_map(jnp.array, default_collate(batch))
+    def load_splits(self):
+        pass
 
     def split_data(
         self,
@@ -65,23 +52,21 @@ class ImageDataset:
         Returns:
             None
         """
-        if load_splits and os.path.exists(save_splits_path):
-            splits = torch.load(save_splits_path)
-        else:
-            generator = torch.Generator().manual_seed(seed)
-            train_count = int(train_split * self.dataset_len)
-            val_count = int(val_split * self.dataset_len)
-            test_count = self.dataset_len - train_count - val_count
-            train_dataset, valid_dataset, test_dataset = torch.utils.data.random_split(
-                self.dataset, (train_count, val_count, test_count), generator=generator
-            )
-            splits = {
-                "train_indices": train_dataset.indices,
-                "val_indices": valid_dataset.indices,
-                "test_indices": test_dataset.indices,
-            }
 
-            torch.save(splits, save_splits_path)
+        generator = torch.Generator().manual_seed(seed)
+        train_count = int(train_split * self.dataset_len)
+        val_count = int(val_split * self.dataset_len)
+        test_count = self.dataset_len - train_count - val_count
+        train_dataset, valid_dataset, test_dataset = torch.utils.data.random_split(
+            self.dataset, (train_count, val_count, test_count), generator=generator
+        )
+        splits = {
+            "train_indices": train_dataset.indices,
+            "val_indices": valid_dataset.indices,
+            "test_indices": test_dataset.indices,
+        }
+
+        torch.save(splits, save_splits_path)
 
         # Create subsets from saved indices
         train_dataset = torch.utils.data.Subset(self.dataset, splits["train_indices"])
