@@ -96,11 +96,11 @@ def init_state(
         nnx.update(optimizer, restored["optimizer"])
         nnx.update(model, restored["state"])
         # return the restored model and optimizer
-        return model, optimizer, step
+        return model, optimizer, step or 1
 
     _ = model(
         x=dummy_input,
         is_training=False,
     )
 
-    return model, optimizer, step
+    return model, optimizer, step or 1
