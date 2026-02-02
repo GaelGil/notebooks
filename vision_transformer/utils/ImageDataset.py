@@ -1,6 +1,5 @@
 import grain
 import torch
-from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
@@ -9,9 +8,6 @@ class ImageDataset:
     def __init__(self, dataset_path: str, transformations: transforms.Compose) -> None:
         self.dataset = ImageFolder(root=dataset_path, transform=transformations)
         self.dataset_len: int = len(self.dataset)
-        self.train_loader: DataLoader
-        self.test_loader: DataLoader
-        self.val_loader: DataLoader
 
     def get_length(self) -> int:
         """
@@ -32,7 +28,7 @@ class ImageDataset:
         test_dataset = torch.utils.data.Subset(self.dataset, splits["test_indices"])
         return train_dataset, val_dataset, test_dataset
 
-    def get_loder(
+    def get_loader(
         self,
         dataset,
         seed: int,

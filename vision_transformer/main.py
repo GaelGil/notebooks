@@ -5,7 +5,6 @@ from absl import logging
 from utils.config import IMG_TRANSFORMATIONS, config
 from utils.ImageDataset import ImageDataset
 from utils.init_state import init_state
-from utils.train_eval import train
 
 logging.set_verbosity(logging.INFO)
 
@@ -21,16 +20,36 @@ def main():
         dataset_path=config.DATA_PATH, transformations=IMG_TRANSFORMATIONS
     )
     logging.info(f"Dataset length: {dataset.get_length()}")
-    logging.info("Splitting the dataset into train, val and test sets")
-    # split the dataset
-    dataset.split_data(
-        train_split=config.TRAIN_SPLIT,
-        val_split=config.VAL_SPLIT,
+
+    if config.SPLITS_PATH:
+        logging.info(f"Loading datset from {config.SPLITS_PATH}")
+        train, val, _ = dataset.load_splits(config.SPLITS_PATH)
+    else:
+        logging.info("Splitting the dataset into train, val and test sets")
+        train, val, _ = dataset.split_data(
+            train_split=config.TRAIN_SPLIT,
+            val_split=config.VAL_SPLIT,
+            batch_size=config.BATCH_SIZE,
+            num_workers=config.NUM_WORKERS,
+            save_splits_path=config.SPLITS_PATH,
+        )
+
+    train_loader = dataset.get_loader(
+        dataset=train,
+        seed=42,
         batch_size=config.BATCH_SIZE,
-        num_workers=config.NUM_WORKERS,
-        save_splits_path=config.SPLITS_PATH,
+        drop_remainder=True,
+        num_workers=4,
     )
-    train_loader, val_loader, test_loader = dataset.get_loaders()
+
+    val_loader = dataset.get_loader(
+        dataset=val,
+        seed=42,
+        batch_size=config.BATCH_SIZE,
+        drop_remainder=True,
+        num_workers=4,
+    )
+
     # initialize the model
     logging.info("Initializing the model and optimizer")
     # initialize the checkpoint manager options
