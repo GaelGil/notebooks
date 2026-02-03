@@ -59,6 +59,7 @@ class DecoderBlock(nnx.Module):
         self_mask: Array,
         cross_mask: Array,
         is_training: bool,
+        rngs: nnx.Rngs,
     ):
         """
         Args:
@@ -79,6 +80,7 @@ class DecoderBlock(nnx.Module):
             v=x,
             mask=self_mask,
             is_training=is_training,
+            rngs=rngs,
         )
 
         # add and norm the masked multi head attention
@@ -86,6 +88,7 @@ class DecoderBlock(nnx.Module):
         x = self.dropout(
             self.norm1(masked_multi_head_attention_output + x),
             deterministic=not is_training,
+            rngs=rngs,
         )
 
         # cross attention
@@ -96,6 +99,7 @@ class DecoderBlock(nnx.Module):
             v=encoder_output,
             mask=cross_mask,
             is_training=is_training,
+            rngs=rngs,
         )
 
         # add and norm the cross attention
@@ -103,17 +107,21 @@ class DecoderBlock(nnx.Module):
         x = self.dropout(
             self.norm2(cross_attention_output + x),
             deterministic=not is_training,
+            rngs=rngs,
         )
 
         # feed forward
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
-        feed_forward_output = self.feed_forward_block(x, is_training=is_training)
+        feed_forward_output = self.feed_forward_block(
+            x, is_training=is_training, rngs=rngs
+        )
 
         # final add and norm
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
         output = self.dropout(
             self.norm3(feed_forward_output + x),
             deterministic=not is_training,
+            rngs=rngs,
         )
 
         return output
@@ -148,6 +156,7 @@ class Decoder(nnx.Module):
         self_mask: Array,
         cross_mask: Array,
         is_training: bool,
+        rngs: nnx.Rngs,
     ):
         """
         Args:
@@ -167,5 +176,6 @@ class Decoder(nnx.Module):
                 self_mask=self_mask,
                 cross_mask=cross_mask,
                 is_training=is_training,
+                rngs=rngs,
             )
         return self.norm(x)
