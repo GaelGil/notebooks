@@ -2,11 +2,9 @@ import jax
 import orbax.checkpoint as ocp
 from absl import logging
 
-from utils.CheckpointManager import CheckpointManager
 from utils.config import IMG_TRANSFORMATIONS, config
 from utils.ImageDataset import ImageDataset
-from utils.init_train_state import init_train_state
-from utils.train_eval import train
+from utils.init_state import init_state
 
 logging.set_verbosity(logging.INFO)
 
@@ -22,48 +20,73 @@ def main():
         dataset_path=config.DATA_PATH, transformations=IMG_TRANSFORMATIONS
     )
     logging.info(f"Dataset length: {dataset.get_length()}")
-    logging.info("Splitting the dataset into train, val and test sets")
-    # split the dataset
-    dataset.split_data(
-        train_split=config.TRAIN_SPLIT,
-        val_split=config.VAL_SPLIT,
+
+    if config.SPLITS_PATH:
+        logging.info(f"Loading datset from {config.SPLITS_PATH}")
+        train, val, _ = dataset.load_splits(config.SPLITS_PATH)
+    else:
+        logging.info("Splitting the dataset into train, val and test sets")
+        train, val, _ = dataset.split_data(
+            train_split=config.TRAIN_SPLIT,
+            val_split=config.VAL_SPLIT,
+            batch_size=config.BATCH_SIZE,
+            num_workers=config.NUM_WORKERS,
+            save_splits_path=config.SPLITS_PATH,
+        )
+
+    train_loader = dataset.get_loader(
+        dataset=train,
+        seed=42,
         batch_size=config.BATCH_SIZE,
-        num_workers=config.NUM_WORKERS,
-        save_splits_path=config.SPLITS_PATH,
+        drop_remainder=True,
+        num_workers=4,
     )
-    train_loader, val_loader, test_loader = dataset.get_loaders()
+
+    val_loader = dataset.get_loader(
+        dataset=val,
+        seed=42,
+        batch_size=config.BATCH_SIZE,
+        drop_remainder=True,
+        num_workers=4,
+    )
+
     # initialize the model
     logging.info("Initializing the model and optimizer")
-    state = init_train_state(config)
+    # initialize the checkpoint manager options
+    checkpoint_options = ocp.CheckpointManagerOptions(
+        max_to_keep=config.MAX_TO_KEEP,
+        save_interval_steps=config.SAVE_INTERVAL,
+        enable_async_checkpointing=config.ASYNC_CHECKPOINTING,
+        best_fn=lambda metrics: metrics[config.BEST_FN],
+        best_mode="min",
+    )
 
-    # initialize the checkpoint manager
-    checkpoint_manager = CheckpointManager(config)
-    #  PyTree (model/optimizer state)
-    checkpoint_manager.add_to_register(
-        "state", ocp.args.StandardSave, ocp.args.StandardRestore
+    # initialize the checkpoint manager with the options
+    manager = ocp.CheckpointManager(
+        directory=config.CHECKPOINT_PATH.resolve(),
+        options=checkpoint_options,
     )
-    # JSON (metrics)
-    checkpoint_manager.add_to_register(
-        "metrics", ocp.args.JsonSave, ocp.args.JsonRestore
+
+    logging.info("Initializing the the model state ...")
+    model, optimizer, step = init_state(
+        config=config,
+        manager=manager,
+        logger=logging,
     )
-    # create the manager
-    checkpoint_manager.create_manager()
-    # get the manager
-    manager = checkpoint_manager.get_manager()
-    # restore the state
-    logging.info("Restoring the model")
-    state, step = checkpoint_manager.restore(state, logging)
-    logging.info("Training the model")
+
+    # get the number of batches per epoch
+    batches_per_epoch = train_data.__len__() // config.BATCH_SIZE
+    val_batches_per_epoch = val_data.__len__() // config.BATCH_SIZE
+
     train(
-        state=state,
+        model=model,
         train_loader=train_loader,
         val_loader=val_loader,
         epochs=config.EPOCHS,
         manager=manager,
         logger=logging,
-        step=step
+        step=step,
     )
-
 
 
 if __name__ == "__main__":
