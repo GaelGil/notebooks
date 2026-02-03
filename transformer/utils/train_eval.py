@@ -277,7 +277,6 @@ def eval_step(
         encoder_decoder_mask,
     ) = batch
 
-    rngs = nnx.Rngs(dropout=rng)
     # pass batch through the model in eval mode
     logits = model(
         src=encoder_input,
