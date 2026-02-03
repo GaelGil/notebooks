@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 
 def train(
-    state: train_state.TrainState,
+    model,
     train_loader: DataLoader,
     val_loader: DataLoader,
     epochs: int,
