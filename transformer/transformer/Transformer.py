@@ -110,11 +110,12 @@ class Transformer(nnx.Module):
         self_mask: Array,
         cross_mask: Array,
         is_training: bool,
+        rngs: nnx.Rngs | None = None,
     ):
         # get the embeddings for the src
         src_embeddings = self.src_embeddings(x=src)
         # apply positional encoding to the src embeddings
-        src_pos = self.src_pe(x=src_embeddings, is_training=is_training)
+        src_pos = self.src_pe(x=src_embeddings, is_training=is_training, rngs=rngs)
 
         # get the embeddings for the target
         target_embeddings = self.target_embeddings(x=target)
@@ -122,6 +123,7 @@ class Transformer(nnx.Module):
         target_pos = self.target_pe(
             x=target_embeddings,
             is_training=is_training,
+            rngs=rngs,
         )
 
         # pass the input embeddings with positinal encoding through the encoder
@@ -129,6 +131,7 @@ class Transformer(nnx.Module):
             x=src_pos,
             mask=src_mask,
             is_training=is_training,
+            rngs=rngs,
         )
 
         # pass the target input embeddings with positional encoding
@@ -139,6 +142,7 @@ class Transformer(nnx.Module):
             self_mask=self_mask,
             cross_mask=cross_mask,
             is_training=is_training,
+            rngs=rngs,
         )
 
         # project the decoder output into vocab size and get outputs

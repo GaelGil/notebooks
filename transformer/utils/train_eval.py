@@ -39,6 +39,8 @@ def train(
     )
 
     for batch in train_loader:
+        rng, dropout_key = jax.random.split(rng)
+        step_rngs = nnx.Rngs(dropout=dropout_key)
         try:
             (
                 model,
@@ -50,7 +52,7 @@ def train(
                 model=model,
                 batch=batch,
                 optimizer=optimizer,
-                rng=rng,
+                rngs=step_rngs,
             )
 
         except StopIteration:
@@ -132,12 +134,12 @@ def train(
     return state
 
 
-@jax.jit
+@nnx.jit
 def train_step(
     model: Transformer,
     batch,
     optimizer: nnx.Optimizer,
-    rng: jax.Array,
+    rngs: jax.Array,
 ) -> tuple[Transformer, nnx.Optimizer, Array, Array, Array]:
     """
     Train the model on a single batch
@@ -160,9 +162,10 @@ def train_step(
         encoder_decoder_mask,
     ) = batch
 
-    rng, dropout_key = jax.random.split(rng)
+    # rng, dropout_key = jax.random.split(rng)
+    # rngs = nnx.Rngs(dropout=dropout_key)  # <-- step RNG stream
 
-    def loss_fn(model: Transformer):
+    def loss_fn(model: Transformer, rngs: nnx.Rngs):
         """
         Compute the loss function for a single batch
         """
@@ -175,6 +178,7 @@ def train_step(
             self_mask=decoder_self_attention_mask,
             cross_mask=encoder_decoder_mask,
             is_training=True,
+            rngs=rngs,
         )
         per_token_loss: Array = optax.softmax_cross_entropy_with_integer_labels(
             logits=logits, labels=labels
@@ -197,7 +201,7 @@ def train_step(
     (loss, (non_padded_loss, num_tokens)), grads = nnx.value_and_grad(
         loss_fn,
         has_aux=True,
-    )(model)
+    )(model, rngs=rngs)
     # update the model state with the new gradients
     optimizer.update(model, grads)
 
@@ -252,7 +256,7 @@ def eval(
     return accuracy, eval_loss
 
 
-@jax.jit
+@nnx.jit
 def eval_step(
     model: Transformer,
     batch,
