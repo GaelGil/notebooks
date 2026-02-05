@@ -4,23 +4,28 @@ https://wandb.ai/jax-series/simple-training-loop/reports/Writing-a-Training-Loop
 """
 
 from typing import Any
-
+import grain
 import jax
 import jax.numpy as jnp
 import optax
 import orbax.checkpoint as ocp
-from flax.training import train_state
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from flax import nnx
+from vision_transformer.VisionTransformer import VisionTransformer
+from absl import logging
 
 
 def train(
-    model,
-    train_loader: DataLoader,
-    val_loader: DataLoader,
+    model: VisionTransformer,
+    optimizer: nnx.Optimizer,
+    train_loader: grain.DataLoader,
+    val_loader: grain.DataLoader,
     epochs: int,
     manager: ocp.CheckpointManager,
-    logger,
+    logger: logging,
+    batches_per_epoch: int,
+    val_batches_per_epoch: int,
     step: int,
 ):
     """
@@ -45,13 +50,19 @@ def train(
             train_loader, desc=f"Epoch {epoch + 1}/{epochs}", leave=False
         )
         for batch in progress_bar:
-            rng, dropout_rng = jax.random.split(rng)
+            rng, dropout_key = jax.random.split(rng)
+            step_rngs = nnx.Rngs(dropout=dropout_key)
             # train on batch
-            state, _ = train_step(state=state, batch=batch, dropout_rng=dropout_rng)
+            (model, optimizer, _) = train_step(
+                model=model,
+                batch=batch,
+                optimizer=optimizer,
+                rngs=step_rngs,
+            )
 
         # get eval/train accuracy and loss
-        eval_accuracy, eval_loss = eval(state=state, val_loader=val_loader)
-        train_accuracy, train_loss = eval(state=state, val_loader=train_loader)
+        eval_accuracy, eval_loss = eval(model=model, val_loader=val_loader)
+        train_accuracy, train_loss = eval(model=model, val_loader=train_loader)
         progress_bar.set_postfix(
             train_accuracy=train_accuracy,
             eval_accuracy=eval_accuracy,
@@ -67,10 +78,18 @@ def train(
         logger.info(metrics)
         logger.info(f"Saving checkpoint at epoch {epoch}")
         # save the state after each epoch
+        _graphdef, state, _rng = nnx.split(
+            model,
+            nnx.Param,  # trainable weights
+            nnx.RngState,
+        )
+        # save the state, metrics and step
+        # opt_state = nnx.state(optimizer)  # optimizer state
         manager.save(
             step=epoch,
             args=ocp.args.Composite(
                 state=ocp.args.StandardSave(state),
+                # optimizer=ocp.args.StandardSave(opt_state),
                 metrics=ocp.args.JsonSave(metrics),
             ),
         )
@@ -78,15 +97,16 @@ def train(
     logger.info("Training complete, waiting until all checkpoints are saved")
     manager.wait_until_finished()
 
-    return state
+    return model
 
 
-@jax.jit
+@nnx.jit
 def train_step(
-    state: train_state.TrainState,
+    model: VisionTransformer,
     batch,
-    dropout_rng: jax.random.PRNGKey,
-) -> tuple[train_state.TrainState, Any]:
+    optimizer: nnx.Optimizer,
+    rngs: jax.Array,
+) -> tuple[VisionTransformer, nnx.Optimizer, Any]:
     """
     handle a single training step
     get loss
@@ -102,19 +122,17 @@ def train_step(
         train_state.TrainState and loss
     """
     image, label = batch  # unpack the batch
-    dropout_rng, new_dropout_rng = jax.random.split(dropout_rng)
 
     # define loss function
-    def loss_fn(params):
+    def loss_fn(model: VisionTransformer, rngs: nnx.Rngs):
         """
         Compute the loss function for a single batch
         """
         # pass batch through the model in training state
-        logits = state.apply_fn(
-            {"params": params},
-            image,
+        logits = model(
+            x=image,
             is_training=True,
-            rngs={"dropout": new_dropout_rng},
+            rngs=rngs,
         )
         # calculate mean loss for the batch
         loss = optax.softmax_cross_entropy_with_integer_labels(
@@ -122,23 +140,24 @@ def train_step(
         ).mean()
         return loss
 
-    # compute loss and gradients
-    grad_fn = jax.value_and_grad(loss_fn)
-    loss, grads = grad_fn(state.params)
-    # update the the training state with the new gradients
-    state = state.apply_gradients(grads=grads)
-    return state, loss
+    (loss), grads = nnx.value_and_grad(
+        loss_fn,
+        has_aux=True,
+    )(model, rngs=rngs)
+    optimizer.update(model, grads)
+
+    return model, optimizer, loss
 
 
-def eval(state: train_state.TrainState, loader: DataLoader):
+def eval(model: VisionTransformer, loader: DataLoader):
     """
-    evaluate the model on the given dataset
+    evaluate the model on the dataset
     Args:
-        state: train_state.TrainState
+        model: VisionTransformer
         loader: DataLoader
 
     Returns:
-        accuracy, avg_loss
+        accuracy, loss
     """
     total = 0
     num_correct = 0
@@ -147,11 +166,11 @@ def eval(state: train_state.TrainState, loader: DataLoader):
     # loop over the dataset
     for batch in loader:
         # evaluate on batch
-        res, loss = eval_step(state=state, batch=batch)
+        correct, loss = eval_step(model=model, batch=batch)
         # get total number of examples
-        total += res.shape[0]
+        total += correct.shape[0]
         # get number of correct predictions (will be boolean so we can sum)
-        num_correct += res.sum()
+        num_correct += correct.sum()
         # get total loss
         total_loss += loss
         num_batches += 1
@@ -161,24 +180,23 @@ def eval(state: train_state.TrainState, loader: DataLoader):
     return accuracy, avg_loss
 
 
-@jax.jit
-def eval_step(state: train_state.TrainState, batch):
+@nnx.jit
+def eval_step(model: VisionTransformer, batch):
     """
-    evaluate the model on a single batch
+    evaluate on a single batch
     Args:
-        state: train_state.TrainState
+        model: VisionTransformer
         batch: batch
 
     Returns:
-        predictions
+        correct, loss
     """
     # label shape is (batch_size,)
     image, label = batch  # unpack the batch
     # pass batch through the model in training state
     # logits shape is (batch_size, output_size)
-    logits = state.apply_fn(
-        {"params": state.params},
-        image,
+    logits = model(
+        x=image,
         is_training=False,
     )
     loss = optax.softmax_cross_entropy_with_integer_labels(
