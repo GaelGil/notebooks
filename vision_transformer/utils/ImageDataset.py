@@ -35,10 +35,11 @@ class ImageDataset:
         batch_size: int,
         drop_remainder: bool,
         num_workers: int,
+        shuffle: bool = True,
     ):
         loader = grain.load(
             dataset,
-            shuffle=True,
+            shuffle=shuffle,
             seed=seed,
             batch_size=batch_size,
             drop_remainder=drop_remainder,
@@ -51,8 +52,6 @@ class ImageDataset:
         self,
         train_split: float,
         val_split: float,
-        batch_size: int,
-        num_workers: int,
         save_splits_path: str,
         seed: int = 42,
     ):
