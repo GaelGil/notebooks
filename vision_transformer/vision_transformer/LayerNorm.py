@@ -3,21 +3,11 @@ from jax import numpy as jnp
 
 
 class LayerNorm(nnx.Module):
-    """
-    LayerNorm
-
-    Attributes:
-        d_model: dimension of the model
-        eps: epsilon
-    """
-
-    # d_model: int
-    # eps: float = 1e-6  # helps avoid division by zero
-
     def __init__(self, d_model, eps: float = 1e-6) -> None:
         """Set up layer norm
         Args:
-            None
+            d_model: dimension of model
+            eps: epsilon for numerical stability (avoid division by zero)
 
         Returns:
             None

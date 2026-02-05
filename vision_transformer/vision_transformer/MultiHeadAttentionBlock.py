@@ -4,15 +4,6 @@ from jax import numpy as jnp
 
 
 class MultiHeadAttentionBlock(nnx.Module):
-    """
-    Multi Head Attention Block
-
-    Attributes:
-        d_model: dimension of the model
-        n_heads: number of heads
-        dropout_rate: dropout rate
-    """
-
     def __init__(
         self, d_model: int, n_heads: int, dropout_rate: float, rngs: nnx.Rngs
     ) -> None:
@@ -23,7 +14,10 @@ class MultiHeadAttentionBlock(nnx.Module):
         We will then compute scaled dot product attention for each head.
 
         Args:
-            None
+            d_model: dimension of model
+            n_heads: number of heads in multi head attention block
+            dropout_rate: dropout rate
+            rngs: nnx.Rngs
 
         Returns:
             None
@@ -55,9 +49,11 @@ class MultiHeadAttentionBlock(nnx.Module):
             key: key
             value: value
             dropout: dropout
+            d_k: dimension of key
+            training: is_training or not
 
         Returns:
-            None
+            Array
         """
 
         # (Q * K^T)/sqrt(d_k)
@@ -72,16 +68,18 @@ class MultiHeadAttentionBlock(nnx.Module):
 
     def __call__(
         self, q: jnp.ndarray, k: jnp.ndarray, v: jnp.ndarray, is_training: bool
-    ):
+    ) -> Array:
         """
+        Call the multi head attention block
 
         Args:
             q: query
             k: key
             v: value
+            is_training: if we are training
 
         Returns:
-            None
+            Array
         """
         # (seq_len, d_model) * (d_model, d_model) -> (seq_len, d_model)
         query: jnp.ndarray = self.w_q(q)

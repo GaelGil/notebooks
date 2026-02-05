@@ -8,19 +8,6 @@ from vision_transformer.ProjectionLayer import ProjectionLayer
 
 
 class VisionTransformer(nnx.Module):
-    """
-    Attributes:
-        N: number of encoder blocks
-        n_heads: number of heads
-        dropout: dropout probability
-        img_size: image size
-        patch_size: patch size
-        in_channels: number of channels
-        d_model: dimension of the model
-        num_classes: the number of classes in our dataset
-
-    """
-
     def __init__(
         self,
         N: int,
@@ -37,7 +24,14 @@ class VisionTransformer(nnx.Module):
         """
         Set up the vision transformer. With a patch embedding, positional encoding, projection layer and encoder
         Args:
-            None
+            N: number of encoder blocks
+            n_heads: number of heads
+            dropout: dropout probability
+            img_size: image size
+            patch_size: patch size
+            in_channels: number of channels
+            d_model: dimension of the model
+            num_classes: the number of classes in our dataset
 
 
         Returns:
@@ -73,7 +67,16 @@ class VisionTransformer(nnx.Module):
             d_model=d_model,
         )
 
-    def __call__(self, x: Array, is_training: bool):
+    def __call__(self, x: Array, is_training: bool) -> Array:
+        """
+        Call the vision transformer
+        Args:
+            x: input
+            is_training: bool
+
+        Returns:
+            Array
+        """
         x = self.patch_embedding(x=x)
         x = self.positional_encoding(x=x, is_training=is_training)
         x = self.encoder(x=x, is_training=is_training)
