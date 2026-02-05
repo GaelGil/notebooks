@@ -29,8 +29,6 @@ def main():
         train, val, _ = dataset.split_data(
             train_split=config.TRAIN_SPLIT,
             val_split=config.VAL_SPLIT,
-            batch_size=config.BATCH_SIZE,
-            num_workers=config.NUM_WORKERS,
             save_splits_path=config.SPLITS_PATH,
         )
 
@@ -39,7 +37,8 @@ def main():
         seed=42,
         batch_size=config.BATCH_SIZE,
         drop_remainder=True,
-        num_workers=4,
+        num_workers=config.NUM_WORKERS,
+        shuffle=True,
     )
 
     val_loader = dataset.get_loader(
@@ -47,7 +46,8 @@ def main():
         seed=42,
         batch_size=config.BATCH_SIZE,
         drop_remainder=True,
-        num_workers=4,
+        num_workers=config.NUM_WORKERS,
+        shuffle=False,
     )
 
     # initialize the model
