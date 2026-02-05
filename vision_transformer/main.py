@@ -75,11 +75,10 @@ def main():
     )
 
     # get the number of batches per epoch
-    batches_per_epoch = train_data.__len__() // config.BATCH_SIZE
-    val_batches_per_epoch = val_data.__len__() // config.BATCH_SIZE
 
     train(
         model=model,
+        optimizer=optimizer,
         train_loader=train_loader,
         val_loader=val_loader,
         epochs=config.EPOCHS,

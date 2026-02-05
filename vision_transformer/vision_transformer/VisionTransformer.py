@@ -32,7 +32,7 @@ class VisionTransformer(nnx.Module):
         d_model: int,
         d_ff: int,
         num_classes: int,
-        rngs: nnx.Rngs,
+        rngs: nnx.Rngs | None = None,
     ) -> None:
         """
         Set up the vision transformer. With a patch embedding, positional encoding, projection layer and encoder

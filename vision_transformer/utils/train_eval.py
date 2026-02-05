@@ -3,7 +3,6 @@ This training and evaluation file is based on the implementation from
 https://wandb.ai/jax-series/simple-training-loop/reports/Writing-a-Training-Loop-in-JAX-and-Flax--VmlldzoyMzA4ODEy
 """
 
-from typing import Any
 import grain
 import jax
 import jax.numpy as jnp
@@ -14,6 +13,7 @@ from tqdm import tqdm
 from flax import nnx
 from vision_transformer.VisionTransformer import VisionTransformer
 from absl import logging
+from jax import Array
 
 
 def train(
@@ -24,31 +24,29 @@ def train(
     epochs: int,
     manager: ocp.CheckpointManager,
     logger: logging,
-    batches_per_epoch: int,
-    val_batches_per_epoch: int,
     step: int,
-):
+) -> VisionTransformer:
     """
-    train the model
+    Train the model
     Args:
-        state: train_state.TrainState
+        model: VisionTransformer
+        optimizer: nnx.Optimizer
         train_loader: DataLoader
         val_loader: DataLoader
         epochs: int
         manager: ocp.CheckpointManager
-        logger: logger
+        logger: logging
+        step: int
 
     Returns:
-        None
+        VisionTransformer
     """
     # initialize the random number generator for dropout
     rng = jax.random.PRNGKey(0)
     # loop over the dataset for num_epochs
     for epoch in range(step, epochs):
         # create a tqdm progress bar
-        progress_bar = tqdm(
-            train_loader, desc=f"Epoch {epoch + 1}/{epochs}", leave=False
-        )
+        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch}/{epochs}", leave=False)
         for batch in progress_bar:
             rng, dropout_key = jax.random.split(rng)
             step_rngs = nnx.Rngs(dropout=dropout_key)
@@ -81,7 +79,7 @@ def train(
         _graphdef, state, _rng = nnx.split(
             model,
             nnx.Param,  # trainable weights
-            nnx.RngState,
+            nnx.RngState,  # rng state
         )
         # save the state, metrics and step
         # opt_state = nnx.state(optimizer)  # optimizer state
@@ -106,25 +104,22 @@ def train_step(
     batch,
     optimizer: nnx.Optimizer,
     rngs: jax.Array,
-) -> tuple[VisionTransformer, nnx.Optimizer, Any]:
+) -> tuple[VisionTransformer, nnx.Optimizer, Array]:
     """
-    handle a single training step
-    get loss
-    get gradients
-    update parameters
+    Handle a single training step. Get loss. Get gradients. Update parameters
 
     Args:
-        state: train_state.TrainState
+        model: VisionTransformer
         batch: batch
         dropout_rng: random number generator
 
     Returns:
-        train_state.TrainState and loss
+        tuple[VisionTransformer, nnx.Optimizer, Any]
     """
     image, label = batch  # unpack the batch
 
     # define loss function
-    def loss_fn(model: VisionTransformer, rngs: nnx.Rngs):
+    def loss_fn(model: VisionTransformer, rngs: nnx.Rngs) -> Array:
         """
         Compute the loss function for a single batch
         """
@@ -135,7 +130,7 @@ def train_step(
             rngs=rngs,
         )
         # calculate mean loss for the batch
-        loss = optax.softmax_cross_entropy_with_integer_labels(
+        loss: Array = optax.softmax_cross_entropy_with_integer_labels(
             logits=logits, labels=label
         ).mean()
         return loss
@@ -149,15 +144,15 @@ def train_step(
     return model, optimizer, loss
 
 
-def eval(model: VisionTransformer, loader: DataLoader):
+def eval(model: VisionTransformer, loader: DataLoader) -> tuple[Array, Array]:
     """
-    evaluate the model on the dataset
+    Evaluate the model on the eval set
     Args:
         model: VisionTransformer
         loader: DataLoader
 
     Returns:
-        accuracy, loss
+        tuple[Array, Array]
     """
     total = 0
     num_correct = 0
@@ -175,21 +170,23 @@ def eval(model: VisionTransformer, loader: DataLoader):
         total_loss += loss
         num_batches += 1
 
+    # calculate accuracy from number of correct predictions and total samples
     accuracy = num_correct / total
+    # calculate average loss from total loss and number of batches
     avg_loss = total_loss / num_batches
     return accuracy, avg_loss
 
 
 @nnx.jit
-def eval_step(model: VisionTransformer, batch):
+def eval_step(model: VisionTransformer, batch) -> tuple[Array, Array]:
     """
-    evaluate on a single batch
+    Evaluate the model on a batch
     Args:
         model: VisionTransformer
         batch: batch
 
     Returns:
-        correct, loss
+        tuple[Array, Array]
     """
     # label shape is (batch_size,)
     image, label = batch  # unpack the batch
@@ -204,5 +201,6 @@ def eval_step(model: VisionTransformer, batch):
     ).mean()
     # get predictions from logits using argmax
     preditcions = jnp.argmax(logits, axis=1)
+    # get correct predictions
     correct = preditcions == label
     return correct, loss
