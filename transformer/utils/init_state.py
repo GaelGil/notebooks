@@ -85,22 +85,22 @@ def init_state(
         rngs=rngs,
     )
 
-    # warmup_steps = int((config.EPOCHS * 0.1) * 100)
-    # lr_schedule_fn = optax.join_schedules(
-    #     schedules=[
-    #         optax.linear_schedule(
-    #             init_value=0.0,
-    #             end_value=3e-4,
-    #             transition_steps=warmup_steps,
-    #         ),
-    #         optax.constant_schedule(3e-4),
-    #     ],
-    #     boundaries=[warmup_steps],
-    # )
+    warmup_steps = int((config.EPOCHS * 0.1) * 100)
+    lr_schedule_fn = optax.join_schedules(
+        schedules=[
+            optax.linear_schedule(
+                init_value=0.0,
+                end_value=3e-4,
+                transition_steps=warmup_steps,
+            ),
+            optax.constant_schedule(3e-4),
+        ],
+        boundaries=[warmup_steps],
+    )
 
     # create optimizer
     opt_adam_with_schedule = optax.adam(
-        learning_rate=config.LR,
+        learning_rate=lr_schedule_fn,
         b1=0.9,
         b2=0.98,
         eps=1e-9,
