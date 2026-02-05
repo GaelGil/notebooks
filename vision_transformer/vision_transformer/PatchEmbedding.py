@@ -3,22 +3,16 @@ from jax import Array
 
 
 class PatchEmbedding(nnx.Module):
-    """
-    Projects the image into patches
-
-    Attributes:
-        patch_size: size of the patch
-        d_model: dimension of the model
-
-    """
-
     def __init__(self, patch_size: int, d_model: int, rngs: nnx.Rngs) -> None:
         """
         Create the patch embedding layer. This is a convolutional that will
         project the image into n patches of size patch_size
 
         Args:
-            None
+            patch_size: size of the patch
+            d_model: dimension of the model
+            rngs: nnx.Rngs
+
         Returns:
             None
         """
@@ -34,7 +28,7 @@ class PatchEmbedding(nnx.Module):
             rngs=rngs,
         )
 
-    def __call__(self, x: Array):
+    def __call__(self, x: Array) -> Array:
         """
         Projects the image into patches
 
@@ -42,7 +36,7 @@ class PatchEmbedding(nnx.Module):
             x: image
 
         Returns:
-            x projected into patches
+            Array
         """
         x = self.projection(x)
         B, H, W, C = x.shape

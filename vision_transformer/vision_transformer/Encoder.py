@@ -7,14 +7,6 @@ from vision_transformer.MultiLayerPerceptron import MultiLayerPerceptron
 
 
 class EncoderBlock(nnx.Module):
-    """
-    Atttributes:
-        d_model: dimension of model
-        n_heads: number of heads
-        d_ff: dimension of feed forward network
-        dropout_rate: dropout rate
-    """
-
     def __init__(
         self, d_model: int, n_heads: int, d_ff: int, dropout_rate: float, rngs: nnx.Rngs
     ) -> None:
@@ -23,7 +15,11 @@ class EncoderBlock(nnx.Module):
         Each encoder block has one multi head attention block and one feed forward block.
         There is also the residual connections of which it has two.
         Args:
-            None
+            d_model: dimension of model
+            n_heads: number of heads in multi head attention block
+            d_ff: dimension of feed forward network
+            dropout_rate: dropout rate
+            rngs: nnx.Rngs
 
         Returns:
             None
@@ -63,17 +59,12 @@ class EncoderBlock(nnx.Module):
 
 
 class Encoder(nnx.Module):
-    """
-    Attributes:
-        encoder_blocks: A sequence of encoder blocks
-        d_model: dimension of model
-    """
-
     def __init__(self, encoder_blocks: nnx.List[EncoderBlock], d_model: int) -> None:
         """
         Set up encoder with a sequence of encoder blocks
         Args:
-            None
+            encoder_blocks: A sequence of encoder blocks
+            d_model: dimension of model
 
         Returns:
             None
@@ -81,15 +72,16 @@ class Encoder(nnx.Module):
         self.blocks: nnx.List[EncoderBlock] = encoder_blocks
         self.norm = LayerNorm(d_model=d_model)
 
-    def __call__(self, x: Array, *, is_training: bool):
+    def __call__(self, x: Array, is_training: bool) -> Array:
         """
-        Goes through all the encoder blocks
+        Call the encoder
 
         Args:
             x: input
+            is_training: bool
 
         Returns:
-            None
+            Array
         """
         for block in self.blocks:
             x = block(x, is_training=is_training)

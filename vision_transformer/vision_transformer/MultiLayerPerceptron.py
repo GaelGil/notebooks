@@ -3,15 +3,6 @@ from jax import Array
 
 
 class MultiLayerPerceptron(nnx.Module):
-    """
-    Multilayer Perceptron
-    Used in the encoder blocks
-    Attributes:
-        linear_1: nnx.Linear
-        droput: nnx.Dropout
-        linear_2: nnx.Linear
-    """
-
     def __init__(
         self, d_model: int, d_ff: int, dropout_rate: float, rngs: nnx.Rngs
     ) -> None:
@@ -19,7 +10,10 @@ class MultiLayerPerceptron(nnx.Module):
         Create a feed forward network. With two linear layers.
         It should follow (batch_size, seq_len, d_model) -> (batch_size, seq_len, d_ff) -> (batch_size, seq_len, d_model)
         Args:
-            None
+            d_model: dimension of model
+            d_ff: dimension of feed forward network
+            dropout_rate: dropout rate
+            rngs: nnx.Rngs
 
         Returns:
             None
@@ -28,8 +22,15 @@ class MultiLayerPerceptron(nnx.Module):
         self.dropout = nnx.Dropout(rate=dropout_rate, rngs=rngs)
         self.linear_2 = nnx.Linear(in_features=d_ff, out_features=d_model, rngs=rngs)
 
-    def __call__(self, x: Array, is_training: bool):
-        # simple feed forward network
+    def __call__(self, x: Array, is_training: bool) -> Array:
+        """simple feed forward network
+        Args:
+            x: input to the feed forward network
+            is_training: whether we are training or not
+
+        Returns:
+            Array
+        """
         x = nnx.gelu(self.linear_1(x))
         x = self.dropout(x, deterministic=not is_training)
         x = self.linear_2(x)
