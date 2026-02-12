@@ -14,6 +14,7 @@ def init_state(
     target_vocab_size: int,
     manager: ocp.CheckpointManager,
     logger: logging,
+    batches_per_epoch: int,
 ) -> tuple[Transformer, nnx.Optimizer]:
     """
     Initialize the state from a checkpoint or create a new one
@@ -85,17 +86,14 @@ def init_state(
         rngs=rngs,
     )
 
-    warmup_steps = int((config.EPOCHS * 0.1) * 100)
-    lr_schedule_fn = optax.join_schedules(
-        schedules=[
-            optax.linear_schedule(
-                init_value=0.0,
-                end_value=3e-4,
-                transition_steps=warmup_steps,
-            ),
-            optax.constant_schedule(3e-4),
-        ],
-        boundaries=[warmup_steps],
+    total_steps = batches_per_epoch * config.EPOCHS
+    warmup_steps = int(0.05 * total_steps)  # 5% warmup
+    lr_schedule_fn = optax.warmup_cosine_decay_schedule(
+        init_value=0.0,
+        peak_value=5e-4,
+        warmup_steps=warmup_steps,
+        decay_steps=total_steps,  # total training steps
+        end_value=config.LR,
     )
 
     # create optimizer

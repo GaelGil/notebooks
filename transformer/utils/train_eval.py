@@ -86,8 +86,8 @@ def train(
 
             # create metrics dictionary
             metrics = {
-                "train_perplexity": float(jnp.exp(epoch_loss)),
-                "eval_perplexity": float(jnp.exp(eval_loss)),
+                "train_loss": epoch_loss,
+                "eval_loss": eval_loss,
                 "eval_accuracy": float(eval_accuracy),
             }
             # log the metrics
