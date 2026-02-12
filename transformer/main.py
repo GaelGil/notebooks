@@ -79,6 +79,10 @@ def main():
         options=checkpoint_options,
     )
 
+    # get the number of batches per epoch
+    batches_per_epoch = train_data.__len__() // config.BATCH_SIZE
+    val_batches_per_epoch = val_data.__len__() // config.BATCH_SIZE
+
     logging.info("Initializing the the model state ...")
     model, optimizer, step = init_state(
         config=config,
@@ -86,11 +90,8 @@ def main():
         target_vocab_size=vocab_size,
         manager=manager,
         logger=logging,
+        batches_per_epoch=batches_per_epoch,
     )
-
-    # get the number of batches per epoch
-    batches_per_epoch = train_data.__len__() // config.BATCH_SIZE
-    val_batches_per_epoch = val_data.__len__() // config.BATCH_SIZE
 
     logging.info(f"Training the model from step {step}")
     if step != config.EPOCHS:
