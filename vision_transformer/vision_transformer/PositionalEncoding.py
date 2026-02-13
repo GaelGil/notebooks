@@ -1,3 +1,4 @@
+import jax.numpy as jnp
 from flax import nnx
 from jax import Array
 
@@ -27,19 +28,14 @@ class PositionalEncoding(nnx.Module):
         """
         self.dropout = nnx.Dropout(rate=dropout_rate, rngs=rngs)
 
+        init = nnx.initializers.truncated_normal(stddev=0.02)
         # create cls token with shape (1, 1, d_model)
         # this token is a embedding and will be added to the num patches
-        self.cls_token = nnx.Param(
-            "cls_token", jax.random.normal(rngs.params()), (1, 1, self.d_model)
-        )
+        self.cls_token = nnx.Param(init(rngs.params(), (1, 1, d_model)))
         # create positional encoding matrix with shape (1, num_patches + 1, d_model)
         # Each row in the positional encoding matrix is a vector that is added to a
         # corresponding patch
-        self.pe = nnx.Param(
-            # "positional_encoding",
-            jax.random.normal(rngs.params()),
-            (1, self.num_patches + 1, self.d_model),
-        )
+        self.pe = nnx.Param(init(rngs.params(), (1, num_patches + 1, d_model)))
 
     def __call__(
         self,

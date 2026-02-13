@@ -1,13 +1,13 @@
 from flax import nnx
+from jax import Array
 from jax import numpy as jnp
 
 
 class LayerNorm(nnx.Module):
-    def __init__(self, d_model, eps: float = 1e-6) -> None:
+    def __init__(self, d_model: int, eps: float = 1e-6) -> None:
         """Set up layer norm
         Args:
-            d_model: dimension of model
-            eps: epsilon for numerical stability (avoid division by zero)
+            None
 
         Returns:
             None
@@ -15,16 +15,17 @@ class LayerNorm(nnx.Module):
         # create alpha and bias of shape (d_model)
         # alpha and bias are learnable parameters
         # alpha and bias are applied to each patch
-        self.alpha = self.param("alpha", nnx.initializers.ones, (self.d_model))
-        self.bias = self.param("bias", nnx.initializers.zeros, (self.d_model))
+        self.alpha = nnx.Param("alpha", nnx.initializers.ones, (d_model))
+        self.bias = nnx.Param("bias", nnx.initializers.zeros, (d_model))
+        self.eps = eps
 
-    def __call__(self, x: jnp.ndarray):
+    def __call__(self, x: Array):
         # compute mean and std for each patch in the sequence
-        # (batch, num_patches, d_model)
+        # (batch, seq_len, d_model)
         # axis=-1 means along the last dimension which is d_model
-        # (batch_size, num_patches, 1) this holds mean of each feature
+        # (batch_size, seq_len, 1) this holds mean of each token in the sequence
         mean = jnp.mean(x, axis=-1, keepdims=True)
-        # (batch_size, num_patches, 1) holds std of each feature
+        # (batch_size, seq_len, 1) var of each token in the sequence
         var = jnp.var(x, axis=-1, keepdims=True)
         # all elements in x are normalized by mean and std
         return (self.alpha * (x - mean) / jnp.sqrt(var + self.eps)) + self.bias
