@@ -22,7 +22,12 @@ class MultiLayerPerceptron(nnx.Module):
         self.dropout = nnx.Dropout(rate=dropout_rate, rngs=rngs)
         self.linear_2 = nnx.Linear(in_features=d_ff, out_features=d_model, rngs=rngs)
 
-    def __call__(self, x: Array, is_training: bool) -> Array:
+    def __call__(
+        self,
+        x: Array,
+        is_training: bool,
+        rngs: nnx.Rngs | None = None,
+    ) -> Array:
         """simple feed forward network
         Args:
             x: input to the feed forward network
@@ -32,6 +37,6 @@ class MultiLayerPerceptron(nnx.Module):
             Array
         """
         x = nnx.gelu(self.linear_1(x))
-        x = self.dropout(x, deterministic=not is_training)
+        x = self.dropout(x, deterministic=not is_training, rngs=rngs)
         x = self.linear_2(x)
         return x

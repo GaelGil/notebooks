@@ -41,7 +41,12 @@ class PositionalEncoding(nnx.Module):
             (1, self.num_patches + 1, self.d_model),
         )
 
-    def __call__(self, x: Array, is_training: bool = True):
+    def __call__(
+        self,
+        x: Array,
+        is_training: bool = True,
+        rngs: nnx.Rngs | None = None,
+    ):
         """
         Args:
             x: input tensor of shape (batch_size, seq_len, d_model)
@@ -60,4 +65,4 @@ class PositionalEncoding(nnx.Module):
 
         # apply dropout
         # returns (batch_size, num_patches + 1, d_model)
-        return self.dropout(x, deterministic=not is_training)
+        return self.dropout(x, deterministic=not is_training, rngs=rngs)
