@@ -3,12 +3,12 @@ This training and evaluation file is based on the implementation from
 https://wandb.ai/jax-series/simple-training-loop/reports/Writing-a-Training-Loop-in-JAX-and-Flax--VmlldzoyMzA4ODEy
 """
 
+import absl
 import grain
 import jax
 import jax.numpy as jnp
 import optax
 import orbax.checkpoint as ocp
-from absl import logging
 from flax import nnx
 from jax import Array
 from torch.utils.data import DataLoader
@@ -24,7 +24,7 @@ def train(
     val_loader: grain.DataLoader,
     epochs: int,
     manager: ocp.CheckpointManager,
-    logger: logging,
+    logger: absl.logging,
     step: int,
 ) -> VisionTransformer:
     """

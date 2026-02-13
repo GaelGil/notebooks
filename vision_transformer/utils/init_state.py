@@ -98,9 +98,6 @@ def init_state(
         # return the restored model and optimizer
         return model, optimizer, step or 1
 
-    _ = model(
-        x=dummy_input,
-        is_training=False,
-    )
+    _ = model(x=dummy_input, is_training=False, rngs=nnx.Rngs(0))
 
     return model, optimizer, step or 1
