@@ -8,12 +8,13 @@ import jax
 import jax.numpy as jnp
 import optax
 import orbax.checkpoint as ocp
+from absl import logging
+from flax import nnx
+from jax import Array
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from flax import nnx
+
 from vision_transformer.VisionTransformer import VisionTransformer
-from absl import logging
-from jax import Array
 
 
 def train(
@@ -59,8 +60,8 @@ def train(
             )
 
         # get eval/train accuracy and loss
-        eval_accuracy, eval_loss = eval(model=model, val_loader=val_loader)
-        train_accuracy, train_loss = eval(model=model, val_loader=train_loader)
+        eval_accuracy, eval_loss = eval(model=model, loader=val_loader)
+        train_accuracy, train_loss = eval(model=model, loader=train_loader)
         progress_bar.set_postfix(
             train_accuracy=train_accuracy,
             eval_accuracy=eval_accuracy,
@@ -103,7 +104,7 @@ def train_step(
     model: VisionTransformer,
     batch,
     optimizer: nnx.Optimizer,
-    rngs: jax.Array,
+    rngs: nnx.Rngs,
 ) -> tuple[VisionTransformer, nnx.Optimizer, Array]:
     """
     Handle a single training step. Get loss. Get gradients. Update parameters
@@ -144,7 +145,9 @@ def train_step(
     return model, optimizer, loss
 
 
-def eval(model: VisionTransformer, loader: DataLoader) -> tuple[Array, Array]:
+def eval(
+    model: VisionTransformer, loader: DataLoader
+) -> tuple[int | float | Array, float | Array]:
     """
     Evaluate the model on the eval set
     Args:
