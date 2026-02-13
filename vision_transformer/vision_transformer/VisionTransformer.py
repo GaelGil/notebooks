@@ -67,7 +67,12 @@ class VisionTransformer(nnx.Module):
             d_model=d_model,
         )
 
-    def __call__(self, x: Array, is_training: bool, rngs: nnx.Rngs) -> Array:
+    def __call__(
+        self,
+        x: Array,
+        is_training: bool,
+        rngs: nnx.Rngs | None = None,
+    ) -> Array:
         """
         Call the vision transformer
         Args:
@@ -78,7 +83,7 @@ class VisionTransformer(nnx.Module):
             Array
         """
         x = self.patch_embedding(x=x)
-        x = self.positional_encoding(x=x, is_training=is_training)
-        x = self.encoder(x=x, is_training=is_training)
+        x = self.positional_encoding(x=x, is_training=is_training, rngs=rngs)
+        x = self.encoder(x=x, is_training=is_training, rngs=rngs)
         x = self.projection_layer(x)
         return x

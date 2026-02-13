@@ -41,6 +41,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         dropout: nnx.Dropout,
         d_k: int,
         training: bool,
+        rngs: nnx.Rngs | None = None,
     ) -> Array:
         """
         For each head, compute  softmax(Q * K^T/sqrt(d_k)) * V
@@ -61,13 +62,20 @@ class MultiHeadAttentionBlock(nnx.Module):
         # softmax(Q * K^T/sqrt(d_k))
         attention_scores = nnx.softmax(attention_scores, axis=-1)
         if dropout:
-            attention_scores = dropout(attention_scores, deterministic=not training)
+            attention_scores = dropout(
+                attention_scores, deterministic=not training, rngs=rngs
+            )
         # softmax((Q * K^T)/sqrt(d_k)) * V
         x = jnp.matmul(attention_scores, value)
         return x
 
     def __call__(
-        self, q: jnp.ndarray, k: jnp.ndarray, v: jnp.ndarray, is_training: bool
+        self,
+        q: jnp.ndarray,
+        k: jnp.ndarray,
+        v: jnp.ndarray,
+        is_training: bool,
+        rngs: nnx.Rngs | None = None,
     ) -> Array:
         """
         Call the multi head attention block
@@ -113,6 +121,7 @@ class MultiHeadAttentionBlock(nnx.Module):
             dropout=self.dropout,
             d_k=self.d_k,
             training=is_training,
+            rngs=rngs,
         )
 
         # reshape back to (seq_len, d_model)

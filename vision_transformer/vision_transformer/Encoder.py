@@ -38,21 +38,30 @@ class EncoderBlock(nnx.Module):
         self.norm1 = LayerNorm(d_model=d_model)
         self.norm2 = LayerNorm(d_model=d_model)
 
-    def __call__(self, x: Array, is_training: bool):
+    def __call__(
+        self,
+        x: Array,
+        is_training: bool,
+        rngs: nnx.Rngs | None = None,
+    ):
         multi_head_attention_output = self.multi_head_attention_block(
-            q=x, k=x, v=x, is_training=is_training
+            q=x, k=x, v=x, is_training=is_training, rngs=rngs
         )
 
         x = self.dropout(
-            self.norm1(multi_head_attention_output + x), deterministic=not is_training
+            self.norm1(multi_head_attention_output + x),
+            deterministic=not is_training,
+            rngs=rngs,
         )
 
         multi_layer_perceptron_output = self.multi_layer_perceptron_block(
-            x=x, is_training=is_training
+            x=x, is_training=is_training, rngs=rngs
         )
 
         output = self.dropout(
-            self.norm2(multi_layer_perceptron_output + x), deterministic=not is_training
+            self.norm2(multi_layer_perceptron_output + x),
+            deterministic=not is_training,
+            rngs=rngs,
         )
 
         return output
@@ -72,7 +81,12 @@ class Encoder(nnx.Module):
         self.blocks: nnx.List[EncoderBlock] = encoder_blocks
         self.norm = LayerNorm(d_model=d_model)
 
-    def __call__(self, x: Array, is_training: bool) -> Array:
+    def __call__(
+        self,
+        x: Array,
+        is_training: bool,
+        rngs: nnx.Rngs | None = None,
+    ) -> Array:
         """
         Call the encoder
 
@@ -84,5 +98,5 @@ class Encoder(nnx.Module):
             Array
         """
         for block in self.blocks:
-            x = block(x, is_training=is_training)
+            x = block(x, is_training=is_training, rngs=rngs)
         return self.norm(x)
