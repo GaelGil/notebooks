@@ -69,7 +69,7 @@ def train(
         # update progress bar
         pbar.update(1)
         pbar.set_postfix(
-            loss=f"{jnp.exp(avg_batch_loss):.4f}"
+            loss=f"{float(avg_batch_loss):.4f}"
         )  # non padded loss over number of non padded tokens in the batch
 
         # check if epoch is complete (the current batch is number of batches per epoch)
@@ -77,7 +77,7 @@ def train(
             # non padded loss over number of non padded tokens for all batches in the epoch
             epoch_loss = epoch_loss_sum / epoch_token_count
             logger.info(
-                f"Epoch {current_epoch} complete, Loss at epoch: {jnp.exp(epoch_loss):.4f}, evaluating ..."
+                f"Epoch {current_epoch} complete, Loss at epoch: {float(epoch_loss):.4f}, evaluating ..."
             )
             # evaluate the model
             eval_accuracy, eval_loss = eval(
@@ -86,8 +86,8 @@ def train(
 
             # create metrics dictionary
             metrics = {
-                "train_loss": epoch_loss,
-                "eval_loss": eval_loss,
+                "train_loss": float(epoch_loss),
+                "eval_loss": float(eval_loss),
                 "eval_accuracy": float(eval_accuracy),
             }
             # log the metrics
