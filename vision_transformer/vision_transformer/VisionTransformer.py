@@ -67,7 +67,7 @@ class VisionTransformer(nnx.Module):
             d_model=d_model,
         )
 
-    def __call__(self, x: Array, is_training: bool) -> Array:
+    def __call__(self, x: Array, is_training: bool, rngs: nnx.Rngs) -> Array:
         """
         Call the vision transformer
         Args:
