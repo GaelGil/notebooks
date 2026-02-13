@@ -4,7 +4,7 @@ from jax import numpy as jnp
 
 
 class LayerNorm(nnx.Module):
-    def __init__(self, d_model: int, eps: float = 1e-6) -> None:
+    def __init__(self, d_model: int, rngs: nnx.Rngs, eps: float = 1e-6) -> None:
         """Set up layer norm
         Args:
             None
@@ -15,8 +15,10 @@ class LayerNorm(nnx.Module):
         # create alpha and bias of shape (d_model)
         # alpha and bias are learnable parameters
         # alpha and bias are applied to each patch
-        self.alpha = nnx.Param("alpha", nnx.initializers.ones, (d_model))
-        self.bias = nnx.Param("bias", nnx.initializers.zeros, (d_model))
+        ones = nnx.initializers.ones
+        zeros = nnx.initializers.zeros
+        self.alpha = nnx.Param(ones(rngs.params(), (d_model,)))
+        self.bias = nnx.Param(zeros(rngs.params(), (d_model,)))
         self.eps = eps
 
     def __call__(self, x: Array):
