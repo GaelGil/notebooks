@@ -124,7 +124,7 @@ class Tokenizer:
         self.sp.Load(f"{self.tokenizer_model_path}/{self.model_prefix}.model")
 
     def pad_sequences(
-        self, sequences: list, pad_id: int = 0, max_len: int = None
+        self, sequences: list, pad_id: int = 0, max_len: int = None, eos_id: int = None
     ) -> Array:
         """
         Function to pad sequences
@@ -138,7 +138,10 @@ class Tokenizer:
         """
         padded = []
         for seq in sequences:
-            seq = seq[:max_len]
+            if len(seq) > max_len:
+                seq = seq[:max_len]
+                if eos_id is not None:
+                    seq[-1] = eos_id  # ensure EOS exists at end after truncation
             padding = [pad_id] * (max_len - len(seq))
             padded.append(seq + padding)
         return jnp.array(padded, dtype=jnp.int32)
@@ -166,23 +169,26 @@ class Tokenizer:
                     add_bos=False,
                     add_eos=False,
                     prefix=prefix,
+                    max_len=self.seq_len,
                 )
             )
+
             # encode and add bos and eos
             target_ids.append(
                 self.encode(
                     text=target,
                     add_bos=True,
                     add_eos=True,
+                    max_len=self.seq_len,
                 )
             )
 
         # pad sequences up to seq_len
         src_ids_padded: Array = self.pad_sequences(
-            src_ids, pad_id=self.sp.pad_id(), max_len=self.seq_len
+            src_ids, pad_id=self.sp.pad_id(), max_len=self.seq_len, eos_id=self.sp.eos_id()
         )
         target_two_ids_padded: Array = self.pad_sequences(
-            target_ids, pad_id=self.sp.pad_id(), max_len=self.seq_len
+            target_ids, pad_id=self.sp.pad_id(), max_len=self.seq_len, eos_id=self.sp.eos_id()
         )
 
         return src_ids_padded, target_two_ids_padded
@@ -193,6 +199,7 @@ class Tokenizer:
         add_bos: bool = True,
         add_eos: bool = True,
         prefix: str = None,
+        max_len: int = None,
     ):
         """
         Args:
@@ -205,12 +212,22 @@ class Tokenizer:
             ids: list of integers
         """
         ids = self.sp.Encode(text, out_type=int)
+
         if prefix:
             ids = self.sp.Encode(prefix, out_type=int) + ids
+
+        if max_len is not None:
+            reserved = (1 if add_bos else 0) + (1 if add_eos else 0)
+            content_max = max_len - reserved
+            if content_max < 0:
+                raise ValueError("max_len too small for requested special tokens")
+            ids = ids[:content_max]
+
         if add_bos:
             ids = [self.sp.bos_id()] + ids
         if add_eos:
             ids = ids + [self.sp.eos_id()]
+
         return ids
 
     def decode(self, ids: list[int]):
