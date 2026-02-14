@@ -187,7 +187,20 @@ def train_step(
         non_padded_loss: Array = (
             per_token_loss * labels_mask
         ).sum()  # loss over non padded tokens
+        jax.debug.print("logits shape {}", logits.shape)
+        jax.debug.print("logits dtype {}", logits.dtype)
+
+        jax.debug.print("labels_mask mean {}", labels_mask.mean())
+        jax.debug.print("num_non_padded_tokens {}", num_non_padded_tokens)
+
+        jax.debug.print("non_padded_loss {}", non_padded_loss)
+
+        jax.debug.print("logits max {}", logits.max())
+        jax.debug.print("logits min {}", logits.min())
+
         loss: Array = non_padded_loss / num_non_padded_tokens
+        jax.debug.print("loss {}", loss)
+
         return (
             loss,
             (
@@ -196,6 +209,9 @@ def train_step(
             ),
         )
         # avg loss over batch of non padded tokens, loss over non padded tokens, number of non padded tokens
+
+
+
 
     # compute loss and gradients
     (loss, (non_padded_loss, num_tokens)), grads = nnx.value_and_grad(
@@ -232,12 +248,10 @@ def eval(
         total=batches_per_epoch,
         desc=f"Epoch {current_epoch}/{1}",
     )
-    rng_key: jax.Array = jax.random.PRNGKey(0)
     for batch in loader:
         try:
-            key, subkey = jax.random.split(rng_key)
             correct_tokens, batch_loss, num_tokens, non_padded_loss = eval_step(
-                model=model, batch=batch, rng=subkey
+                model=model, batch=batch
             )
             total_correct += correct_tokens
             eval_loss += non_padded_loss
@@ -260,7 +274,6 @@ def eval(
 def eval_step(
     model: Transformer,
     batch,
-    rng: jax.Array,
 ) -> tuple[Array, Array, Array, Array]:
     """
     evaluate the model on a single batch

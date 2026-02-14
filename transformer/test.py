@@ -12,6 +12,65 @@ def test():
     )
 
 
+
+    import numpy as np
+
+    src = np.load(f"./{config.SPLITS_PATH}/train/_en.npy", allow_pickle=True)
+    tgt = np.load(f"./{config.SPLITS_PATH}/train/_es.npy", allow_pickle=True)
+
+
+
+
+    pad_id = 0
+    lengths = (tgt != pad_id).sum(axis=1)    
+    print("min tgt len:", lengths.min())
+    print("mean tgt len:", lengths.mean())
+    print("median tgt len:", np.median(lengths))
+    print("p90 tgt len:", np.quantile(lengths, 0.9))
+    print("p99 tgt len:", np.quantile(lengths, 0.99))
+
+    print("src dtype:", src.dtype, "shape:", src.shape)
+    print("tgt dtype:", tgt.dtype, "shape:", tgt.shape)
+
+    # You want something like int32/int16 and shape (N, seq_len)
+    assert src.ndim == 2, "src should be [N, seq_len]"
+    assert tgt.ndim == 2, "tgt should be [N, seq_len]"
+    assert src.dtype != object, "src is object array (ragged or strings)"
+    assert tgt.dtype != object, "tgt is object array (ragged or strings)"
+    assert np.issubdtype(src.dtype, np.integer), "src not integer token ids"
+    assert np.issubdtype(tgt.dtype, np.integer), "tgt not integer token ids"
+    eos_id = tokenizer.sp.eos_id()
+    pad_id = tokenizer.sp.pad_id()
+    bos_id = tokenizer.sp.bos_id()
+
+    for i in [0, 1, 2, 10, 100]:
+        t = tgt[i]
+
+        print("i =", i)
+        print("t[:20] =", t[:20])
+
+        # BOS should usually be first token (if you designed it that way)
+        print("BOS at start?", t[0] == bos_id)
+
+        # EOS should exist before padding (usually)
+        eos_pos = np.where(t == eos_id)[0]
+        pad_pos = np.where(t == pad_id)[0]
+        print("EOS positions:", eos_pos[:5], "count:", len(eos_pos))
+        print("first PAD:", pad_pos[0] if len(pad_pos) else None)
+
+        if len(pad_pos):
+            first_pad = pad_pos[0]
+            assert np.all(t[first_pad:] == pad_id), "Found non-PAD tokens after padding started"
+            if len(eos_pos):
+                assert eos_pos[0] < first_pad, "EOS occurs after padding starts (suspicious)"
+
+        print()
+
+    print(f"eos_id: {eos_id}")
+    print(f"pad_id: {pad_id}")
+    print(f"bos_id: {bos_id}")
+
+
     checkpoint_options = ocp.CheckpointManagerOptions(
         max_to_keep=config.MAX_TO_KEEP,
         save_interval_steps=config.SAVE_INTERVAL,
@@ -61,6 +120,10 @@ def test():
     # decode final sentence
     text = tokenizer.decode(generated_ids)
     print(text)
+
+
+
+
 
 if __name__ == "__main__":
     test()

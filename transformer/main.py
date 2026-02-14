@@ -9,6 +9,9 @@ from utils.DataLoader import Source
 from utils.handle_tokenizer_data import handle_tokenizer_data
 from utils.init_state import init_state
 from utils.train_eval import train
+from jax import numpy as jnp
+import numpy as np
+
 
 logging.set_verbosity(logging.INFO)
 
@@ -64,6 +67,8 @@ def main():
         worker_count=config.WORKER_COUNT,
     )
 
+
+
     # initialize the checkpoint manager options
     checkpoint_options = ocp.CheckpointManagerOptions(
         max_to_keep=config.MAX_TO_KEEP,
@@ -92,6 +97,37 @@ def main():
         logger=logging,
         batches_per_epoch=batches_per_epoch,
     )
+
+
+    def strip_pad(ids, pad_id=0):
+        ids = list(map(int, np.array(ids)))
+        if pad_id in ids:
+            ids = ids[:ids.index(pad_id)]
+        return ids
+
+    batch = next(iter(val_loader))
+    enc, dec, labels, labels_mask, enc_pad, dec_self, enc_dec = batch
+
+    logits = model(
+        src=enc,
+        src_mask=enc_pad,
+        target=dec,
+        self_mask=dec_self,
+        cross_mask=enc_dec,
+        is_training=False,
+    )
+
+    pred = jnp.argmax(logits, axis=-1)
+
+    for i in range(3):
+        src_ids = strip_pad(enc[i], pad_id=0)
+        gold_ids = strip_pad(labels[i], pad_id=0)
+        pred_ids = strip_pad(pred[i], pad_id=0)
+
+        print("\nSRC :", tokenizer.decode(src_ids))
+        print("GOLD:", tokenizer.decode(gold_ids))
+        print("PRED:", tokenizer.decode(pred_ids))
+
 
     logging.info(f"Training the model from step {step}")
     if step != config.EPOCHS:
