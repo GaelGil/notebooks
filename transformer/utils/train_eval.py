@@ -187,19 +187,19 @@ def train_step(
         non_padded_loss: Array = (
             per_token_loss * labels_mask
         ).sum()  # loss over non padded tokens
-        jax.debug.print("logits shape {}", logits.shape)
-        jax.debug.print("logits dtype {}", logits.dtype)
+        # jax.debug.print("logits shape {}", logits.shape)
+        # jax.debug.print("logits dtype {}", logits.dtype)
 
-        jax.debug.print("labels_mask mean {}", labels_mask.mean())
-        jax.debug.print("num_non_padded_tokens {}", num_non_padded_tokens)
+        # jax.debug.print("labels_mask mean {}", labels_mask.mean())
+        # jax.debug.print("num_non_padded_tokens {}", num_non_padded_tokens)
 
-        jax.debug.print("non_padded_loss {}", non_padded_loss)
+        # jax.debug.print("non_padded_loss {}", non_padded_loss)
 
-        jax.debug.print("logits max {}", logits.max())
-        jax.debug.print("logits min {}", logits.min())
+        # jax.debug.print("logits max {}", logits.max())
+        # jax.debug.print("logits min {}", logits.min())
 
         loss: Array = non_padded_loss / num_non_padded_tokens
-        jax.debug.print("loss {}", loss)
+        # jax.debug.print("loss {}", loss)
 
         return (
             loss,
