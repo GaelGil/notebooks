@@ -47,7 +47,7 @@ class DecoderBlock(nnx.Module):
         self.feed_forward_block = FeedForwardBlock(
             d_model=d_model, d_ff=d_ff, dropout_rate=dropout_rate, rngs=rngs
         )
-        self.dropout = nnx.Dropout(dropout_rate, rngs=rngs)
+        self.dropout = nnx.Dropout(rate=dropout_rate, rngs=rngs)
         self.norm1 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
         self.norm2 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
         self.norm3 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
@@ -85,11 +85,8 @@ class DecoderBlock(nnx.Module):
 
         # add and norm the masked multi head attention
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
-        x = self.dropout(
-            self.norm1(masked_multi_head_attention_output + x),
-            deterministic=not is_training,
-            rngs=rngs,
-        )
+        x = self.norm1(x + self.dropout(masked_multi_head_attention_output, deterministic=not is_training, rngs=rngs))
+
 
         # cross attention
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
@@ -104,11 +101,8 @@ class DecoderBlock(nnx.Module):
 
         # add and norm the cross attention
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
-        x = self.dropout(
-            self.norm2(cross_attention_output + x),
-            deterministic=not is_training,
-            rngs=rngs,
-        )
+        x = self.norm2(x + self.dropout(cross_attention_output, deterministic=not is_training, rngs=rngs))
+
 
         # feed forward
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
@@ -118,13 +112,10 @@ class DecoderBlock(nnx.Module):
 
         # final add and norm
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
-        output = self.dropout(
-            self.norm3(feed_forward_output + x),
-            deterministic=not is_training,
-            rngs=rngs,
-        )
+        x = self.norm3(x + self.dropout(feed_forward_output, deterministic=not is_training, rngs=rngs))
 
-        return output
+
+        return x
 
 
 class Decoder(nnx.Module):
