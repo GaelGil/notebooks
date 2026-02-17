@@ -9,8 +9,6 @@ from utils.DataLoader import Source
 from utils.handle_tokenizer_data import handle_tokenizer_data
 from utils.init_state import init_state
 from utils.train_eval import train
-from jax import numpy as jnp
-import numpy as np
 
 
 logging.set_verbosity(logging.INFO)
@@ -67,8 +65,6 @@ def main():
         worker_count=config.WORKER_COUNT,
     )
 
-
-
     # initialize the checkpoint manager options
     checkpoint_options = ocp.CheckpointManagerOptions(
         max_to_keep=config.MAX_TO_KEEP,
@@ -97,9 +93,6 @@ def main():
         logger=logging,
         batches_per_epoch=batches_per_epoch,
     )
-
-
-
 
     logging.info(f"Training the model from step {step}")
     if step != config.EPOCHS:
