@@ -26,6 +26,8 @@ def train(
     manager: ocp.CheckpointManager,
     logger: absl.logging,
     step: int,
+    batches_per_epoch: int,
+    eval_batches_per_epoch: int,
 ) -> VisionTransformer:
     """
     Train the model
@@ -46,56 +48,52 @@ def train(
     rng = jax.random.PRNGKey(0)
     # loop over the dataset for num_epochs
     for epoch in range(step, epochs):
-        # create a tqdm progress bar
-        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch}/{epochs}", leave=False)
-        for batch in progress_bar:
-            rng, dropout_key = jax.random.split(rng)
-            step_rngs = nnx.Rngs(dropout=dropout_key)
-            # train on batch
-            (model, optimizer, _) = train_step(
-                model=model,
-                batch=batch,
-                optimizer=optimizer,
-                rngs=step_rngs,
-            )
+        # IMPORTANT: ensure this is an iterable that resets each epoch.
+        # If train_loader is an iterator, do: train_iter = iter(train_loader) each epoch
+        # and then loop on that.
+        with tqdm(
+            train_loader, total=batches_per_epoch, desc=f"Epoch {epoch}/{epochs}"
+        ) as pbar:
+            for batch in pbar:
+                rng, dropout_key = jax.random.split(rng)
+                step_rngs = nnx.Rngs(dropout=dropout_key)
 
-        # get eval/train accuracy and loss
-        eval_accuracy, eval_loss = eval(model=model, loader=val_loader)
-        train_accuracy, train_loss = eval(model=model, loader=train_loader)
-        progress_bar.set_postfix(
-            train_accuracy=train_accuracy,
-            eval_accuracy=eval_accuracy,
+                model, optimizer, loss = train_step(
+                    model=model,
+                    batch=batch,
+                    optimizer=optimizer,
+                    rngs=step_rngs,
+                )
+                pbar.set_postfix(loss=f"{float(loss):.4f}")
+
+        # Eval after epoch (fine)
+        eval_accuracy, eval_loss = eval(
+            model=model, loader=val_loader, batches_per_epoch=eval_batches_per_epoch
         )
-        # save the metrics
+        train_accuracy, train_loss = eval(
+            model=model, loader=train_loader, batches_per_epoch=batches_per_epoch
+        )
+
         metrics = {
             "train_loss": float(train_loss),
             "eval_loss": float(eval_loss),
             "train_accuracy": float(train_accuracy),
             "eval_accuracy": float(eval_accuracy),
         }
-        # log the metrics
         logger.info(metrics)
         logger.info(f"Saving checkpoint at epoch {epoch}")
-        # save the state after each epoch
-        _graphdef, state, _rng = nnx.split(
-            model,
-            nnx.Param,  # trainable weights
-            nnx.RngState,  # rng state
-        )
-        # save the state, metrics and step
-        # opt_state = nnx.state(optimizer)  # optimizer state
+
+        _graphdef, state, _rng = nnx.split(model, nnx.Param, nnx.RngState)
         manager.save(
             step=epoch,
             args=ocp.args.Composite(
                 state=ocp.args.StandardSave(state),
-                # optimizer=ocp.args.StandardSave(opt_state),
                 metrics=ocp.args.JsonSave(metrics),
             ),
         )
 
     logger.info("Training complete, waiting until all checkpoints are saved")
     manager.wait_until_finished()
-
     return model
 
 
@@ -136,17 +134,18 @@ def train_step(
         ).mean()
         return loss
 
-    (loss), grads = nnx.value_and_grad(
-        loss_fn,
-        has_aux=True,
-    )(model, rngs=rngs)
+    # (loss), grads = nnx.value_and_grad(
+    #     loss_fn,
+    #     has_aux=True,
+    # )(model, rngs=rngs)
+    loss, grads = nnx.value_and_grad(loss_fn)(model, rngs=rngs)
     optimizer.update(model, grads)
 
     return model, optimizer, loss
 
 
 def eval(
-    model: VisionTransformer, loader: DataLoader
+    model: VisionTransformer, loader: DataLoader, batches_per_epoch: int
 ) -> tuple[int | float | Array, float | Array]:
     """
     Evaluate the model on the eval set
@@ -161,6 +160,12 @@ def eval(
     num_correct = 0
     total_loss = 0
     num_batches = 0
+    current_epoch = 0
+    pbar = tqdm(
+        total=batches_per_epoch,
+        desc=f"Epoch {current_epoch}/{1}",
+    )
+
     # loop over the dataset
     for batch in loader:
         # evaluate on batch
@@ -172,11 +177,15 @@ def eval(
         # get total loss
         total_loss += loss
         num_batches += 1
+        pbar.update(1)
+        pbar.set_postfix(loss=f"{loss:.4f}")
+        current_epoch += 1
 
     # calculate accuracy from number of correct predictions and total samples
     accuracy = num_correct / total
     # calculate average loss from total loss and number of batches
     avg_loss = total_loss / num_batches
+    pbar.close()
     return accuracy, avg_loss
 
 

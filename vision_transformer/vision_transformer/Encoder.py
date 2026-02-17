@@ -35,8 +35,8 @@ class EncoderBlock(nnx.Module):
         # Lastly there are two residual connections in the encoder block
         # that connect the multi head attention block and the feed forward block
         self.dropout = nnx.Dropout(rate=dropout_rate, rngs=rngs)
-        self.norm1 = LayerNorm(d_model=d_model)
-        self.norm2 = LayerNorm(d_model=d_model)
+        self.norm1 = LayerNorm(d_model=d_model, rngs=rngs)
+        self.norm2 = LayerNorm(d_model=d_model, rngs=rngs)
 
     def __call__(
         self,
@@ -68,7 +68,9 @@ class EncoderBlock(nnx.Module):
 
 
 class Encoder(nnx.Module):
-    def __init__(self, encoder_blocks: nnx.List[EncoderBlock], d_model: int) -> None:
+    def __init__(
+        self, encoder_blocks: nnx.List[EncoderBlock], d_model: int, rngs: nnx.Rngs
+    ) -> None:
         """
         Set up encoder with a sequence of encoder blocks
         Args:
@@ -79,7 +81,7 @@ class Encoder(nnx.Module):
             None
         """
         self.blocks: nnx.List[EncoderBlock] = encoder_blocks
-        self.norm = LayerNorm(d_model=d_model)
+        self.norm = LayerNorm(d_model=d_model, rngs=rngs)
 
     def __call__(
         self,

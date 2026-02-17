@@ -108,7 +108,7 @@ class MultiHeadAttentionBlock(nnx.Module):
 
         # (batch_size, seq_len, d_model), since we are only using encoder
         # we only use the query
-        B, L, _, _ = query.shape
+        B, L, D = query.shape
         query = query.reshape(B, L, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
         key = key.reshape(B, L, self.n_heads, self.d_k).transpose(0, 2, 1, 3)
         value = value.reshape(B, L, self.n_heads, self.d_k).transpose(0, 2, 1, 3)

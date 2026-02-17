@@ -39,7 +39,7 @@ class VisionTransformer(nnx.Module):
         """
 
         self.patch_embedding = PatchEmbedding(
-            patch_size=patch_size, d_model=d_model, rngs=rngs
+            patch_size=patch_size, in_channels=in_channels, d_model=d_model, rngs=rngs
         )
         self.positional_encoding = PositionalEncoding(
             d_model=d_model,
@@ -65,6 +65,7 @@ class VisionTransformer(nnx.Module):
                 ]
             ),
             d_model=d_model,
+            rngs=rngs,
         )
 
     def __call__(

@@ -5,6 +5,7 @@ from absl import logging
 from utils.config import IMG_TRANSFORMATIONS, config
 from utils.ImageDataset import ImageDataset
 from utils.init_state import init_state
+from utils.train_eval import train
 
 logging.set_verbosity(logging.INFO)
 
@@ -23,17 +24,17 @@ def main():
 
     if config.SPLITS_PATH:
         logging.info(f"Loading datset from {config.SPLITS_PATH}")
-        train, val, _ = dataset.load_splits(config.SPLITS_PATH)
+        train_data, val, _ = dataset.load_splits(config.SPLITS_PATH)
     else:
         logging.info("Splitting the dataset into train, val and test sets")
-        train, val, _ = dataset.split_data(
+        train_data, val, _ = dataset.split_data(
             train_split=config.TRAIN_SPLIT,
             val_split=config.VAL_SPLIT,
             save_splits_path=config.SPLITS_PATH,
         )
 
     train_loader = dataset.get_loader(
-        dataset=train,
+        dataset=train_data,
         seed=42,
         batch_size=config.BATCH_SIZE,
         drop_remainder=True,
@@ -76,6 +77,9 @@ def main():
 
     # get the number of batches per epoch
 
+    batches_per_epoch = train_data.__len__() // config.BATCH_SIZE
+    eval_batches_per_epoch = train_data.__len__() // config.BATCH_SIZE
+
     train(
         model=model,
         optimizer=optimizer,
@@ -85,6 +89,8 @@ def main():
         manager=manager,
         logger=logging,
         step=step,
+        batches_per_epoch=batches_per_epoch,
+        eval_batches_per_epoch=eval_batches_per_epoch,
     )
 
 
