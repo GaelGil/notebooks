@@ -1,10 +1,11 @@
 from pathlib import Path
 
+from absl import logging
+
 from utils.config import config
 from utils.LangDataset import LangDataset
 from utils.Tokenizer import Tokenizer
-from absl import logging
-import numpy as np
+
 
 def handle_tokenizer_data(logging: logging) -> tuple[Tokenizer, dict, dict]:
     """
