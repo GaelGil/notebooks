@@ -5,8 +5,9 @@ import optax
 import orbax.checkpoint as ocp
 from absl import logging
 from flax import nnx
-from tqdm import tqdm
 from jax import Array
+from tqdm import tqdm
+
 from transformer.Transformer import Transformer
 
 
@@ -210,9 +211,6 @@ def train_step(
         )
         # avg loss over batch of non padded tokens, loss over non padded tokens, number of non padded tokens
 
-
-
-
     # compute loss and gradients
     (loss, (non_padded_loss, num_tokens)), grads = nnx.value_and_grad(
         loss_fn,
@@ -302,6 +300,7 @@ def eval_step(
         self_mask=decoder_self_attention_mask,
         cross_mask=encoder_decoder_mask,
         is_training=False,
+        rngs=nnx.Rngs(0),
     )
 
     per_token_loss = optax.softmax_cross_entropy_with_integer_labels(

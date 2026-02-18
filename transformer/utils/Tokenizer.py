@@ -1,4 +1,5 @@
 import os
+
 import jax.numpy as jnp
 import sentencepiece as spm
 from jax import Array
@@ -168,7 +169,6 @@ class Tokenizer:
                     text=src,
                     add_bos=False,
                     add_eos=False,
-                    prefix=prefix,
                     max_len=self.seq_len,
                 )
             )
@@ -185,10 +185,16 @@ class Tokenizer:
 
         # pad sequences up to seq_len
         src_ids_padded: Array = self.pad_sequences(
-            src_ids, pad_id=self.sp.pad_id(), max_len=self.seq_len, eos_id=self.sp.eos_id()
+            src_ids,
+            pad_id=self.sp.pad_id(),
+            max_len=self.seq_len,
+            eos_id=self.sp.eos_id(),
         )
         target_two_ids_padded: Array = self.pad_sequences(
-            target_ids, pad_id=self.sp.pad_id(), max_len=self.seq_len, eos_id=self.sp.eos_id()
+            target_ids,
+            pad_id=self.sp.pad_id(),
+            max_len=self.seq_len,
+            eos_id=self.sp.eos_id(),
         )
 
         return src_ids_padded, target_two_ids_padded
