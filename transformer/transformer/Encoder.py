@@ -1,7 +1,8 @@
-from transformer.AttentionBlock import MultiHeadAttentionBlock
-from transformer.FeedForwardBlock import FeedForwardBlock
 from flax import nnx
 from jax import Array
+
+from transformer.AttentionBlock import MultiHeadAttentionBlock
+from transformer.FeedForwardBlock import FeedForwardBlock
 
 
 class EncoderBlock(nnx.Module):
@@ -74,7 +75,11 @@ class EncoderBlock(nnx.Module):
 
         # add and norm output
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
-        x = self.norm1(x + self.dropout(multi_head_attention_output, deterministic=not is_training, rngs=rngs))
+        x = self.dropout(
+            self.norm1(multi_head_attention_output + x),
+            deterministic=not is_training,
+            rngs=rngs,
+        )
 
         # pass in new x into feed forward and get output
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
@@ -84,7 +89,11 @@ class EncoderBlock(nnx.Module):
 
         # add and norm ff output
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
-        x = self.norm2(x + self.dropout(feed_forward_output, deterministic=not is_training, rngs=rngs))
+        x = self.dropout(
+            self.norm2(feed_forward_output + x),
+            deterministic=not is_training,
+            rngs=rngs,
+        )
 
         return x
 

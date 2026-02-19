@@ -140,7 +140,7 @@ def train_step(
     model: Transformer,
     batch,
     optimizer: nnx.Optimizer,
-    rngs: jax.Array,
+    rngs: nnx.Rngs,
 ) -> tuple[Transformer, nnx.Optimizer, Array, Array, Array]:
     """
     Train the model on a single batch
@@ -181,8 +181,13 @@ def train_step(
             is_training=True,
             rngs=rngs,
         )
-        per_token_loss: Array = optax.softmax_cross_entropy_with_integer_labels(
-            logits=logits, labels=labels
+        label_smoothing = 0.1
+        per_token_loss = (
+            optax.softmax_cross_entropy_with_integer_labels(
+                logits=logits, labels=labels
+            )
+            * (1 - label_smoothing)
+            + label_smoothing / logits.shape[-1]
         )  # loss per token in the batch (B, seq_len)
         num_non_padded_tokens: Array = labels_mask.sum()  # number of non padded tokens
         non_padded_loss: Array = (
