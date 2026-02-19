@@ -2,6 +2,7 @@ from flax import nnx
 from jax import Array
 from jax import numpy as jnp
 
+
 class CustomVariable(nnx.Variable):
     pass
 
@@ -20,7 +21,7 @@ class PositionalEncoding(nnx.Module):
         self.pe = nnx.Embed(
             num_embeddings=seq_len,
             features=d_model,
-            embedding_init=nnx.initializers.normal(stddev=0.02),
+            embedding_init=nnx.initializers.normal(stddev=d_model**-0.5),
             rngs=rngs,
         )
 
@@ -32,6 +33,6 @@ class PositionalEncoding(nnx.Module):
         """
         B, T, _ = x.shape
         positions = jnp.arange(T)[None, :]  # (1, T)
-        x = x + self.pe(positions)     # broadcasts to (B,T,D)
+        x = x + self.pe(positions)  # broadcasts to (B,T,D)
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
         return self.dropout(x, deterministic=not is_training, rngs=rngs)
