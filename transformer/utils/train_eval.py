@@ -43,6 +43,7 @@ def train(
         rng, dropout_key = jax.random.split(rng)
         step_rngs = nnx.Rngs(dropout=dropout_key)
         try:
+            model.train()
             (
                 model,
                 optimizer,
@@ -81,6 +82,7 @@ def train(
                 f"Epoch {current_epoch} complete, Loss at epoch: {float(epoch_loss):.4f}, evaluating ..."
             )
             # evaluate the model
+            model.eval()
             eval_accuracy, eval_loss = eval(
                 model=model, loader=val_loader, batches_per_epoch=val_batches_per_epoch
             )
@@ -296,7 +298,6 @@ def eval_step(
         decoder_self_attention_mask,
         encoder_decoder_mask,
     ) = batch
-
     # pass batch through the model in eval mode
     logits = model(
         src=encoder_input,
@@ -305,7 +306,7 @@ def eval_step(
         self_mask=decoder_self_attention_mask,
         cross_mask=encoder_decoder_mask,
         is_training=False,
-        rngs=nnx.Rngs(0),
+        rngs=None,
     )
 
     per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
