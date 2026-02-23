@@ -98,7 +98,7 @@ def init_state(
 
     # create optimizer
     opt_adam_with_schedule = optax.adam(
-        learning_rate=lr_schedule_fn,
+        learning_rate=config.LR,
         b1=0.9,
         b2=0.98,
         eps=1e-9,
