@@ -170,6 +170,7 @@ class Tokenizer:
                     add_bos=False,
                     add_eos=False,
                     max_len=self.seq_len,
+                    prefix=prefix,
                 )
             )
 

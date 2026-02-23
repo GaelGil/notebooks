@@ -6,23 +6,19 @@ from absl import logging
 import orbax.checkpoint as ocp
 from jax import numpy as jnp
 
+
 def test():
     tokenizer, dataset_one_paths, dataset_two_paths = handle_tokenizer_data(
         logging=logging
     )
-
-
 
     import numpy as np
 
     src = np.load(f"./{config.SPLITS_PATH}/train/_en.npy", allow_pickle=True)
     tgt = np.load(f"./{config.SPLITS_PATH}/train/_es.npy", allow_pickle=True)
 
-
-
-
     pad_id = 0
-    lengths = (tgt != pad_id).sum(axis=1)    
+    lengths = (tgt != pad_id).sum(axis=1)
     print("min tgt len:", lengths.min())
     print("mean tgt len:", lengths.mean())
     print("median tgt len:", np.median(lengths))
@@ -60,16 +56,19 @@ def test():
 
         if len(pad_pos):
             first_pad = pad_pos[0]
-            assert np.all(t[first_pad:] == pad_id), "Found non-PAD tokens after padding started"
+            assert np.all(t[first_pad:] == pad_id), (
+                "Found non-PAD tokens after padding started"
+            )
             if len(eos_pos):
-                assert eos_pos[0] < first_pad, "EOS occurs after padding starts (suspicious)"
+                assert eos_pos[0] < first_pad, (
+                    "EOS occurs after padding starts (suspicious)"
+                )
 
         print()
 
     print(f"eos_id: {eos_id}")
     print(f"pad_id: {pad_id}")
     print(f"bos_id: {bos_id}")
-
 
     checkpoint_options = ocp.CheckpointManagerOptions(
         max_to_keep=config.MAX_TO_KEEP,
@@ -97,13 +96,20 @@ def test():
     )
     eos_id = tokenizer.sp.eos_id()
 
-    es_ids = tokenizer.encode(text="como estas", add_bos=True, add_eos=True)
+    es_ids = tokenizer.encode(text="hola", add_bos=True, add_eos=True)
     en_ids = tokenizer.encode(text="", add_bos=True, add_eos=False)
     es = jnp.array([es_ids], dtype=jnp.int32)  # [1, src_len]
     en = jnp.array([en_ids], dtype=jnp.int32)
     generated_ids = []
     while True:
-        logits = model(src=es, target=en, src_mask=None, self_mask=None, cross_mask=None, is_training=False)
+        logits = model(
+            src=es,
+            target=en,
+            src_mask=None,
+            self_mask=None,
+            cross_mask=None,
+            is_training=False,
+        )
         next_token = int(jnp.argmax(logits[0, -1]))
 
         if next_token == eos_id:
@@ -112,17 +118,11 @@ def test():
         generated_ids.append(next_token)
 
         # 🔹 append new token to decoder input
-        en = jnp.concatenate(
-            [en, jnp.array([[next_token]], dtype=jnp.int32)],
-            axis=1
-        )
+        en = jnp.concatenate([en, jnp.array([[next_token]], dtype=jnp.int32)], axis=1)
 
     # decode final sentence
     text = tokenizer.decode(generated_ids)
     print(text)
-
-
-
 
 
 if __name__ == "__main__":
