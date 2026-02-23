@@ -28,7 +28,7 @@ class FeedForwardBlock(nnx.Module):
         self.linear_1 = nnx.Linear(
             in_features=d_model, out_features=d_ff, dtype=jnp.float32, rngs=rngs
         )
-        self.dropout = nnx.Dropout(rate=dropout_rate, rngs=rngs)
+        self.dropout = nnx.Dropout(rate=dropout_rate)
         self.linear_2 = nnx.Linear(
             in_features=d_ff, out_features=d_model, dtype=jnp.float32, rngs=rngs
         )

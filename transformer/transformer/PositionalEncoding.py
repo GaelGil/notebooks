@@ -16,7 +16,7 @@ class PositionalEncoding(nnx.Module):
             dropout: dropout rate (used during training)
         """
 
-        self.dropout = nnx.Dropout(rate=dropout_rate, rngs=rngs)
+        self.dropout = nnx.Dropout(rate=dropout_rate)
 
         self.pe = nnx.Embed(
             num_embeddings=seq_len,

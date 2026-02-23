@@ -53,7 +53,7 @@ class EncoderBlock(nnx.Module):
         )
         # Lastly there are two residual connections in the encoder block
         # that connect the multi head attention block and the feed forward block
-        self.dropout = nnx.Dropout(rate=dropout_rate, rngs=rngs)
+        self.dropout = nnx.Dropout(rate=dropout_rate)
         self.norm1 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
         self.norm2 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
 

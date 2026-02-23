@@ -41,7 +41,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         self.w_v = nnx.Linear(in_features=d_model, out_features=d_model, rngs=rngs)
 
         self.w_o = nnx.Linear(in_features=d_model, out_features=d_model, rngs=rngs)
-        self.dropout = nnx.Dropout(rate=dropout_rate, rngs=rngs)
+        self.dropout = nnx.Dropout(rate=dropout_rate)
 
     @staticmethod
     def scaled_dot_product_attention(
@@ -60,16 +60,17 @@ class MultiHeadAttentionBlock(nnx.Module):
         if mask is not None:
             # ensure mask shape is broadcastable to attention_scores
             if mask.ndim == 2:
-                mask = mask[:, None, None, :] # (B, 1, 1, Lk)
-            elif mask.ndim == 3: # (B, Lq, Lk) typical for decoder self-attention
-                mask = mask[:, None, :, :] # (B, 1, Lq, Lk)
+                mask = mask[:, None, None, :]  # (B, 1, 1, Lk)
+            elif mask.ndim == 3:  # (B, Lq, Lk) typical for decoder self-attention
+                mask = mask[:, None, :, :]  # (B, 1, Lq, Lk)
 
             neg_inf = jnp.finfo(attention_scores.dtype).min
             # else assume already broadcastable (e.g., (B, H, Lq, Lk))
             attention_scores = jnp.where(mask, attention_scores, neg_inf)
         # softmax(Q * K^T/sqrt(d_k))
-        attention_scores = nnx.softmax(attention_scores.astype(jnp.float32), axis=-1).astype(query.dtype)
-
+        attention_scores = nnx.softmax(
+            attention_scores.astype(jnp.float32), axis=-1
+        ).astype(query.dtype)
 
         if is_training:
             attention_scores = dropout(
