@@ -87,23 +87,27 @@ def init_state(
     )
 
     total_steps = batches_per_epoch * config.EPOCHS
-    warmup_steps = int(0.05 * total_steps)  # 5% warmup
+    warmup_steps = int(0.05 * total_steps)
     lr_schedule_fn = optax.warmup_cosine_decay_schedule(
         init_value=0.0,
         peak_value=5e-4,
         warmup_steps=warmup_steps,
-        decay_steps=total_steps,  # total training steps
+        decay_steps=total_steps,
         end_value=config.LR,
     )
 
     # create optimizer
-    opt_adam_with_schedule = optax.adam(
-        learning_rate=config.LR,
-        b1=0.9,
-        b2=0.98,
-        eps=1e-9,
+    opt_adamw_with_schedule = optax.chain(
+        optax.clip_by_global_norm(1.0),
+        optax.adamw(
+            learning_rate=lr_schedule_fn,
+            b1=0.9,
+            b2=0.98,
+            eps=1e-9,
+            weight_decay=0.01,
+        ),
     )
-    optimizer = nnx.Optimizer(model, opt_adam_with_schedule, wrt=nnx.Param)
+    optimizer = nnx.Optimizer(model, opt_adamw_with_schedule, wrt=nnx.Param)
 
     # restore the state
     step = 0 if manager.best_step() is None else manager.best_step()
