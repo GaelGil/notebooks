@@ -96,7 +96,12 @@ def test():
     )
     eos_id = tokenizer.sp.eos_id()
 
-    es_ids = tokenizer.encode(text="hola", add_bos=True, add_eos=True)
+    es_ids = tokenizer.encode(
+        text="hola como estas hoy en este momento",
+        add_bos=False,
+        add_eos=False,
+        prefix="<es-to-en>",
+    )
     en_ids = tokenizer.encode(text="", add_bos=True, add_eos=False)
     es = jnp.array([es_ids], dtype=jnp.int32)  # [1, src_len]
     en = jnp.array([en_ids], dtype=jnp.int32)
@@ -111,7 +116,8 @@ def test():
             is_training=False,
         )
         next_token = int(jnp.argmax(logits[0, -1]))
-
+        print("next token:", next_token)
+        print("next token:", tokenizer.decode([next_token]))
         if next_token == eos_id:
             break
 

@@ -168,7 +168,7 @@ class Tokenizer:
                 self.encode(
                     text=src,
                     add_bos=False,
-                    add_eos=False,
+                    add_eos=True,
                     max_len=self.seq_len,
                     prefix=prefix,
                 )
