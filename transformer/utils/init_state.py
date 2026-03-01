@@ -87,12 +87,12 @@ def init_state(
     )
 
     total_steps = batches_per_epoch * config.EPOCHS
-    warmup_steps = int(0.05 * total_steps)
+    warmup_steps = int(0.1 * total_steps)
     lr_schedule_fn = optax.warmup_cosine_decay_schedule(
         init_value=0.0,
-        peak_value=5e-4,
+        peak_value=3e-4,
         warmup_steps=warmup_steps,
-        decay_steps=total_steps,
+        decay_steps=total_steps - warmup_steps,
         end_value=config.LR,
     )
 
