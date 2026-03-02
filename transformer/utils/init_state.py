@@ -1,11 +1,11 @@
 import jax.numpy as jnp
 import optax
-
-from flax import nnx
-from transformer.Transformer import Transformer
-from utils.config import Config
 import orbax.checkpoint as ocp
 from absl import logging
+from flax import nnx
+
+from transformer.Transformer import Transformer
+from utils.config import Config
 
 
 def init_state(
@@ -90,7 +90,7 @@ def init_state(
     warmup_steps = int(0.1 * total_steps)
     lr_schedule_fn = optax.warmup_cosine_decay_schedule(
         init_value=0.0,
-        peak_value=3e-4,
+        peak_value=1e-3,
         warmup_steps=warmup_steps,
         decay_steps=total_steps - warmup_steps,
         end_value=config.LR,
@@ -104,7 +104,7 @@ def init_state(
             b1=0.9,
             b2=0.98,
             eps=1e-9,
-            weight_decay=0.01,
+            weight_decay=0.05,
         ),
     )
     optimizer = nnx.Optimizer(model, opt_adamw_with_schedule, wrt=nnx.Param)
