@@ -183,31 +183,18 @@ def train_step(
             is_training=True,
             rngs=rngs,
         )
-        label_smoothing = 0.1
-        per_token_loss = (
-            optax.softmax_cross_entropy_with_integer_labels(
-                logits=logits, labels=labels
-            )
-            * (1 - label_smoothing)
-            + label_smoothing / logits.shape[-1]
-        )  # loss per token in the batch (B, seq_len)
+
+        log_probs = jax.nn.log_softmax(logits)
+        nll = optax.softmax_cross_entropy_with_integer_labels(logits, labels)
+        uniform_ce = -jnp.mean(log_probs, axis=-1)
+        per_token_loss = (1.0 - 0.1) * nll + 0.1 * uniform_ce
+
         num_non_padded_tokens: Array = labels_mask.sum()  # number of non padded tokens
         non_padded_loss: Array = (
             per_token_loss * labels_mask
         ).sum()  # loss over non padded tokens
-        # jax.debug.print("logits shape {}", logits.shape)
-        # jax.debug.print("logits dtype {}", logits.dtype)
-
-        # jax.debug.print("labels_mask mean {}", labels_mask.mean())
-        # jax.debug.print("num_non_padded_tokens {}", num_non_padded_tokens)
-
-        # jax.debug.print("non_padded_loss {}", non_padded_loss)
-
-        # jax.debug.print("logits max {}", logits.max())
-        # jax.debug.print("logits min {}", logits.min())
 
         loss: Array = non_padded_loss / num_non_padded_tokens
-        # jax.debug.print("loss {}", loss)
 
         return (
             loss,
