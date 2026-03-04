@@ -1,6 +1,6 @@
 from flax import nnx
-from jax import numpy as jnp
 from jax import Array
+from jax import numpy as jnp
 
 
 class MultiHeadAttentionBlock(nnx.Module):
@@ -72,10 +72,9 @@ class MultiHeadAttentionBlock(nnx.Module):
             attention_scores.astype(jnp.float32), axis=-1
         ).astype(query.dtype)
 
-        if is_training:
-            attention_scores = dropout(
-                attention_scores, deterministic=not is_training, rngs=rngs
-            )
+        attention_scores = dropout(
+            attention_scores, deterministic=not is_training, rngs=rngs
+        )
         # (Q * K^T)/sqrt(d_k) * V
         x = jnp.matmul(attention_scores, value)
 
