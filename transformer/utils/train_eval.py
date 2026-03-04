@@ -22,11 +22,12 @@ def train(
     batches_per_epoch: int,
     val_batches_per_epoch: int,
     step: int,
+    seed: int,
 ):
     """
     Train the model
     """
-    rng = jax.random.PRNGKey(0)
+    base_rng = jax.random.PRNGKey(seed)
     current_epoch = step
     batch_in_epoch = 0
     epoch_token_count = 0
@@ -40,7 +41,7 @@ def train(
     )
 
     for batch in train_loader:
-        rng, dropout_key = jax.random.split(rng)
+        dropout_key = jax.random.fold_in(base_rng, step)
         step_rngs = nnx.Rngs(dropout=dropout_key)
         try:
             model.train()
@@ -184,11 +185,9 @@ def train_step(
             rngs=rngs,
         )
 
-        log_probs = jax.nn.log_softmax(logits)
-        nll = optax.softmax_cross_entropy_with_integer_labels(logits, labels)
-        uniform_ce = -jnp.mean(log_probs, axis=-1)
-        per_token_loss = (1.0 - 0.1) * nll + 0.1 * uniform_ce
-
+        per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
+            logits=logits, labels=labels
+        )  # loss per token in the batch (B, seq_len)
         num_non_padded_tokens: Array = labels_mask.sum()  # number of non padded tokens
         non_padded_loss: Array = (
             per_token_loss * labels_mask

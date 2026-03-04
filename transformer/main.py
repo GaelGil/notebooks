@@ -10,7 +10,6 @@ from utils.handle_tokenizer_data import handle_tokenizer_data
 from utils.init_state import init_state
 from utils.train_eval import train
 
-
 logging.set_verbosity(logging.INFO)
 
 
@@ -107,6 +106,7 @@ def main():
             batches_per_epoch=batches_per_epoch,
             val_batches_per_epoch=val_batches_per_epoch,
             step=step,
+            seed=config.SEED,
         )
 
     # update the dataset paths
@@ -133,19 +133,23 @@ def main():
         operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=False)],
         worker_count=config.WORKER_COUNT,
     )
-    train_loader: grain.DataLoaderIterator = iter(train_loader)
-    val_loader: grain.DataLoaderIterator = iter(val_loader)
+
+    batches_per_epoch = train_data.__len__() // config.BATCH_SIZE
+    val_batches_per_epoch = val_data.__len__() // config.BATCH_SIZE
 
     logging.info("Training completed, training with new data")
     train(
         model=model,
+        optimizer=optimizer,
         train_loader=train_loader,
         val_loader=val_loader,
         epochs=config.EPOCHS,
         manager=manager,
         logger=logging,
+        batches_per_epoch=batches_per_epoch,
+        val_batches_per_epoch=val_batches_per_epoch,
         step=step,
-        tokenizer=tokenizer,
+        seed=config.SEED,
     )
 
 

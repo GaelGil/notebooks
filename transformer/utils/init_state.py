@@ -15,7 +15,7 @@ def init_state(
     manager: ocp.CheckpointManager,
     logger: logging,
     batches_per_epoch: int,
-) -> tuple[Transformer, nnx.Optimizer]:
+) -> tuple[Transformer, nnx.Optimizer, int]:
     """
     Initialize the state from a checkpoint or create a new one
     Args:
@@ -144,4 +144,4 @@ def init_state(
         rngs=rngs,
     )
 
-    return model, optimizer, step
+    return model, optimizer, step or 0
