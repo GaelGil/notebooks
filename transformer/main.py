@@ -10,7 +10,6 @@ from utils.handle_tokenizer_data import handle_tokenizer_data
 from utils.init_state import init_state
 from utils.train_eval import train
 
-
 logging.set_verbosity(logging.INFO)
 
 
@@ -145,7 +144,6 @@ def main():
         manager=manager,
         logger=logging,
         step=step,
-        tokenizer=tokenizer,
     )
 
 
