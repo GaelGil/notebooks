@@ -1,7 +1,6 @@
 import grain
-
-from jax import numpy as jnp
 import numpy as np
+from jax import numpy as jnp
 
 
 class Source(grain.DataLoader):
@@ -60,9 +59,12 @@ class Source(grain.DataLoader):
             mask for decoder self-attention to ignore future tokens
         """
         T = decoder_input_ids.shape[0]
-        causal = jnp.tril(jnp.ones((T, T), dtype=jnp.bool_))
-        key_nonpad = self.make_padding_mask(decoder_input_ids)
-        return causal & key_nonpad[None, :]
+
+        causal = jnp.tril(jnp.ones((T, T), dtype=jnp.bool_))  # (T, T)
+
+        nonpad = self.make_padding_mask(decoder_input_ids)  # (T,) boolean, True=nonpad
+
+        return causal & nonpad[None, :] & nonpad[:, None]  # (T, T)
 
     def make_encoder_decoder_mask(self, encoder_input_ids, decoder_input_ids):
         """
@@ -79,9 +81,8 @@ class Source(grain.DataLoader):
         enc_nonpad = self.make_padding_mask(encoder_input_ids)
 
         return jnp.broadcast_to(
-            enc_nonpad[None, None, :],
-            (1, tgt_len, src_len),
-        )
+            enc_nonpad[None, :], (tgt_len, src_len)
+        )  # (T_tgt, T_src)
 
     def __getitem__(self, idx):
         encoder_input = jnp.asarray(self.src[idx])  # encoder input ids already padded

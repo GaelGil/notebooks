@@ -22,11 +22,12 @@ def train(
     batches_per_epoch: int,
     val_batches_per_epoch: int,
     step: int,
+    seed: int,
 ):
     """
     Train the model
     """
-    rng = jax.random.PRNGKey(0)
+    base_rng = jax.random.PRNGKey(seed)
     current_epoch = step
     batch_in_epoch = 0
     epoch_token_count = 0
@@ -40,7 +41,7 @@ def train(
     )
 
     for batch in train_loader:
-        rng, dropout_key = jax.random.split(rng)
+        dropout_key = jax.random.fold_in(base_rng, step)
         step_rngs = nnx.Rngs(dropout=dropout_key)
         try:
             model.train()
