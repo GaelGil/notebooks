@@ -100,7 +100,7 @@ def init_state(
     opt_adamw_with_schedule = optax.chain(
         optax.clip_by_global_norm(1.0),
         optax.adamw(
-            learning_rate=2e-5,
+            learning_rate=2e-6,
             b1=0.9,
             b2=0.98,
             eps=1e-9,
