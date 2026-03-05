@@ -90,10 +90,10 @@ def init_state(
     warmup_steps = int(0.05 * total_steps)
     lr_schedule_fn = optax.warmup_cosine_decay_schedule(
         init_value=0.0,
-        peak_value=5e-4,
+        peak_value=config.LR,
         warmup_steps=warmup_steps,
         decay_steps=total_steps - warmup_steps,
-        end_value=config.LR,
+        end_value=config.LR * 0.1,
     )
 
     # create optimizer

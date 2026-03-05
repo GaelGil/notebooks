@@ -28,7 +28,6 @@ class FeedForwardBlock(nnx.Module):
         self.linear_1 = nnx.Linear(
             in_features=d_model, out_features=d_ff, dtype=jnp.float32, rngs=rngs
         )
-        self.dropout = nnx.Dropout(rate=dropout_rate)
         self.linear_2 = nnx.Linear(
             in_features=d_ff, out_features=d_model, dtype=jnp.float32, rngs=rngs
         )
@@ -37,6 +36,6 @@ class FeedForwardBlock(nnx.Module):
         # simple feed forward network
         # (seq_len, d_model) --> (dff, d_model) --> (seq_len, d_model)
         x = nnx.gelu(self.linear_1(x))
-        x = self.dropout(x, deterministic=not is_training, rngs=rngs)
+        # x = self.dropout(x, deterministic=not is_training, rngs=rngs)
         x = self.linear_2(x)
         return x

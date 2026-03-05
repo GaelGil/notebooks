@@ -64,7 +64,7 @@ class Source(grain.DataLoader):
 
         nonpad = self.make_padding_mask(decoder_input_ids)  # (T,) boolean, True=nonpad
 
-        return causal & nonpad[None, :] & nonpad[:, None]  # (T, T)
+        return causal & nonpad[None, :]  # (T, T)
 
     def make_encoder_decoder_mask(self, encoder_input_ids, decoder_input_ids):
         """
