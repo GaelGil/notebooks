@@ -45,27 +45,27 @@ def train(
         VisionTransformer
     """
     # initialize the random number generator for dropout
-    rng = jax.random.PRNGKey(0)
+    base_rng = jax.random.PRNGKey(0)
+    pbar = tqdm()
+
     # loop over the dataset for num_epochs
     for epoch in range(step, epochs):
-        # IMPORTANT: ensure this is an iterable that resets each epoch.
-        # If train_loader is an iterator, do: train_iter = iter(train_loader) each epoch
-        # and then loop on that.
-        with tqdm(
-            train_loader, total=batches_per_epoch, desc=f"Epoch {epoch}/{epochs}"
-        ) as pbar:
-            for batch in pbar:
-                rng, dropout_key = jax.random.split(rng)
-                step_rngs = nnx.Rngs(dropout=dropout_key)
+        for batch_in_epoch in range(batches_per_epoch):
+            batch = next(train_iter)
+            dropout_key = jax.random.fold_in(base_rng, step)
+            step_rngs = nnx.Rngs(dropout=dropout_key)
 
-                model, optimizer, loss = train_step(
-                    model=model,
-                    batch=batch,
-                    optimizer=optimizer,
-                    rngs=step_rngs,
-                )
-                pbar.set_postfix(loss=f"{float(loss):.4f}")
-
+            model, optimizer, loss = train_step(
+                model=model,
+                batch=batch,
+                optimizer=optimizer,
+                rngs=step_rngs,
+            )
+            pbar.update(1)
+            pbar.set_postfix(loss=f"{float(loss):.4f}")
+        print(f"Epoch {epoch} complete")
+        print("CLOSING TQDM")
+        pbar.close()
         # Eval after epoch (fine)
         eval_accuracy, eval_loss = eval(
             model=model, loader=val_loader, batches_per_epoch=eval_batches_per_epoch
@@ -160,14 +160,17 @@ def eval(
     num_correct = 0
     total_loss = 0
     num_batches = 0
-    current_epoch = 0
     pbar = tqdm(
+        loader,
         total=batches_per_epoch,
-        desc=f"Epoch {current_epoch}/{1}",
+        desc=f"Epoch {1}/{1}",
     )
 
     # loop over the dataset
-    for batch in loader:
+    for i, batch in enumerate(pbar):
+        if i >= batches_per_epoch:
+            break
+        correct, loss = eval_step(model=model, batch=batch)
         # evaluate on batch
         correct, loss = eval_step(model=model, batch=batch)
         # get total number of examples
@@ -177,9 +180,7 @@ def eval(
         # get total loss
         total_loss += loss
         num_batches += 1
-        pbar.update(1)
         pbar.set_postfix(loss=f"{loss:.4f}")
-        current_epoch += 1
 
     # calculate accuracy from number of correct predictions and total samples
     accuracy = num_correct / total
