@@ -46,12 +46,12 @@ def train(
     """
     # initialize the random number generator for dropout
     base_rng = jax.random.PRNGKey(0)
-    pbar = tqdm()
+    # pbar = tqdm()
 
     # loop over the dataset for num_epochs
     for epoch in range(step, epochs):
-        for batch_in_epoch in range(batches_per_epoch):
-            batch = next(train_iter)
+        pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}", leave=False)
+        for batch in pbar:
             dropout_key = jax.random.fold_in(base_rng, step)
             step_rngs = nnx.Rngs(dropout=dropout_key)
 
@@ -61,8 +61,7 @@ def train(
                 optimizer=optimizer,
                 rngs=step_rngs,
             )
-            pbar.update(1)
-            pbar.set_postfix(loss=f"{float(loss):.4f}")
+            pbar.set_postfix({"loss": f"{loss:.4f}", "epoch": epoch + 1})
         print(f"Epoch {epoch} complete")
         print("CLOSING TQDM")
         pbar.close()
