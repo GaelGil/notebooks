@@ -28,6 +28,7 @@ def train(
     Train the model
     """
     base_rng = jax.random.PRNGKey(seed)
+    global_step = 0
     current_epoch = step
     batch_in_epoch = 0
     epoch_token_count = 0
@@ -41,7 +42,7 @@ def train(
     )
 
     for batch in train_loader:
-        dropout_key = jax.random.fold_in(base_rng, step)
+        dropout_key = jax.random.fold_in(base_rng, global_step)
         step_rngs = nnx.Rngs(dropout=dropout_key)
         try:
             model.train()
@@ -132,7 +133,7 @@ def train(
                 total=batches_per_epoch,
                 desc=f"Epoch {current_epoch}/{epochs}",
             )
-
+        global_step += 1
     manager.wait_until_finished()
 
     return state
@@ -313,4 +314,8 @@ def eval_step(
     # mask out the padded tokens
     correct = correct * labels_mask
 
-    return jnp.sum(correct), avg_loss_over_batch, num_non_padded_tokens, non_padded_loss
+    correct = (predictions == labels).astype(jnp.float32)
+    correct = correct * labels_mask
+    correct_tokens = correct.sum()
+
+    return correct_tokens, avg_loss_over_batch, num_non_padded_tokens, non_padded_loss
