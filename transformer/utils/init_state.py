@@ -55,22 +55,9 @@ def init_state(
             rngs=nnx.Rngs(0),
         )
     )
-    # we dont need to save the optimizer for our purpose but its nice to have it
-    # if we wanted to save the optimizer we could do it like this. also schedule
-    # causes issues with checkpointing/restoring
-    # # create abstract optimizer
-    # abs_opt = nnx.eval_shape(
-    #     lambda: nnx.Optimizer(abs_model, optax.adam(1e-3), wrt=nnx.Param)
-    # )
-    # # get the optimizer state
-    # abs_opt_state = nnx.state(abs_opt)
 
     # split the abstract model into graphdef, state and rng
-    _graphdef, abs_state, _rng = nnx.split(
-        abs_model,
-        nnx.Param,  # trainable weights
-        nnx.RngState,  # dropout RNGs
-    )
+    abs_state = nnx.state(abs_model)
 
     # create model
     rngs = nnx.Rngs(0)
@@ -107,31 +94,32 @@ def init_state(
             weight_decay=0.05,
         ),
     )
+    # we dont need to save the optimizer for our purpose but its nice to have it
+    # if we wanted to save the optimizer we could do it like this. also schedule
+    # causes issues with checkpointing/restoring
+    # # create abstract optimizer
+    abs_opt = nnx.eval_shape(
+        lambda: nnx.Optimizer(abs_model, opt_adamw_with_schedule, wrt=nnx.Param)
+    )
+    # # get the optimizer state
+    abs_opt_state = nnx.state(abs_opt)
     optimizer = nnx.Optimizer(model, opt_adamw_with_schedule, wrt=nnx.Param)
 
     # restore the state
-    step = 0 if manager.best_step() is None else manager.best_step()
-
-    if step is not None and step > 0:
-        step = manager.latest_step()
-        logger.info(f"Restoring from step {step}")
-        # restore the state
+    latest = manager.latest_step()
+    if latest is not None:
         restored = manager.restore(
-            step=step,
+            step=latest,
             args=ocp.args.Composite(
                 state=ocp.args.StandardRestore(abs_state),
-                # optimizer=ocp.args.StandardRestore(abs_opt_state),
+                optimizer=ocp.args.StandardRestore(abs_opt_state),
+                metrics=ocp.args.JsonRestore(),  # optional
             ),
         )
-        # all_steps = manager.all_steps()
-        # steps_to_delete = [s for s in all_steps if s > step]  # [5,6,7,8,9,10]
-        # for s in steps_to_delete:
-        #     manager.delete(s)
-        # update the model and optimizer with the restored state and optimizer
-        # nnx.update(optimizer, restored["optimizer"])
         nnx.update(model, restored["state"])
+        nnx.update(optimizer, restored["optimizer"])
         # return the restored model and optimizer
-        return model, optimizer, step + 1
+        return model, optimizer, latest + 1
 
     # run the model with dummy inputs
     _ = model(
@@ -144,4 +132,4 @@ def init_state(
         rngs=rngs,
     )
 
-    return model, optimizer, step or 0
+    return model, optimizer, 0

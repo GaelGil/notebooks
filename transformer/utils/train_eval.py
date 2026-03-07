@@ -105,12 +105,12 @@ def train(
                 nnx.RngState,
             )
             # save the state, metrics and step
-            # opt_state = nnx.state(optimizer)  # optimizer state
+            opt_state = nnx.state(optimizer)  # optimizer state
             manager.save(
                 step=current_epoch,
                 args=ocp.args.Composite(
                     state=ocp.args.StandardSave(state),
-                    # optimizer=ocp.args.StandardSave(opt_state),
+                    optimizer=ocp.args.StandardSave(opt_state),
                     metrics=ocp.args.JsonSave(metrics),
                 ),
             )
