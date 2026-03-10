@@ -9,6 +9,7 @@ __pycache__/
 **/ckpt
 **/checkpoints_lr
 **/state
+**/optimizer
 # *.msgpack
 # *.ckpt
 # *.npz
