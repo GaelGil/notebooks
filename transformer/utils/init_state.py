@@ -1,7 +1,6 @@
 import jax.numpy as jnp
 import optax
 import orbax.checkpoint as ocp
-from absl import logging
 from flax import nnx
 
 from transformer.Transformer import Transformer
@@ -13,7 +12,7 @@ def init_state(
     src_vocab_size: int,
     target_vocab_size: int,
     manager: ocp.CheckpointManager,
-    logger: logging,
+    logger,
     batches_per_epoch: int,
 ) -> tuple[Transformer, nnx.Optimizer, int]:
     """
