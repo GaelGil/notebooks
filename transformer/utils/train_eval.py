@@ -3,7 +3,6 @@ import jax
 import jax.numpy as jnp
 import optax
 import orbax.checkpoint as ocp
-from absl import logging
 from flax import nnx
 from jax import Array
 from tqdm import tqdm
@@ -18,7 +17,7 @@ def train(
     val_loader: grain.DataLoader,
     epochs: int,
     manager: ocp.CheckpointManager,
-    logger: logging,
+    logger,
     batches_per_epoch: int,
     val_batches_per_epoch: int,
     step: int,
@@ -220,7 +219,7 @@ def eval(
     model: Transformer,
     loader: grain.DataLoader,
     batches_per_epoch: int,
-) -> tuple[float, float]:
+) -> tuple[int | float | Array, int | float | Array]:
     """
     evaluate the model on the validation set
     Args:
