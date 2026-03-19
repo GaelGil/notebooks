@@ -29,7 +29,7 @@ def test():
 
     # # get the vocab size
     vocab_size = tokenizer.get_vocab_size()
-    model, _, _ = init_state(
+    model, _, step = init_state(
         config=config,
         src_vocab_size=vocab_size,
         target_vocab_size=vocab_size,
@@ -37,10 +37,11 @@ def test():
         logger=logging,
         batches_per_epoch=100,
     )
+    print(f"STEP: {step}")
     eos_id = tokenizer.sp.eos_id()
 
     es_ids = tokenizer.encode(
-        text="hola como estas hoy en este momento",
+        text="cual es la capital de mexico",
         add_bos=False,
         add_eos=False,
         prefix="<es-to-en>",
@@ -50,11 +51,14 @@ def test():
     en = jnp.array([en_ids], dtype=jnp.int32)
     generated_ids = []
     while True:
+        decoder_self_attention_mask = jnp.tril(
+            jnp.ones((en.shape[1], en.shape[1]), dtype=jnp.bool_)
+        )[None, None, :, :]
         logits = model(
             src=es,
             target=en,
             src_mask=None,
-            self_mask=None,
+            self_mask=decoder_self_attention_mask,
             cross_mask=None,
             is_training=False,
         )
