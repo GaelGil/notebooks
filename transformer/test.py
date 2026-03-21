@@ -41,7 +41,7 @@ def test():
     eos_id = tokenizer.sp.eos_id()
 
     es_ids = tokenizer.encode(
-        text="cual es la capital de mexico",
+        text="hello how are you",
         add_bos=False,
         add_eos=False,
         prefix="<es-to-en>",
@@ -51,14 +51,14 @@ def test():
     en = jnp.array([en_ids], dtype=jnp.int32)
     generated_ids = []
     while True:
-        decoder_self_attention_mask = jnp.tril(
-            jnp.ones((en.shape[1], en.shape[1]), dtype=jnp.bool_)
-        )[None, None, :, :]
+        # decoder_self_attention_mask = jnp.tril(
+        #     jnp.ones((en.shape[1], en.shape[1]), dtype=jnp.bool_)
+        # )[None, None, :, :]
         logits = model(
             src=es,
             target=en,
             src_mask=None,
-            self_mask=decoder_self_attention_mask,
+            self_mask=None,
             cross_mask=None,
             is_training=False,
         )
