@@ -184,10 +184,17 @@ def train_step(
             is_training=True,
             rngs=rngs,
         )
+        vocab_size = logits.shape[-1]
 
-        per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
-            logits=logits, labels=labels
-        )  # loss per token in the batch (B, seq_len)
+        one_hot = jax.nn.one_hot(labels, vocab_size)  # (B, T, V)
+        smoothed = optax.smooth_labels(one_hot, alpha=0.1)  # (B, T, V)
+
+        # cross-entropy against soft targets
+        per_token_loss = optax.softmax_cross_entropy(
+            logits=logits,
+            labels=smoothed,
+        )
+
         num_non_padded_tokens: Array = labels_mask.sum()  # number of non padded tokens
         non_padded_loss: Array = (
             per_token_loss * labels_mask
@@ -295,9 +302,16 @@ def eval_step(
         rngs=None,
     )
 
-    per_token_loss = optax.softmax_cross_entropy_with_integer_labels(
-        logits=logits, labels=labels
-    )  # loss per token in the batch (B, seq_len)
+    vocab_size = logits.shape[-1]
+
+    one_hot = jax.nn.one_hot(labels, vocab_size)  # (B, T, V)
+    smoothed = optax.smooth_labels(one_hot, alpha=0.1)  # (B, T, V)
+
+    # cross-entropy against soft targets
+    per_token_loss = optax.softmax_cross_entropy(
+        logits=logits,
+        labels=smoothed,
+    )
     num_non_padded_tokens: Array = labels_mask.sum()  # number of non padded tokens
     non_padded_loss: Array = (
         per_token_loss * labels_mask
