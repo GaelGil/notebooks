@@ -4,14 +4,6 @@ from jax import Array
 
 
 class ProjectionLayer(nnx.Module):
-    """
-    Projection Layerr
-    Used to map the output of the decoder to the vocabulary. This gives us the logits
-
-    Attributes:
-        linear: nnx.Linear
-    """
-
     def __init__(self, vocab_size: int, d_model: int, rngs: nnx.Rngs) -> None:
         """
         Args:
@@ -26,6 +18,12 @@ class ProjectionLayer(nnx.Module):
             in_features=d_model, out_features=vocab_size, dtype=jnp.float32, rngs=rngs
         )
 
-    def __call__(self, x: Array):
+    def __call__(self, x: Array) -> Array:
+        """
+        Args:
+            x: input
+        Returns:
+            Array
+        """
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, vocab_size)
         return self.linear(x)

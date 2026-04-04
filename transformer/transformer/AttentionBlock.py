@@ -10,7 +10,7 @@ class MultiHeadAttentionBlock(nnx.Module):
     In multi head attention we split the original input sequence
     (seq_len, d_model) into (n_heads, seq_len, d_k).
 
-    Each head has its own fragments of query, key and value
+    Each head has a small part of query, key and value
 
     This way each head can focus on learning different representations
     of the sequence rather than learning the same representation for
@@ -27,6 +27,7 @@ class MultiHeadAttentionBlock(nnx.Module):
             d_model: dimension of the model
             n_heads: number of heads
             dropout_rate: dropout probability
+            rngs: rngs
 
         Returns:
             None

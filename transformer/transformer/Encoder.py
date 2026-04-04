@@ -6,16 +6,6 @@ from transformer.FeedForwardBlock import FeedForwardBlock
 
 
 class EncoderBlock(nnx.Module):
-    """
-    Decoder block
-
-    Attributes:
-        multi_head_attention_block: MultiHeadAttentionBlock
-        norm1: nnx.LayerNorm
-        feed_forward_block: FeedForwardBlock
-        norm2: nnx.LayerNorm
-    """
-
     def __init__(
         self,
         d_model: int,
@@ -31,7 +21,7 @@ class EncoderBlock(nnx.Module):
             d_model: dimension of the model
             n_heads: number of heads
             d_ff: dimension of the feed forward network
-            dropout: dropout probability
+            dropout_rate: dropout probability
             rngs: rngs
 
         Returns:
@@ -57,7 +47,9 @@ class EncoderBlock(nnx.Module):
         self.norm1 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
         self.norm2 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
 
-    def __call__(self, x: Array, src_mask: Array, is_training: bool, rngs: nnx.Rngs):
+    def __call__(
+        self, x: Array, src_mask: Array, is_training: bool, rngs: nnx.Rngs
+    ) -> Array:
         """
         Args:
             x: input
@@ -133,7 +125,9 @@ class Encoder(nnx.Module):
         self.blocks: nnx.List[EncoderBlock] = encoder_blocks
         self.norm: nnx.LayerNorm = nnx.LayerNorm(num_features=d_model, rngs=rngs)
 
-    def __call__(self, x: Array, mask: Array, is_training: bool, rngs: nnx.Rngs):
+    def __call__(
+        self, x: Array, mask: Array, is_training: bool, rngs: nnx.Rngs
+    ) -> Array:
         """
         Args:
             x: input

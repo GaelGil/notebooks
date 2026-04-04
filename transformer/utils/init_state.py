@@ -12,7 +12,6 @@ def init_state(
     src_vocab_size: int,
     target_vocab_size: int,
     manager: ocp.CheckpointManager,
-    logger,
     batches_per_epoch: int,
 ) -> tuple[Transformer, nnx.Optimizer, int]:
     """
@@ -93,10 +92,8 @@ def init_state(
             weight_decay=0.05,
         ),
     )
-    # we dont need to save the optimizer for our purpose but its nice to have it
-    # if we wanted to save the optimizer we could do it like this. also schedule
-    # causes issues with checkpointing/restoring
-    # # create abstract optimizer
+
+    # create abstract optimizer
     abs_opt = nnx.eval_shape(
         lambda: nnx.Optimizer(abs_model, opt_adamw_with_schedule, wrt=nnx.Param)
     )
