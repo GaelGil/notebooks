@@ -1,1 +1,4 @@
-transformer/chckpnts_50/
+chckpnts_50/
+chckpnts_100_dropout_schedule_weight_decay_0.015
+chckpnts_80_dropout_schedule_weight_decay_0.01
+chckpnts_80_dropout_0.30

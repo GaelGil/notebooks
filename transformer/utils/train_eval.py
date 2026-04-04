@@ -10,6 +10,12 @@ from tqdm import tqdm
 from transformer.Transformer import Transformer
 
 
+def set_dropout_rate(model: Transformer, rate: float):
+    for _, module in model.iter_modules():
+        if isinstance(module, nnx.Dropout):
+            module.rate = rate
+
+
 def train(
     model: Transformer,
     optimizer: nnx.Optimizer,
@@ -22,12 +28,13 @@ def train(
     val_batches_per_epoch: int,
     step: int,
     seed: int,
+    dropout_schedule: dict | None = None,
 ):
     """
     Train the model
     """
     base_rng = jax.random.PRNGKey(seed)
-    global_step = 0
+    global_step = step * batches_per_epoch
     current_epoch = step
     batch_in_epoch = 0
     epoch_token_count = 0
@@ -43,6 +50,9 @@ def train(
     for batch in train_loader:
         dropout_key = jax.random.fold_in(base_rng, global_step)
         step_rngs = nnx.Rngs(dropout=dropout_key)
+        if batch_in_epoch == 0:
+            if dropout_schedule and current_epoch in dropout_schedule:
+                set_dropout_rate(model=model, rate=dropout_schedule[current_epoch])
         try:
             model.train()
             (
@@ -166,15 +176,11 @@ def train_step(
         encoder_decoder_mask,
     ) = batch
 
-    # rng, dropout_key = jax.random.split(rng)
-    # rngs = nnx.Rngs(dropout=dropout_key)  # <-- step RNG stream
-
     def loss_fn(model: Transformer, rngs: nnx.Rngs):
         """
         Compute the loss function for a single batch
         """
-        # key = jax.random.PRNGKey(0)
-        # rngs = nnx.Rngs(dropout=key)
+
         logits = model(
             src=encoder_input,
             src_mask=encoder_padding_mask,
@@ -187,7 +193,7 @@ def train_step(
         vocab_size = logits.shape[-1]
 
         one_hot = jax.nn.one_hot(labels, vocab_size)  # (B, T, V)
-        smoothed = optax.smooth_labels(one_hot, alpha=0.1)  # (B, T, V)
+        smoothed = optax.smooth_labels(one_hot, alpha=0.15)  # (B, T, V)
 
         # cross-entropy against soft targets
         per_token_loss = optax.softmax_cross_entropy(
@@ -305,7 +311,7 @@ def eval_step(
     vocab_size = logits.shape[-1]
 
     one_hot = jax.nn.one_hot(labels, vocab_size)  # (B, T, V)
-    smoothed = optax.smooth_labels(one_hot, alpha=0.1)  # (B, T, V)
+    smoothed = optax.smooth_labels(one_hot, alpha=0.15)  # (B, T, V)
 
     # cross-entropy against soft targets
     per_token_loss = optax.softmax_cross_entropy(

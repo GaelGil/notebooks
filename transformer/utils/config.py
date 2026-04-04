@@ -37,11 +37,12 @@ class Config(BaseModel):
     PREFIXES: list
     WARMUP_STEPS: int
     SEED: int
+    DROPOUT_SCHEDULE: dict
 
 
 config = Config(
     BATCH_SIZE=32,
-    EPOCHS=50,
+    EPOCHS=100,
     LR=3e-4,
     SEQ_LEN=128,
     D_MODEL=512,
@@ -52,10 +53,10 @@ config = Config(
     LANG_TARGET_ONE="en",
     LANG_SRC_TWO="sp",
     LANG_TARGET_TWO="nah",
-    DROPOUT=0.1,
+    DROPOUT=0.30,
     DATA_PATH="somosnlp-hackathon-2022/Axolotl-Spanish-Nahuatl",
     MAX_TO_KEEP=5,
-    CHECKPOINT_PATH=Path("./chckpnts_50"),
+    CHECKPOINT_PATH=Path("./chckpnts_100_dropout_schedule_weight_decay_0.015/"),
     TRAIN_SPLIT=0.8,
     VAL_SPLIT=0.1,
     TEST_SPLIT=0.1,
@@ -73,4 +74,7 @@ config = Config(
     PREFIXES=["<es_to_en>", "<es_to_nah>"],
     WARMUP_STEPS=50,
     SEED=42,
+    DROPOUT_SCHEDULE={0: 0.15, 15: 0.25, 40: 0.3, 60: 0.35},
 )
+
+# TODO: WEIGHT DECAY 0.05, 50 EPOCHS

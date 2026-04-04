@@ -107,50 +107,51 @@ def main():
             val_batches_per_epoch=val_batches_per_epoch,
             step=step,
             seed=config.SEED,
+            dropout_schedule=config.DROPOUT_SCHEDULE,
         )
 
-    # update the dataset paths
-    train_data.src = dataset_two_paths["train_src"]
-    train_data.target = dataset_two_paths["train_target"]
+    # # update the dataset paths
+    # train_data.src = dataset_two_paths["train_src"]
+    # train_data.target = dataset_two_paths["train_target"]
 
-    val_data.src = dataset_two_paths["val_src"]
-    val_data.target = dataset_two_paths["val_target"]
+    # val_data.src = dataset_two_paths["val_src"]
+    # val_data.target = dataset_two_paths["val_target"]
 
-    # update the index sampler
-    train_sampler._num_records = train_data.__len__()
-    eval_sampler._num_records = val_data.__len__()
+    # # update the index sampler
+    # train_sampler._num_records = train_data.__len__()
+    # eval_sampler._num_records = val_data.__len__()
 
-    # initialize the dataloaders
-    train_loader = grain.DataLoader(
-        data_source=train_data,
-        sampler=train_sampler,
-        operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=True)],
-        worker_count=config.WORKER_COUNT,
-    )
-    val_loader = grain.DataLoader(
-        data_source=val_data,
-        sampler=eval_sampler,
-        operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=False)],
-        worker_count=config.WORKER_COUNT,
-    )
+    # # initialize the dataloaders
+    # train_loader = grain.DataLoader(
+    #     data_source=train_data,
+    #     sampler=train_sampler,
+    #     operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=True)],
+    #     worker_count=config.WORKER_COUNT,
+    # )
+    # val_loader = grain.DataLoader(
+    #     data_source=val_data,
+    #     sampler=eval_sampler,
+    #     operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=False)],
+    #     worker_count=config.WORKER_COUNT,
+    # )
 
-    batches_per_epoch = train_data.__len__() // config.BATCH_SIZE
-    val_batches_per_epoch = val_data.__len__() // config.BATCH_SIZE
+    # batches_per_epoch = train_data.__len__() // config.BATCH_SIZE
+    # val_batches_per_epoch = val_data.__len__() // config.BATCH_SIZE
 
-    logging.info("Training completed, training with new data")
-    train(
-        model=model,
-        optimizer=optimizer,
-        train_loader=train_loader,
-        val_loader=val_loader,
-        epochs=config.EPOCHS,
-        manager=manager,
-        logger=logging,
-        batches_per_epoch=batches_per_epoch,
-        val_batches_per_epoch=val_batches_per_epoch,
-        step=step,
-        seed=config.SEED,
-    )
+    # logging.info("Training completed, training with new data")
+    # train(
+    #     model=model,
+    #     optimizer=optimizer,
+    #     train_loader=train_loader,
+    #     val_loader=val_loader,
+    #     epochs=config.EPOCHS,
+    #     manager=manager,
+    #     logger=logging,
+    #     batches_per_epoch=batches_per_epoch,
+    #     val_batches_per_epoch=val_batches_per_epoch,
+    #     step=step,
+    #     seed=config.SEED,
+    # )
 
 
 if __name__ == "__main__":
