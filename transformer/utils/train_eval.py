@@ -193,7 +193,7 @@ def train_step(
         vocab_size = logits.shape[-1]
 
         one_hot = jax.nn.one_hot(labels, vocab_size)  # (B, T, V)
-        smoothed = optax.smooth_labels(one_hot, alpha=0.15)  # (B, T, V)
+        smoothed = optax.smooth_labels(one_hot, alpha=0.1)  # (B, T, V)
 
         # cross-entropy against soft targets
         per_token_loss = optax.softmax_cross_entropy(
@@ -311,7 +311,7 @@ def eval_step(
     vocab_size = logits.shape[-1]
 
     one_hot = jax.nn.one_hot(labels, vocab_size)  # (B, T, V)
-    smoothed = optax.smooth_labels(one_hot, alpha=0.15)  # (B, T, V)
+    smoothed = optax.smooth_labels(one_hot, alpha=0.1)  # (B, T, V)
 
     # cross-entropy against soft targets
     per_token_loss = optax.softmax_cross_entropy(

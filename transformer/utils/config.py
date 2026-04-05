@@ -56,7 +56,7 @@ config = Config(
     DROPOUT=0.30,
     DATA_PATH="somosnlp-hackathon-2022/Axolotl-Spanish-Nahuatl",
     MAX_TO_KEEP=5,
-    CHECKPOINT_PATH=Path("./chckpnts_100_dropout_schedule_weight_decay_0.015/"),
+    CHECKPOINT_PATH=Path("./chckpnts_70_dropout_schedule_weight_decay_0.05/"),
     TRAIN_SPLIT=0.8,
     VAL_SPLIT=0.1,
     TEST_SPLIT=0.1,
@@ -74,7 +74,5 @@ config = Config(
     PREFIXES=["<es_to_en>", "<es_to_nah>"],
     WARMUP_STEPS=50,
     SEED=42,
-    DROPOUT_SCHEDULE={0: 0.15, 15: 0.25, 40: 0.3, 60: 0.35},
+    DROPOUT_SCHEDULE={0: 0.15, 15: 0.25, 30: 0.3},
 )
-
-# TODO: WEIGHT DECAY 0.05, 50 EPOCHS

@@ -34,7 +34,6 @@ def test():
         src_vocab_size=vocab_size,
         target_vocab_size=vocab_size,
         manager=manager,
-        logger=logging,
         batches_per_epoch=100,
     )
     print(f"STEP: {step}")

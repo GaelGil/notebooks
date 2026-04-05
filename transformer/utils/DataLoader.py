@@ -22,6 +22,18 @@ class Source(grain.DataLoader):
         self.target = np.load(target_path)
         self.pad_id = pad_id
 
+    def set_paths(self, src_path: str, target_path: str):
+        """
+        Args:
+            src_path: path to the source data
+            target_path: path to the target data
+
+        Returns:
+            None
+        """
+        self.src = np.load(src_path)
+        self.target = np.load(target_path)
+
     def __len__(self):
         """
         Returns:
