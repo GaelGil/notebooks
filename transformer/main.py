@@ -3,9 +3,11 @@ import orbax.checkpoint as ocp
 from absl import logging
 from grain.samplers import IndexSampler
 from grain.transforms import Batch
+from pathlib import Path
 
 from utils.config import config
 from utils.DataLoader import Source
+from utils.MixedDataset import MixedDataset
 from utils.handle_tokenizer_data import handle_tokenizer_data
 from utils.init_state import init_state
 from utils.train_eval import train
@@ -109,42 +111,69 @@ def main():
             dropout_schedule=config.DROPOUT_SCHEDULE,
         )
 
-    # update the dataset paths
-    train_data.set_paths(
-        src_path=dataset_two_paths["train_src"],
-        target_path=dataset_two_paths["train_target"],
+    # ========== PHASE 2: Mixed Training (80% Nahuatl, 20% English) ==========
+    logging.info("Setting up Phase 2: Mixed training (80% Nahuatl, 20% English)")
+
+    es_nah_data = Source(
+        src_path=dataset_two_paths["train_src"],  # Spanish
+        target_path=dataset_two_paths["train_target"],  # Nahuatl
+        pad_id=tokenizer.sp.pad_id(),
     )
 
-    val_data.set_paths(
+    # Validation data: Use Nahuatl only for evaluation
+    val_data_phase2 = Source(
         src_path=dataset_two_paths["val_src"],
         target_path=dataset_two_paths["val_target"],
+        pad_id=tokenizer.sp.pad_id(),
     )
 
-    # update the index sampler
-    train_sampler._num_records = train_data.__len__()
-    eval_sampler._num_records = val_data.__len__()
+    # Create mixed dataset for training (80% Nahuatl, 20% English)
+    train_data_phase2 = MixedDataset(
+        en_data=train_data,
+        nah_data=es_nah_data,
+        mix_ratio=0.8,  # 80% Nahuatl
+        seed=42,
+    )
 
-    # initialize the dataloaders
+    # Update samplers
+    train_sampler = IndexSampler(
+        num_records=len(train_data_phase2),
+        shard_options=grain.sharding.NoSharding(),
+        shuffle=True,
+        num_epochs=20,
+        seed=42,
+    )
+    eval_sampler = IndexSampler(
+        num_records=len(val_data_phase2),
+        shard_options=grain.sharding.NoSharding(),
+        shuffle=False,
+        num_epochs=1,
+        seed=42,
+    )
+
+    # Initialize dataloaders
     train_loader = grain.DataLoader(
-        data_source=train_data,
+        data_source=train_data_phase2,
         sampler=train_sampler,
         operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=True)],
         worker_count=config.WORKER_COUNT,
     )
     val_loader = grain.DataLoader(
-        data_source=val_data,
+        data_source=val_data_phase2,
         sampler=eval_sampler,
         operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=False)],
         worker_count=config.WORKER_COUNT,
     )
 
-    batches_per_epoch = train_data.__len__() // config.BATCH_SIZE
-    val_batches_per_epoch = val_data.__len__() // config.BATCH_SIZE
+    batches_per_epoch = len(train_data_phase2) // config.BATCH_SIZE
+    val_batches_per_epoch = len(val_data_phase2) // config.BATCH_SIZE
 
+    # Update config for Phase 2
     config.EPOCHS = 20
     config.DROPOUT_SCHEDULE = {0: 0.1, 5: 0.25, 15: 0.35}
+    config.CHECKPOINT_PATH = Path("./chckpnts_phase2_mixed/")
 
-    logging.info("Training completed, training with new data")
+    logging.info("Starting Phase 2: Mixed training (80% Nahuatl + 20% English)")
     train(
         model=model,
         optimizer=optimizer,

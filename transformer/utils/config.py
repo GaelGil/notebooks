@@ -42,7 +42,7 @@ class Config(BaseModel):
 
 config = Config(
     BATCH_SIZE=32,
-    EPOCHS=100,
+    EPOCHS=50,
     LR=3e-4,
     SEQ_LEN=128,
     D_MODEL=512,
@@ -56,7 +56,7 @@ config = Config(
     DROPOUT=0.30,
     DATA_PATH="somosnlp-hackathon-2022/Axolotl-Spanish-Nahuatl",
     MAX_TO_KEEP=5,
-    CHECKPOINT_PATH=Path("./chckpnts_70_dropout_schedule_weight_decay_0.05/"),
+    CHECKPOINT_PATH=Path("./chckpnts_50_dropout_schedule_weight_decay_0.05/"),
     TRAIN_SPLIT=0.8,
     VAL_SPLIT=0.1,
     TEST_SPLIT=0.1,
