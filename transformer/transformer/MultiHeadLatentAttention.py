@@ -3,23 +3,14 @@ from jax import Array
 from jax import numpy as jnp
 
 
-class MultiHeadAttentionBlock(nnx.Module):
-    """
-    Multi Head Attention Block
-
-    In multi head attention we split the original input sequence
-    (seq_len, d_model) into (n_heads, seq_len, d_k).
-
-    Each head has a small part of query, key and value
-
-    This way each head can focus on learning different representations
-    of the sequence rather than learning the same representation for
-    every part of the sequence.
-
-    """
-
+class MultiHeadLatentAttention(nnx.Module):
     def __init__(
-        self, d_model: int, n_heads: int, dropout_rate: float, rngs: nnx.Rngs
+        self,
+        d_model: int,
+        n_heads: int,
+        d_latent: int,
+        dropout_rate: float,
+        rngs: nnx.Rngs,
     ) -> None:
         """
 
@@ -36,12 +27,17 @@ class MultiHeadAttentionBlock(nnx.Module):
         assert d_model % n_heads == 0, "d_model must be divisible by n_heads"
         self.d_k = d_model // n_heads
         self.n_heads = n_heads
-
+        self.d_latent = d_latent
         self.w_q = nnx.Linear(in_features=d_model, out_features=d_model, rngs=rngs)
-        self.w_k = nnx.Linear(in_features=d_model, out_features=d_model, rngs=rngs)
-        self.w_v = nnx.Linear(in_features=d_model, out_features=d_model, rngs=rngs)
+
+        self.w_kv_down(
+            nnx.Linear(in_features=d_model, out_features=d_latent, rngs=rngs)
+        )
+        self.w_k_up(nnx.Linear(in_features=d_latent, out_features=d_model, rngs=rngs))
+        self.w_v_up(nnx.Linear(in_features=d_latent, out_features=d_model, rngs=rngs))
 
         self.w_o = nnx.Linear(in_features=d_model, out_features=d_model, rngs=rngs)
+
         self.dropout = nnx.Dropout(rate=dropout_rate)
 
     @staticmethod
@@ -81,11 +77,21 @@ class MultiHeadAttentionBlock(nnx.Module):
 
         return x
 
+    @staticmethod
+    def split_heads(self, x: Array) -> Array:
+        batch_size, seq_len, _ = x.shape
+        return x.reshape(batch_size, seq_len, self.n_heads, self.d_k).transpose(
+            0, 2, 1, 3
+        )
+
+    @staticmethod
+    def combine_heads(self, x: Array) -> Array:
+        batch_size, _, seq_len, _ = x.shape
+        return x.transpose(0, 2, 1, 3).reshape(batch_size, seq_len, self.d_model)
+
     def __call__(
         self,
-        q: Array,
-        k: Array,
-        v: Array,
+        x: Array,
         mask: Array,
         is_training: bool,
         rngs: nnx.Rngs,
@@ -103,42 +109,37 @@ class MultiHeadAttentionBlock(nnx.Module):
         Returns:
             Array
         """
-        query = self.w_q(
-            q
+
+        q = self.w_q(
+            x
         )  # (batch_size, seq_len, d_model) --> (batch_size, d_model, d_model)
-        key = self.w_k(
-            k
-        )  # (batch_size, seq_len, d_model)  --> (batch_size, d_model, d_model)
-        value = self.w_v(
-            v
-        )  # (batch_size, seq_len, d_model)  --> (batch_size, d_model, d_model)
 
-        # these will be the same in the encoder
-        batch_size_q, seq_len_q, _ = query.shape  # decoder query
-        batch_size_k, seq_len_k, d_model = key.shape  # encoder key/value
+        kv_latent = self.w_kv_down(
+            x
+        )  # (batch_size, seq_len, d_model) --> (batch_size, d_model, d_latent)
 
-        # (batch_size, seq_len, d_model) -> (batch_size, n_heads, seq_len, d_k)
-        # reshape n samples of size (seq_len, d_model) into n samples where each sample
-        # has a n heads (matrices) of size (seq_len, d_k)
-        query = query.reshape(
-            batch_size_q, seq_len_q, self.n_heads, self.d_k
-        ).transpose(0, 2, 1, 3)
-        key = key.reshape(batch_size_k, seq_len_k, self.n_heads, self.d_k).transpose(
-            0, 2, 1, 3
-        )
-        value = value.reshape(
-            batch_size_k, seq_len_k, self.n_heads, self.d_k
-        ).transpose(0, 2, 1, 3)
+        k = self.w_k_up(
+            kv_latent
+        )  # (batch_size, d_model, d_latent) --> (batch_size, d_model, d_model)
+        v = self.w_v_up(
+            kv_latent
+        )  # (batch_size, d_model, d_latent) --> (batch_size, d_model, d_model)
 
-        # scaled dot product
-        # (batch_size, n_heads, seq_len, d_k) -> (batch_size, n_heads, seq_len, d_k)
+        q = self.split_heads(q)
+        k = self.split_heads(k)
+        v = self.split_heads(v)
+
         x = self.scaled_dot_product_attention(
-            query, key, value, mask, self.dropout, is_training, rngs
+            query=q,
+            key=k,
+            value=v,
+            mask=mask,
+            dropout=self.dropout,
+            is_training=is_training,
+            rngs=rngs,
         )
 
-        # merge heads from (batch_size, n_heads, seq_len, d_k) back to (batch_size, seq_len, D_model)
-        x = x.transpose(0, 2, 1, 3).reshape(batch_size_q, seq_len_q, d_model)
+        x = self.combine_heads(x)
 
-        # final linear
-        x = self.w_o(x)  # (batch_size, seq_len, d_model)
+        x = self.w_o(x)
         return x
