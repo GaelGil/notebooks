@@ -169,9 +169,17 @@ def main():
     val_batches_per_epoch = len(val_data_phase2) // config.BATCH_SIZE
 
     # Update config for Phase 2
-    config.EPOCHS = 20
+    config.EPOCHS = 40
     config.DROPOUT_SCHEDULE = {0: 0.1, 5: 0.25, 15: 0.35}
     config.CHECKPOINT_PATH = Path("./chckpnts_phase2_mixed/")
+    config.LR = 2e-4
+    model, optimizer, step = init_state(
+        config=config,
+        src_vocab_size=vocab_size,
+        target_vocab_size=vocab_size,
+        manager=manager,
+        batches_per_epoch=batches_per_epoch,
+    )
 
     logging.info("Starting Phase 2: Mixed training (80% Nahuatl + 20% English)")
     train(
