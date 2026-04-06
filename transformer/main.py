@@ -6,7 +6,7 @@ from grain.transforms import Batch
 from pathlib import Path
 
 from utils.config import config
-from utils.DataLoader import Source
+from utils.Source import Source
 from utils.MixedDataset import MixedDataset
 from utils.handle_tokenizer_data import handle_tokenizer_data
 from utils.init_state import init_state
@@ -126,13 +126,16 @@ def main():
         target_path=dataset_two_paths["val_target"],
         pad_id=tokenizer.sp.pad_id(),
     )
+    # Update config for Phase 2
+    config.EPOCHS = 40
+    config.DROPOUT_SCHEDULE = {0: 0.1, 15: 0.25, 25: 0.35}
+    config.CHECKPOINT_PATH = Path("./chckpnts_phase2_mixed/")
+    config.LR = 2e-4
 
     # Create mixed dataset for training (80% Nahuatl, 20% English)
     train_data_phase2 = MixedDataset(
         en_data=train_data,
         nah_data=es_nah_data,
-        mix_ratio=0.8,  # 80% Nahuatl
-        seed=42,
     )
 
     # Update samplers
@@ -140,7 +143,7 @@ def main():
         num_records=len(train_data_phase2),
         shard_options=grain.sharding.NoSharding(),
         shuffle=True,
-        num_epochs=20,
+        num_epochs=config.EPOCHS,
         seed=42,
     )
     eval_sampler = IndexSampler(
@@ -168,16 +171,15 @@ def main():
     batches_per_epoch = len(train_data_phase2) // config.BATCH_SIZE
     val_batches_per_epoch = len(val_data_phase2) // config.BATCH_SIZE
 
-    # Update config for Phase 2
-    config.EPOCHS = 40
-    config.DROPOUT_SCHEDULE = {0: 0.1, 5: 0.25, 15: 0.35}
-    config.CHECKPOINT_PATH = Path("./chckpnts_phase2_mixed/")
-    config.LR = 2e-4
+    manager_phase2 = ocp.CheckpointManager(
+        directory=config.CHECKPOINT_PATH.resolve(),
+        options=checkpoint_options,
+    )
     model, optimizer, step = init_state(
         config=config,
         src_vocab_size=vocab_size,
         target_vocab_size=vocab_size,
-        manager=manager,
+        manager=manager_phase2,
         batches_per_epoch=batches_per_epoch,
     )
 
@@ -188,11 +190,11 @@ def main():
         train_loader=train_loader,
         val_loader=val_loader,
         epochs=config.EPOCHS,
-        manager=manager,
+        manager=manager_phase2,
         logger=logging,
         batches_per_epoch=batches_per_epoch,
         val_batches_per_epoch=val_batches_per_epoch,
-        step=0,
+        step=step,
         seed=config.SEED,
         dropout_schedule=config.DROPOUT_SCHEDULE,
     )
