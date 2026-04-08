@@ -59,19 +59,7 @@ class EncoderBlock(nnx.Module):
         Returns:
             Array
         """
-        # attention block output
-        # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
-        # multi_head_attention_output = self.multi_head_attention_block(
-        #     q=x, k=x, v=x, mask=src_mask, is_training=is_training, rngs=rngs
-        # )
 
-        # # add and norm output
-        # # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
-        # x = self.dropout(
-        #     self.norm1(multi_head_attention_output + x),
-        #     deterministic=not is_training,
-        #     rngs=rngs,
-        # )
         x_norm = self.norm1(x)
         x = x + self.dropout(
             self.multi_head_attention_block(
@@ -87,19 +75,6 @@ class EncoderBlock(nnx.Module):
         )
 
         x_norm = self.norm2(x)
-        # pass in new x into feed forward and get output
-        # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
-        # feed_forward_output = self.feed_forward_block(
-        #     x_norm, is_training=is_training, rngs=rngs
-        # )
-
-        # # add and norm ff output
-        # # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
-        # x = self.dropout(
-        #     self.norm2(feed_forward_output + x),
-        #     deterministic=not is_training,
-        #     rngs=rngs,
-        # )
         x = x + self.dropout(
             self.feed_forward_block(x_norm, is_training=is_training, rngs=rngs),
             deterministic=not is_training,
