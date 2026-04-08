@@ -95,7 +95,7 @@ def main():
     )
 
     logging.info(f"Training the model from step {step}")
-    if step != config.EPOCHS:
+    if step < config.EPOCHS:
         train(
             model=model,
             optimizer=optimizer,
@@ -127,10 +127,10 @@ def main():
         pad_id=tokenizer.sp.pad_id(),
     )
     # Update config for Phase 2
-    config.EPOCHS = 40
-    config.DROPOUT_SCHEDULE = {0: 0.1, 15: 0.25, 25: 0.35}
+    config.EPOCHS = 50
+    config.DROPOUT_SCHEDULE = {0: 0.1, 10: 0.15, 30: 0.2, 45: 0.25, 60: 0.3}
     config.CHECKPOINT_PATH = Path("./chckpnts_phase2_mixed/")
-    config.LR = 2e-4
+    # config.LR = 2e-4
 
     # Create mixed dataset for training (80% Nahuatl, 20% English)
     train_data_phase2 = MixedDataset(
@@ -198,6 +198,9 @@ def main():
         seed=config.SEED,
         dropout_schedule=config.DROPOUT_SCHEDULE,
     )
+
+    # TODO: test seq_len=512
+    # TODO: only train on nah and en at the same time using mixed dataset only
 
 
 if __name__ == "__main__":

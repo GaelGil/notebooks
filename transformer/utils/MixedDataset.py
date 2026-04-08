@@ -1,5 +1,6 @@
 import grain
 from utils.Source import Source
+import random
 
 
 class MixedDataset(grain.DataLoader):
@@ -14,19 +15,24 @@ class MixedDataset(grain.DataLoader):
         self,
         en_data: Source,
         nah_data: Source,
-        batch_size: int,
+        seed: int = 42,
     ):
         self.en_data = en_data
         self.nah_data = nah_data
-        nah_batches = int(len(nah_data) / batch_size)
 
-        self.indices = list(range(nah_batches) * 2)
+        self.n_nah = len(self.nah_data)
+        self.n_en = len(self.en_data)
+
+        rng = random.Random(seed)
+
+        self.en_indices = rng.sample(range(self.n_en), self.n_nah)
 
     def __len__(self):
-        return self.indices
+        return self.n_nah * 2
 
     def __getitem__(self, idx):
-        if idx < int(self.indices / 2):
+        if idx < self.n_nah:
             return self.nah_data[idx]
         else:
-            return self.en_data[idx]
+            en_idx = self.en_indices[idx - self.n_nah]
+            return self.en_data[en_idx]

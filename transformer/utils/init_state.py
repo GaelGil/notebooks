@@ -104,7 +104,7 @@ def init_state(
     # restore the state
     latest = manager.latest_step()
     if latest is not None:
-        # latest = manager.best_step()
+        latest = manager.best_step()
         restored = manager.restore(
             step=latest,
             args=ocp.args.Composite(
