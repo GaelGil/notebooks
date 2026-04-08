@@ -9,18 +9,6 @@ from transformer.ProjectionLayer import ProjectionLayer
 
 
 class Transformer(nnx.Module):
-    """
-    Transformer model
-    Attributes:
-        src_embeddings: InputEmbeddings
-        src_pe: PositionalEncoding
-        target_embeddings: InputEmbeddings
-        target_pe: PositionalEncoding
-        encoder: Encoder
-        decoder: Decoder
-        projection_layer: ProjectionLayer
-    """
-
     def __init__(
         self,
         d_model: int,
@@ -111,7 +99,7 @@ class Transformer(nnx.Module):
         cross_mask: Array,
         is_training: bool,
         rngs: nnx.Rngs | None = None,
-    ):
+    ) -> Array:
         # get the embeddings for the src
         src_embeddings = self.src_embeddings(x=src)
         # apply positional encoding to the src embeddings

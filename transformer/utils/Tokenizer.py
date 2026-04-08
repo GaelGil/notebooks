@@ -80,9 +80,12 @@ class Tokenizer:
         prefixs=None,
     ):
         """
-        Trains a sentencepiece tokenizer on the joint corpus
+        Trains a sentencepiece tokenizer on the joint corpus. Since both src languages
+        are the same we combine them.
 
         Args:
+            src: list of strings
+            target: list of strings
             src_one: list of strings
             target_one: list of strings
             src_two: list of strings

@@ -3,13 +3,6 @@ from jax import Array
 
 
 class InputEmbeddings(nnx.Module):
-    """
-    Input embeddings
-    Attributes:
-        embedding: nnx.Embed
-        d_model: dimension of the model
-    """
-
     def __init__(self, d_model: int, vocab_size: int, rngs: nnx.Rngs) -> None:
         """
         Initialize the embeddings matrix1
@@ -32,7 +25,13 @@ class InputEmbeddings(nnx.Module):
 
         self.d_model = d_model
 
-    def __call__(self, x: Array):
+    def __call__(self, x: Array) -> Array:
+        """
+        Args:
+            x: input
+
+        Returns:
+            Array"""
         # Get the embedding for each word in x
         # multiply by the square root of d_model for normalization and stability during training
         # (batch_size, seq_len) --> (batch_size, seq_len, d_model

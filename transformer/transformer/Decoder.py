@@ -6,18 +6,6 @@ from transformer.FeedForwardBlock import FeedForwardBlock
 
 
 class DecoderBlock(nnx.Module):
-    """
-    Decoder block
-    Attributes:
-        masked_multi_head_attention_block: MultiHeadAttentionBlock
-        nomr1: nnx.LayerNorm
-        cross_attention_block: MultiHeadAttentionBlock
-        norm2: nnx.LayerNorm
-        feed_forward_block: FeedForwardBlock
-        norm3: nnx.LayerNorm
-
-    """
-
     def __init__(
         self,
         d_model: int,
@@ -60,7 +48,7 @@ class DecoderBlock(nnx.Module):
         cross_mask: Array,
         is_training: bool,
         rngs: nnx.Rngs,
-    ):
+    ) -> Array:
         """
         Args:
             x: input
@@ -68,6 +56,7 @@ class DecoderBlock(nnx.Module):
             self_mask: self mask
             cross_mask: cross mask
             is_training: is training
+            rngs: rngs
 
         Returns:
             Array
@@ -163,12 +152,6 @@ class DecoderBlock(nnx.Module):
 
 
 class Decoder(nnx.Module):
-    """
-    Decoder
-    list of decoder blocks
-    layer norm
-    """
-
     def __init__(
         self, decoder_blocks: nnx.List[DecoderBlock], d_model: int, rngs: nnx.Rngs
     ) -> None:
@@ -192,7 +175,7 @@ class Decoder(nnx.Module):
         cross_mask: Array,
         is_training: bool,
         rngs: nnx.Rngs,
-    ):
+    ) -> Array:
         """
         Args:
             x: input
