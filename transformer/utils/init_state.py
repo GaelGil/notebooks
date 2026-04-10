@@ -116,7 +116,7 @@ def init_state(
         nnx.update(model, restored["state"])
         nnx.update(optimizer, restored["optimizer"])
         # return the restored model and optimizer
-        assert latest
+        # assert latest
         return model, optimizer, latest + 1
 
     # run the model with dummy inputs

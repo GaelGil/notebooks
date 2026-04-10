@@ -10,11 +10,7 @@ class MultiHeadAttentionBlock(nnx.Module):
     In multi head attention we split the original input sequence
     (seq_len, d_model) into (n_heads, seq_len, d_k).
 
-<<<<<<< HEAD
-    Each head has its own fragments of query, key and value
-=======
     Each head has a small part of query, key and value
->>>>>>> 91619b06fb7749c0bbd68a49b8340a41d0707956
 
     This way each head can focus on learning different representations
     of the sequence rather than learning the same representation for
@@ -31,10 +27,7 @@ class MultiHeadAttentionBlock(nnx.Module):
             d_model: dimension of the model
             n_heads: number of heads
             dropout_rate: dropout probability
-<<<<<<< HEAD
-=======
             rngs: rngs
->>>>>>> 91619b06fb7749c0bbd68a49b8340a41d0707956
 
         Returns:
             None
@@ -110,11 +103,6 @@ class MultiHeadAttentionBlock(nnx.Module):
         Returns:
             Array
         """
-<<<<<<< HEAD
-        query = self.w_q(q)  # (batch_size, seq_len, d_model)
-        key = self.w_k(k)  # (batch_size, seq_len, d_model)
-        value = self.w_v(v)  # (batch_size, seq_len, d_model)
-=======
         query = self.w_q(
             q
         )  # (batch_size, seq_len, d_model) --> (batch_size, d_model, d_model)
@@ -124,7 +112,6 @@ class MultiHeadAttentionBlock(nnx.Module):
         value = self.w_v(
             v
         )  # (batch_size, seq_len, d_model)  --> (batch_size, d_model, d_model)
->>>>>>> 91619b06fb7749c0bbd68a49b8340a41d0707956
 
         # these will be the same in the encoder
         batch_size_q, seq_len_q, _ = query.shape  # decoder query

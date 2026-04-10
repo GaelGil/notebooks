@@ -111,9 +111,7 @@ def main():
             dropout_schedule=config.DROPOUT_SCHEDULE,
         )
 
-    # ========== PHASE 2: Mixed Training (80% Nahuatl, 20% English) ==========
-    logging.info("Setting up Phase 2: Mixed training (80% Nahuatl, 20% English)")
-
+    logging.info("Setting up Phase 2")
     es_nah_data = Source(
         src_path=dataset_two_paths["train_src"],  # Spanish
         target_path=dataset_two_paths["train_target"],  # Nahuatl
@@ -127,18 +125,16 @@ def main():
         pad_id=tokenizer.sp.pad_id(),
     )
     # Update config for Phase 2
-    config.EPOCHS = 50
-    config.DROPOUT_SCHEDULE = {0: 0.1, 10: 0.15, 30: 0.2, 45: 0.25, 60: 0.3}
-    config.CHECKPOINT_PATH = Path("./chckpnts_phase2_mixed/")
-    # config.LR = 2e-4
+    config.DROPOUT_SCHEDULE = {0: 0, 10: 0.1, 15: 0.15, 20: 0.25, 50: 0.3}
+    config.CHECKPOINT_PATH = Path("./chckpnts_phase2_mixed_model/")
 
-    # Create mixed dataset for training (80% Nahuatl, 20% English)
+    # Create mixed dataset for training
     train_data_phase2 = MixedDataset(
         en_data=train_data,
         nah_data=es_nah_data,
     )
 
-    # Update samplers
+    # New samplers
     train_sampler = IndexSampler(
         num_records=len(train_data_phase2),
         shard_options=grain.sharding.NoSharding(),
@@ -154,7 +150,7 @@ def main():
         seed=42,
     )
 
-    # Initialize dataloaders
+    # Initialize New dataloaders
     train_loader = grain.DataLoader(
         data_source=train_data_phase2,
         sampler=train_sampler,
@@ -171,11 +167,13 @@ def main():
     batches_per_epoch = len(train_data_phase2) // config.BATCH_SIZE
     val_batches_per_epoch = len(val_data_phase2) // config.BATCH_SIZE
 
+    # Initialize new checkpoint manager
     manager_phase2 = ocp.CheckpointManager(
         directory=config.CHECKPOINT_PATH.resolve(),
         options=checkpoint_options,
     )
-    model, optimizer, step = init_state(
+    # Initialize new optimizer
+    _, optimizer, step = init_state(
         config=config,
         src_vocab_size=vocab_size,
         target_vocab_size=vocab_size,
@@ -183,7 +181,7 @@ def main():
         batches_per_epoch=batches_per_epoch,
     )
 
-    logging.info("Starting Phase 2: Mixed training (80% Nahuatl + 20% English)")
+    logging.info("Starting Phase 2")
     train(
         model=model,
         optimizer=optimizer,
