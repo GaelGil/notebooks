@@ -29,27 +29,11 @@ def test():
 
     # # get the vocab size
     vocab_size = tokenizer.get_vocab_size()
-<<<<<<< HEAD
-    model, _, _ = init_state(
-=======
     model, _, step = init_state(
->>>>>>> 91619b06fb7749c0bbd68a49b8340a41d0707956
         config=config,
         src_vocab_size=vocab_size,
         target_vocab_size=vocab_size,
         manager=manager,
-<<<<<<< HEAD
-        logger=logging,
-        batches_per_epoch=100,
-    )
-    eos_id = tokenizer.sp.eos_id()
-
-    es_ids = tokenizer.encode(
-        text="hola como estas hoy en este momento",
-        add_bos=False,
-        add_eos=False,
-        prefix="<es-to-en>",
-=======
         batches_per_epoch=100,
     )
     print(f"STEP: {step}")
@@ -60,28 +44,20 @@ def test():
         add_bos=False,
         add_eos=False,
         prefix="<es_to_en>",
->>>>>>> 91619b06fb7749c0bbd68a49b8340a41d0707956
     )
     en_ids = tokenizer.encode(text="", add_bos=True, add_eos=False)
     es = jnp.array([es_ids], dtype=jnp.int32)  # [1, src_len]
     en = jnp.array([en_ids], dtype=jnp.int32)
     generated_ids = []
     while True:
-<<<<<<< HEAD
-=======
         decoder_self_attention_mask = jnp.tril(
             jnp.ones((en.shape[1], en.shape[1]), dtype=jnp.bool_)
         )[None, None, :, :]
->>>>>>> 91619b06fb7749c0bbd68a49b8340a41d0707956
         logits = model(
             src=es,
             target=en,
             src_mask=None,
-<<<<<<< HEAD
-            self_mask=None,
-=======
             self_mask=decoder_self_attention_mask,
->>>>>>> 91619b06fb7749c0bbd68a49b8340a41d0707956
             cross_mask=None,
             is_training=False,
         )
