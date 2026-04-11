@@ -125,8 +125,9 @@ def main():
         pad_id=tokenizer.sp.pad_id(),
     )
     # Update config for Phase 2
-    config.DROPOUT_SCHEDULE = {0: 0, 10: 0.1, 15: 0.15, 20: 0.25, 50: 0.3}
+    config.DROPOUT_SCHEDULE = {0: 0, 15: 0.05, 20: 0.1, 30: 0.15, 45: 0.25, 60: 0.30}
     config.CHECKPOINT_PATH = Path("./chckpnts_phase2_mixed_model/")
+    config.BATCH_SIZE = 16
 
     # Create mixed dataset for training
     train_data_phase2 = MixedDataset(
