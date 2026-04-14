@@ -94,22 +94,22 @@ def main():
         batches_per_epoch=batches_per_epoch,
     )
 
-    logging.info(f"Training the model from step {step}")
-    if step < config.EPOCHS:
-        train(
-            model=model,
-            optimizer=optimizer,
-            train_loader=train_loader,
-            val_loader=val_loader,
-            epochs=config.EPOCHS,
-            manager=manager,
-            logger=logging,
-            batches_per_epoch=batches_per_epoch,
-            val_batches_per_epoch=val_batches_per_epoch,
-            step=step,
-            seed=config.SEED,
-            dropout_schedule=config.DROPOUT_SCHEDULE,
-        )
+    # logging.info(f"Training the model from step {step}")
+    # if step < config.EPOCHS:
+    #     train(
+    #         model=model,
+    #         optimizer=optimizer,
+    #         train_loader=train_loader,
+    #         val_loader=val_loader,
+    #         epochs=config.EPOCHS,
+    #         manager=manager,
+    #         logger=logging,
+    #         batches_per_epoch=batches_per_epoch,
+    #         val_batches_per_epoch=val_batches_per_epoch,
+    #         step=step,
+    #         seed=config.SEED,
+    #         dropout_schedule=config.DROPOUT_SCHEDULE,
+    #     )
 
     logging.info("Setting up Phase 2")
     es_nah_data = Source(
@@ -118,24 +118,26 @@ def main():
         pad_id=tokenizer.sp.pad_id(),
     )
 
-    # Validation data: Use Nahuatl only for evaluation
+    # use Nahuatl only for evaluation
     val_data_phase2 = Source(
         src_path=dataset_two_paths["val_src"],
         target_path=dataset_two_paths["val_target"],
         pad_id=tokenizer.sp.pad_id(),
     )
-    # Update config for Phase 2
-    config.DROPOUT_SCHEDULE = {0: 0, 15: 0.05, 20: 0.1, 30: 0.15, 45: 0.25, 60: 0.30}
+    # update config for Phase 2
+    # config.DROPOUT_SCHEDULE = {0: 0, 20: 0.05, 30: 0.1, 45: 0.15, 65: 0.25, 80: 0.30}
+    config.DROPOUT_SCHEDULE = {0: 0, 15: 0.1, 30: 0.15, 45: 0.25, 55: 0.3}
     config.CHECKPOINT_PATH = Path("./chckpnts_phase2_mixed_model/")
     config.BATCH_SIZE = 16
+    config.LR = 1e-4  # LR changed from 3e-4 to 1e-4 lowerd accuracy and eval loss
 
-    # Create mixed dataset for training
+    # create mixed dataset for training
     train_data_phase2 = MixedDataset(
         en_data=train_data,
         nah_data=es_nah_data,
     )
 
-    # New samplers
+    # new samplers
     train_sampler = IndexSampler(
         num_records=len(train_data_phase2),
         shard_options=grain.sharding.NoSharding(),
@@ -151,7 +153,7 @@ def main():
         seed=42,
     )
 
-    # Initialize New dataloaders
+    # initialize New dataloaders
     train_loader = grain.DataLoader(
         data_source=train_data_phase2,
         sampler=train_sampler,
@@ -173,7 +175,7 @@ def main():
         directory=config.CHECKPOINT_PATH.resolve(),
         options=checkpoint_options,
     )
-    # Initialize new optimizer
+    # initialize the phase 1 model, new optimizer and step for phase 2
     _, optimizer, step = init_state(
         config=config,
         src_vocab_size=vocab_size,
