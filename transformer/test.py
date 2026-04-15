@@ -5,13 +5,12 @@ from jax import numpy as jnp
 from utils.config import config
 from utils.handle_tokenizer_data import handle_tokenizer_data
 from utils.init_state import init_state
+from pathlib import Path
 
 
 def test():
 
-    tokenizer, dataset_one_paths, dataset_two_paths = handle_tokenizer_data(
-        logging=logging
-    )
+    tokenizer, _, _ = handle_tokenizer_data(logging=logging)
 
     checkpoint_options = ocp.CheckpointManagerOptions(
         max_to_keep=config.MAX_TO_KEEP,
@@ -20,14 +19,14 @@ def test():
         best_fn=lambda metrics: metrics[config.BEST_FN],
         best_mode="min",
     )
+    config.CHECKPOINT_PATH = Path("./chckpnts_phase2_mixed_model/")
 
-    # # initialize the checkpoint manager with the options
+    # initialize the checkpoint manager with the options
     manager = ocp.CheckpointManager(
         directory=config.CHECKPOINT_PATH.resolve(),
         options=checkpoint_options,
     )
-
-    # # get the vocab size
+    # get the vocab size
     vocab_size = tokenizer.get_vocab_size()
     model, _, step = init_state(
         config=config,
@@ -40,7 +39,8 @@ def test():
     eos_id = tokenizer.sp.eos_id()
 
     es_ids = tokenizer.encode(
-        text="hola, ¿cual es la capital de Mexico?",
+        # text="hola, ¿cual es la capital de Mexico?",
+        text="muchas flores son blancas",
         add_bos=False,
         add_eos=False,
         prefix="<es_to_en>",
