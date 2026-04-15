@@ -28,7 +28,7 @@ class PositionalEncoding(nnx.Module):
             rngs=rngs,
         )
 
-    def __call__(self, x: Array, is_training: bool, rngs: nnx.Rngs) -> Array:
+    def __call__(self, x: Array, is_training: bool, rngs: nnx.Rngs | None) -> Array:
         """
         Args:
             x: input tensor of shape (batch_size, seq_len, d_model)

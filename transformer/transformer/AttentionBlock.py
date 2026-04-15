@@ -52,7 +52,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         mask: Array,
         dropout: nnx.Dropout,
         is_training: bool,
-        rngs: nnx.Rngs,
+        rngs: nnx.Rngs | None,
     ) -> Array:
         d_k = query.shape[-1]  # get dimension of last axis
         # (Q * K^T)/sqrt(d_k)
@@ -88,7 +88,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         v: Array,
         mask: Array,
         is_training: bool,
-        rngs: nnx.Rngs,
+        rngs: nnx.Rngs | None,
     ):
         """
 
