@@ -1,13 +1,12 @@
 from pathlib import Path
 
-from absl import logging
 
-from utils.config import config
+from utils.config import Config
 from utils.LangDataset import LangDataset
 from utils.Tokenizer import Tokenizer
 
 
-def handle_tokenizer_data(logging: logging) -> tuple[Tokenizer, dict, dict]:
+def handle_tokenizer_data(config: Config, logging) -> tuple[Tokenizer, dict, dict]:
     """
     Handles the tokenizer and dataset instances
 

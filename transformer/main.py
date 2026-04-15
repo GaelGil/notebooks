@@ -1,15 +1,16 @@
+from pathlib import Path
+
 import grain
 import orbax.checkpoint as ocp
 from absl import logging
 from grain.samplers import IndexSampler
 from grain.transforms import Batch
-from pathlib import Path
 
 from utils.config import config
-from utils.Source import Source
-from utils.MixedDataset import MixedDataset
 from utils.handle_tokenizer_data import handle_tokenizer_data
 from utils.init_state import init_state
+from utils.MixedDataset import MixedDataset
+from utils.Source import Source
 from utils.train_eval import train
 
 logging.set_verbosity(logging.INFO)
@@ -18,7 +19,7 @@ logging.set_verbosity(logging.INFO)
 def main():
     # get the tokenizer and dataset paths
     tokenizer, dataset_one_paths, dataset_two_paths = handle_tokenizer_data(
-        logging=logging
+        config=config, logging=logging
     )
 
     # get the vocab size
