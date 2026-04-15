@@ -49,7 +49,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         query: Array,  # (batch_size, n_heads, seq_len, d_k)
         key: Array,  # (batch_size, n_heads, seq_len, d_k)
         value: Array,  # (batch_size, n_heads, seq_len, d_k)
-        mask: Array,
+        mask: Array | None,
         dropout: nnx.Dropout,
         is_training: bool,
         rngs: nnx.Rngs | None,
@@ -86,7 +86,7 @@ class MultiHeadAttentionBlock(nnx.Module):
         q: Array,
         k: Array,
         v: Array,
-        mask: Array,
+        mask: Array | None,
         is_training: bool,
         rngs: nnx.Rngs | None,
     ):

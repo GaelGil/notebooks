@@ -48,7 +48,7 @@ class EncoderBlock(nnx.Module):
         self.norm2 = nnx.LayerNorm(num_features=d_model, rngs=rngs)
 
     def __call__(
-        self, x: Array, src_mask: Array, is_training: bool, rngs: nnx.Rngs | None
+        self, x: Array, src_mask: Array | None, is_training: bool, rngs: nnx.Rngs | None
     ) -> Array:
         """
         Args:
@@ -101,7 +101,7 @@ class Encoder(nnx.Module):
         self.norm: nnx.LayerNorm = nnx.LayerNorm(num_features=d_model, rngs=rngs)
 
     def __call__(
-        self, x: Array, mask: Array, is_training: bool, rngs: nnx.Rngs | None
+        self, x: Array, mask: Array | None, is_training: bool, rngs: nnx.Rngs | None
     ) -> Array:
         """
         Args:
