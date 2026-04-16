@@ -93,10 +93,10 @@ class Transformer(nnx.Module):
     def __call__(
         self,
         src: Array,
-        src_mask: Array,
+        src_mask: Array | None,
         target: Array,
         self_mask: Array,
-        cross_mask: Array,
+        cross_mask: Array | None,
         is_training: bool,
         rngs: nnx.Rngs | None = None,
     ) -> Array:

@@ -38,6 +38,8 @@ class Config(BaseModel):
     WARMUP_STEPS: int
     SEED: int
     DROPOUT_SCHEDULE: dict
+    WEIGHT_DECAY: float
+    INIT_LR: float
 
 
 config = Config(
@@ -75,4 +77,6 @@ config = Config(
     WARMUP_STEPS=50,
     SEED=42,
     DROPOUT_SCHEDULE={0: 0.15, 15: 0.25, 30: 0.3},
+    WEIGHT_DECAY=0.05,
+    INIT_LR=0.0,
 )

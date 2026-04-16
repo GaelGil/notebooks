@@ -26,7 +26,7 @@ class FeedForwardBlock(nnx.Module):
         )
         self.dropout = nnx.Dropout(rate=dropout_rate)
 
-    def __call__(self, x: Array, is_training: bool, rngs: nnx.Rngs) -> Array:
+    def __call__(self, x: Array, is_training: bool, rngs: nnx.Rngs | None) -> Array:
         """
         Args:
             x: input

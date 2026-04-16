@@ -46,8 +46,6 @@ def train(
         total=batches_per_epoch,
         desc=f"Epoch {current_epoch}/{epochs}",
     )
-    # freeze the encoder for second phase
-    model.encoder.trainable = False
 
     for batch in train_loader:
         dropout_key = jax.random.fold_in(base_rng, global_step)

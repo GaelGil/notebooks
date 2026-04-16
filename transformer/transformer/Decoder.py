@@ -45,9 +45,9 @@ class DecoderBlock(nnx.Module):
         x: Array,
         encoder_output: Array,
         self_mask: Array,
-        cross_mask: Array,
+        cross_mask: Array | None,
         is_training: bool,
-        rngs: nnx.Rngs,
+        rngs: nnx.Rngs | None,
     ) -> Array:
         """
         Args:
@@ -124,9 +124,9 @@ class Decoder(nnx.Module):
         x: Array,
         encoder_output: Array,
         self_mask: Array,
-        cross_mask: Array,
+        cross_mask: Array | None,
         is_training: bool,
-        rngs: nnx.Rngs,
+        rngs: nnx.Rngs | None,
     ) -> Array:
         """
         Args:
