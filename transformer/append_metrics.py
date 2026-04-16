@@ -2,14 +2,14 @@
 import json
 import os
 
-txt_file = "./metrics/chckpnts_phase2_mixed_model.txt"
-checkpoint_dir = "./chckpnts_phase2_mixed_model"
+txt_file = "./metrics/chckpnts_phase_2_mixed_model_bsize_12_epoch_200.txt"
+checkpoint_dir = "./chckpnts_phase_2_mixed_model_bsize_12_epoch_200"
 
 # Get all checkpoint folders after 99
 epochs = []
 for name in os.listdir(checkpoint_dir):
     path = os.path.join(checkpoint_dir, name)
-    if os.path.isdir(path) and name.isdigit() and int(name) > 179:
+    if os.path.isdir(path) and name.isdigit() and int(name) > 31:
         epochs.append(int(name))
 
 epochs.sort()
@@ -25,5 +25,3 @@ with open(txt_file, "a") as f:
             eval_loss = data["eval_loss"]
             eval_accuracy = data["eval_accuracy"]
             f.write(f"{epoch},{eval_loss},{eval_accuracy},{train_loss}\n")
-
-print("Done!")

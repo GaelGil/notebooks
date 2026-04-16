@@ -1,16 +1,21 @@
 import orbax.checkpoint as ocp
-from absl import logging
 from jax import numpy as jnp
 
 from utils.config import config
-from utils.handle_tokenizer_data import handle_tokenizer_data
 from utils.init_state import init_state
 from pathlib import Path
+from utils.Tokenizer import Tokenizer
 
 
 def test():
 
-    tokenizer, _, _ = handle_tokenizer_data(logging=logging)
+    tokenizer = Tokenizer(
+        corpus_path=config.SRC_CORPUS_PATH,
+        tokenizer_path=config.TOKENIZER_PATH,
+        tokenizer_model_path=config.TOKENIZER_MODEL_PATH,
+        model_prefix="joint",
+        seq_len=config.SEQ_LEN,
+    )
 
     checkpoint_options = ocp.CheckpointManagerOptions(
         max_to_keep=config.MAX_TO_KEEP,

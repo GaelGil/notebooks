@@ -125,8 +125,8 @@ def main():
         pad_id=tokenizer.sp.pad_id(),
     )
     # update config for Phase 2
-    config.DROPOUT_SCHEDULE = {0: 0, 15: 0.1, 30: 0.15, 45: 0.25, 55: 0.3}
-    config.CHECKPOINT_PATH = Path("./chckpnts_phase_2_mixed_model_bsize_12_epoch_200/")
+    config.DROPOUT_SCHEDULE = {0: 3.0, 10: 3.5, 40: 0.4}
+    config.CHECKPOINT_PATH = Path("./chckpnts_phase_2_mixed_model_bsize_12_epoch_100/")
     config.BATCH_SIZE = 12
     config.LR = 1e-4  # LR changed from 3e-4 to 1e-4 lowerd accuracy and eval loss
 
