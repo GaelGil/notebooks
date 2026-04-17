@@ -37,14 +37,14 @@ class Config(BaseModel):
     PREFIXES: list
     WARMUP_STEPS: int
     SEED: int
-    DROPOUT_SCHEDULE: dict
+    DROPOUT_SCHEDULE: dict | None
     WEIGHT_DECAY: float
     INIT_LR: float
 
 
 config = Config(
     BATCH_SIZE=32,
-    EPOCHS=200,
+    EPOCHS=100,
     LR=3e-4,
     SEQ_LEN=128,
     D_MODEL=512,

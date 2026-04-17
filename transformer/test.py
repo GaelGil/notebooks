@@ -25,6 +25,7 @@ def test():
         best_mode="min",
     )
     config.CHECKPOINT_PATH = Path("./chckpnts_phase2_mixed_model/")
+    tokenizer.load_tokenizer()
 
     # initialize the checkpoint manager with the options
     manager = ocp.CheckpointManager(
@@ -33,6 +34,7 @@ def test():
     )
     # get the vocab size
     vocab_size = tokenizer.get_vocab_size()
+    print(f"Vocab size: {vocab_size}")
     model, _, step = init_state(
         config=config,
         src_vocab_size=vocab_size,
@@ -42,10 +44,9 @@ def test():
     )
     print(f"STEP: {step}")
     eos_id = tokenizer.sp.eos_id()
-
     es_ids = tokenizer.encode(
-        # text="hola, ¿cual es la capital de Mexico?",
-        text="muchas flores son blancas",
+        text="hola, ¿cual es la capital de Mexico?",
+        # text="Entonces lloró Maxtlaton.",
         add_bos=False,
         add_eos=False,
         prefix="<es_to_en>",
