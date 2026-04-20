@@ -126,11 +126,12 @@ def main():
         pad_id=tokenizer.sp.pad_id(),
     )
     # update config for Phase 2
-    config.DROPOUT_SCHEDULE = None
-    config.DROPOUT = 0.15
+    config.DROPOUT_SCHEDULE = {1: 0.0, 6: 0.1, 12: 0.15}
+    # config.DROPOUT = 0.15
     config.CHECKPOINT_PATH = Path(
-        "./chckpnts_50_dropout_schedule_weight_decay_0.05_bsize_12/"
+        "./chckpnts_phase_2_transfer_dropout_weight_decay_0.01"
     )
+    config.EPOCHS = 300
     config.BATCH_SIZE = 12
     config.LR = 5e-5
     config.WEIGHT_DECAY = 0.01
