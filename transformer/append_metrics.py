@@ -9,7 +9,7 @@ checkpoint_dir = "./chckpnts_phase_2_transfer_dropout_weight_decay_0.01"
 epochs = []
 for name in os.listdir(checkpoint_dir):
     path = os.path.join(checkpoint_dir, name)
-    if os.path.isdir(path) and name.isdigit() and int(name) > 77:
+    if os.path.isdir(path) and name.isdigit() and int(name) > 53:
         epochs.append(int(name))
 
 epochs.sort()
