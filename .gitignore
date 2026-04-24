@@ -18,7 +18,7 @@ __pycache__/
  
 */data
 /drug_alcohol_relation
-*.csv
+
 household_power_consumption.txt
 
 *build_opencv
