@@ -126,16 +126,14 @@ def main():
         pad_id=tokenizer.sp.pad_id(),
     )
     # update config for Phase 2
-    config.DROPOUT_SCHEDULE = {1: 0.0, 3: 0.1, 7: 0.15}
+    config.DROPOUT_SCHEDULE = {0: 0.0, 12: 0.1, 20: 0.15, 30: 0.2, 45: 0.25}
     # config.DROPOUT = 0.15
-    config.CHECKPOINT_PATH = Path(
-        "./chckpnts_phase_2_transfer_dropout_weight_decay_0.01"
-    )
-    config.EPOCHS = 100
-    config.BATCH_SIZE = 8
-    config.LR = 5e-5
-    config.WEIGHT_DECAY = 0.01
-    config.INIT_LR = 5e-6
+    config.CHECKPOINT_PATH = Path("./chckpnts/chckpnts_phase_2_batchsize_12_epoch_80")
+    config.EPOCHS = 80
+    config.BATCH_SIZE = 12
+    config.LR = 1e-4
+    config.WEIGHT_DECAY = 0.05
+    config.INIT_LR = 0
 
     # create mixed dataset for training
     train_data_phase2 = MixedDataset(
@@ -205,9 +203,6 @@ def main():
         seed=config.SEED,
         dropout_schedule=config.DROPOUT_SCHEDULE,
     )
-
-    # TODO: test seq_len=512
-    # TODO: only train on nah and en at the same time using mixed dataset only
 
 
 if __name__ == "__main__":

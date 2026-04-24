@@ -1,9 +1,0 @@
-{
-    "epoch": 300,
-    "stop": "none",
-    "batch_size": 8,
-    "start_lr": 5e-6,
-    "dropout_schedule": "1: 0.0, 4: 0.1, 5: 0.15",
-    "weight_decay": 0.01
-    
-}
