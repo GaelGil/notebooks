@@ -2,8 +2,8 @@
 import json
 import os
 
-txt_file = "./metrics/chckpnts_phase_2_transfer_dropout_weight_decay_0.01.txt"
-checkpoint_dir = "./chckpnts_phase_2_transfer_dropout_weight_decay_0.01"
+txt_file = "./metrics/chckpnts_phase_2_batchsize_12_epoch_80.txt"
+checkpoint_dir = "./metrics/chckpnts_phase_2_batchsize_12_epoch_80"
 
 # Get all checkpoint folders after 99
 epochs = []
