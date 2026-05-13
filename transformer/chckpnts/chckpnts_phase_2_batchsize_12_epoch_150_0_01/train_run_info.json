@@ -1,0 +1,8 @@
+{
+  "epoch": 150,
+  "batch_size": 12,
+  "start_lr": 0.0001,
+  "dropout_schedule": "0: 0.0, 10: 0.1, 20: 0.15",
+  "weight_decay": 0.01,
+  "save_best_checkpoint_by": "eval_loss"
+}

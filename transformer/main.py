@@ -128,12 +128,12 @@ def main():
     # update config for Phase 2
     config.DROPOUT_SCHEDULE = {0: 0.0, 10: 0.1, 20: 0.15}
     config.CHECKPOINT_PATH = Path(
-        "./chckpnts/chckpnts_phase_2_batchsize_12_epoch_80_0.01"
+        "./chckpnts/chckpnts_phase_2_batchsize_12_epoch_150_0_05"
     )
-    config.EPOCHS = 80
-    config.BATCH_SIZE = 16
-    config.LR = 1e-4
-    config.WEIGHT_DECAY = 0.01
+    config.EPOCHS = 150
+    config.BATCH_SIZE = 12
+    # config.LR = 1e-4
+    config.WEIGHT_DECAY = 0.05
     config.INIT_LR = 0
 
     # create mixed dataset for training

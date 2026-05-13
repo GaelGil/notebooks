@@ -2,8 +2,8 @@
 import json
 import os
 
-txt_file = "./metrics/chckpnts_phase_2_batchsize_10_epoch_80_0.01.csv"
-checkpoint_dir = "./chckpnts/chckpnts_phase_2_batchsize_10_epoch_80_0.01"
+txt_file = "./metrics/chckpnts_phase_2_batchsize_12_epoch_150_0_05.csv"
+checkpoint_dir = "./chckpnts/chckpnts_phase_2_batchsize_12_epoch_150_0_05"
 
 # Get all checkpoint folders after 99
 epochs = []
