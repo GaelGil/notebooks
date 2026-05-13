@@ -52,7 +52,6 @@ def train(
         step_rngs = nnx.Rngs(dropout=dropout_key)
         if batch_in_epoch == 0:
             if dropout_schedule and current_epoch in dropout_schedule:
-                print(f"CURRENT DROPOUT RATE: {dropout_schedule[current_epoch]}")
                 set_dropout_rate(model=model, rate=dropout_schedule[current_epoch])
         try:
             model.train()
