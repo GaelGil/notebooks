@@ -126,15 +126,25 @@ def main():
         pad_id=tokenizer.sp.pad_id(),
     )
     # update config for Phase 2
-    config.DROPOUT_SCHEDULE = {0: 0, 15: 0.1, 17: 0.15}
+    config.DROPOUT_SCHEDULE = {
+        0: 0,
+        5: 0.1,
+        7: 0.11,
+        9: 0.12,
+        11: 0.13,
+        13: 0.14,
+        15: 0.15,
+    }
     config.CHECKPOINT_PATH = Path(
-        "./chckpnts/phase_two_200_schedule_b12_weight_decay_0_05"
+        "./chckpnts/phase_two_120_schedule_b12_weight_decay_0_01"
     )
     config.DROPOUT = 0
-    config.EPOCHS = 200
+    config.EPOCHS = 120
     config.BATCH_SIZE = 12
-    config.LR = 1e-4
-    config.WEIGHT_DECAY = 0.05
+    # config.LR = 1e-4
+    config.LR = 7e-5
+    config.WEIGHT_DECAY = 0.01
+    config.INIT_LR = 1e-6
 
     # create mixed dataset for training
     # train_data_phase2 = MixedDataset(
