@@ -126,35 +126,28 @@ def main():
         pad_id=tokenizer.sp.pad_id(),
     )
     # update config for Phase 2
-    config.DROPOUT_SCHEDULE = {
-        0: 0,
-        5: 0.1,
-        7: 0.11,
-        9: 0.12,
-        11: 0.13,
-        13: 0.14,
-        15: 0.15,
-    }
+    # config.DROPOUT_SCHEDULE = {0: 0, 15: 0.1, 20: 0.15}
+    config.DROPOUT_SCHEDULE = {0: 0, 5: 0.1, 10: 0.15, 15: 0.20, 20: 0.25}
     config.CHECKPOINT_PATH = Path(
-        "./chckpnts/phase_two_120_schedule_b12_weight_decay_0_01"
+        "./chckpnts/phase_two_200_schedule_b12_weight_decay_0_05_pt8"
     )
     config.DROPOUT = 0
-    config.EPOCHS = 120
+    config.EPOCHS = 200
     config.BATCH_SIZE = 12
-    # config.LR = 1e-4
-    config.LR = 7e-5
-    config.WEIGHT_DECAY = 0.01
-    config.INIT_LR = 1e-6
+    # config.LR = 5e-5
+    config.LR = 1e-4
+    config.WEIGHT_DECAY = 0.05
+    config.INIT_LR = 0
 
     # create mixed dataset for training
-    # train_data_phase2 = MixedDataset(
-    #     en_data=train_data,
-    #     nah_data=es_nah_data,
-    # )
+    train_data_phase2 = MixedDataset(
+        en_data=train_data,
+        nah_data=es_nah_data,
+    )
 
     # new samplers
     train_sampler = IndexSampler(
-        num_records=es_nah_data.__len__(),
+        num_records=train_data_phase2.__len__(),
         shard_options=grain.sharding.NoSharding(),
         shuffle=True,
         num_epochs=config.EPOCHS,
@@ -170,7 +163,7 @@ def main():
 
     # initialize New dataloaders
     train_loader = grain.DataLoader(
-        data_source=es_nah_data,
+        data_source=train_data_phase2,
         sampler=train_sampler,
         operations=[Batch(batch_size=config.BATCH_SIZE, drop_remainder=True)],
         worker_count=config.WORKER_COUNT,
@@ -182,7 +175,7 @@ def main():
         worker_count=config.WORKER_COUNT,
     )
 
-    batches_per_epoch = es_nah_data.__len__() // config.BATCH_SIZE
+    batches_per_epoch = train_data_phase2.__len__() // config.BATCH_SIZE
     val_batches_per_epoch = len(val_data_phase2) // config.BATCH_SIZE
 
     # Initialize new checkpoint manager
