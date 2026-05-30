@@ -47,11 +47,11 @@ def test():
     print(f"STEP: {step}")
     eos_id = tokenizer.sp.eos_id()
     es_ids = tokenizer.encode(
-        text="hola, ¿cual es la capital de Mexico?",
-        # text="muchas flores son blancas",
+        # text="hola, ¿cual es la capital de Mexico?",
+        text="muchas flores son blancas",
         add_bos=False,
         add_eos=False,
-        prefix="<es_to_en>",
+        prefix="<es_to_nah>",
     )
     en_ids = tokenizer.encode(text="", add_bos=True, add_eos=False)
     es = jnp.array([es_ids], dtype=jnp.int32)  # [1, src_len]

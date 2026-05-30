@@ -128,6 +128,7 @@ def main():
     # update config for Phase 2
     # config.DROPOUT_SCHEDULE = {0: 0, 15: 0.1, 20: 0.15}
     config.DROPOUT_SCHEDULE = {0: 0, 5: 0.1, 10: 0.15, 15: 0.20, 20: 0.25}
+    # config.DROPOUT_SCHEDULE = {0: 0, 3: 0.05, 5: 0.1, 15: 0.15, 20: 0.20, 25: 0.25} TODO: try this schedule next
     config.CHECKPOINT_PATH = Path(
         "./chckpnts/phase_two_200_schedule_b12_weight_decay_0_05_pt8"
     )
