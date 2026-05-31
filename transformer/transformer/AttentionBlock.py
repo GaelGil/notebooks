@@ -89,7 +89,9 @@ class MultiHeadAttentionBlock(nnx.Module):
         mask: Array | None,
         is_training: bool,
         rngs: nnx.Rngs | None,
-    ):
+        past_kv: tuple | None = None,
+        use_cache: bool = False,
+    ) -> tuple[Array, tuple | None]:
         """
 
         Args:
@@ -99,9 +101,11 @@ class MultiHeadAttentionBlock(nnx.Module):
             mask: mask
             is_training: is training
             rngs: rngs
+            past_kv: tuple | None = None
+            use_cache: bool = None
 
         Returns:
-            Array
+            tuple[Array , tuple | None]
         """
         query = self.w_q(
             q
@@ -130,6 +134,14 @@ class MultiHeadAttentionBlock(nnx.Module):
             batch_size_k, seq_len_k, self.n_heads, self.d_k
         ).transpose(0, 2, 1, 3)
 
+        # concat with past K,V if provided
+        if past_kv is not None:
+            past_k, past_v = past_kv
+            key = jnp.concatenate([past_k, key], axis=2)
+            value = jnp.concatenate([past_v, value], axis=2)
+
+        present_k, present_v = key, value
+
         # scaled dot product
         # (batch_size, n_heads, seq_len, d_k) -> (batch_size, n_heads, seq_len, d_k)
         x = self.scaled_dot_product_attention(
@@ -141,4 +153,4 @@ class MultiHeadAttentionBlock(nnx.Module):
 
         # final linear
         x = self.w_o(x)  # (batch_size, seq_len, d_model)
-        return x
+        return x, (present_k, present_v) if use_cache else None

@@ -45,10 +45,12 @@ class DecoderBlock(nnx.Module):
         x: Array,
         encoder_output: Array,
         self_mask: Array,
-        cross_mask: Array | None,
+        cross_mask: Array,
         is_training: bool,
         rngs: nnx.Rngs | None,
-    ) -> Array:
+        self_attention_cache: tuple | None = None,
+        use_cache: bool = False,
+    ) -> tuple[Array, tuple | None]:
         """
         Args:
             x: input
@@ -64,7 +66,7 @@ class DecoderBlock(nnx.Module):
 
         x_norm = self.norm1(x)
 
-        x = x + self.dropout(
+        attention_output, self_attention_cache_output = (
             self.masked_multi_head_attention_block(
                 q=x_norm,
                 k=x_norm,
@@ -72,7 +74,13 @@ class DecoderBlock(nnx.Module):
                 mask=self_mask,
                 is_training=is_training,
                 rngs=rngs,
-            ),
+                past_kv=self_attention_cache,
+                use_cache=use_cache,
+            )
+        )
+
+        x = x + self.dropout(
+            attention_output,
             deterministic=not is_training,
             rngs=rngs,
         )
@@ -100,7 +108,7 @@ class DecoderBlock(nnx.Module):
             rngs=rngs,
         )
 
-        return x
+        return x, self_attention_cache_output if use_cache else None
 
 
 class Decoder(nnx.Module):
@@ -124,10 +132,12 @@ class Decoder(nnx.Module):
         x: Array,
         encoder_output: Array,
         self_mask: Array,
-        cross_mask: Array | None,
+        cross_mask: Array,
         is_training: bool,
         rngs: nnx.Rngs | None,
-    ) -> Array:
+        self_attention_cache: list[tuple] | None = None,
+        use_cache: bool = False,
+    ) -> tuple[Array, list[tuple] | None]:
         """
         Args:
             x: input
@@ -137,15 +147,22 @@ class Decoder(nnx.Module):
             is_training: is training
 
         Returns:
-            Array
+            tuple[Array, tuple | None]
         """
-        for block in self.blocks:
-            x = block(
+        caches = [] if use_cache else None
+        for i, block in enumerate(self.blocks):
+            cache_i = self_attention_cache[i] if self_attention_cache else None
+            x, cache_output = block(
                 x=x,
-                encoder_output=encoder_output,
                 self_mask=self_mask,
                 cross_mask=cross_mask,
                 is_training=is_training,
                 rngs=rngs,
+                encoder_output=encoder_output,
+                self_attention_cache=cache_i,
+                use_cache=use_cache,
             )
-        return self.norm(x)
+            if use_cache:
+                assert caches
+                caches.append(cache_output)
+        return self.norm(x), caches if use_cache else None

@@ -93,13 +93,16 @@ class Transformer(nnx.Module):
     def __call__(
         self,
         src: Array,
-        src_mask: Array | None,
+        src_mask: Array,
         target: Array,
         self_mask: Array,
-        cross_mask: Array | None,
+        cross_mask: Array,
         is_training: bool,
         rngs: nnx.Rngs | None = None,
-    ) -> Array:
+        encoder_output: Array | None = None,
+        self_attention_cache: list[tuple] | None = None,
+        use_cache: bool = False,
+    ) -> tuple[Array, dict | None]:
         # get the embeddings for the src
         src_embeddings = self.src_embeddings(x=src)
         # apply positional encoding to the src embeddings
@@ -113,18 +116,18 @@ class Transformer(nnx.Module):
             is_training=is_training,
             rngs=rngs,
         )
-
-        # pass the input embeddings with positinal encoding through the encoder
-        encoder_output = self.encoder(
-            x=src_pos,
-            mask=src_mask,
-            is_training=is_training,
-            rngs=rngs,
-        )
+        if not encoder_output:
+            # pass the input embeddings with positinal encoding through the encoder
+            encoder_output = self.encoder(
+                x=src_pos,
+                mask=src_mask,
+                is_training=is_training,
+                rngs=rngs,
+            )
 
         # pass the target input embeddings with positional encoding
         # and the encoder output through the decoder
-        decoder_output = self.decoder(
+        decoder_output, self_attention_cache = self.decoder(
             x=target_pos,
             encoder_output=encoder_output,
             self_mask=self_mask,
@@ -135,5 +138,10 @@ class Transformer(nnx.Module):
 
         # project the decoder output into vocab size and get outputs
         output = self.projection(decoder_output)
+        if use_cache:
+            cache = {
+                "encoder_output": encoder_output,
+                "self_attention_cache": self_attention_cache,
+            }
 
-        return output
+        return output, cache
