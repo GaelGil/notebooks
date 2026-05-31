@@ -210,7 +210,7 @@ class Tokenizer:
 
     def encode(
         self,
-        text: list[str],
+        text: list[str] | str,
         add_bos: bool = True,
         add_eos: bool = True,
         prefix: str | None = None,
