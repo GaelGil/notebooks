@@ -133,6 +133,8 @@ class Transformer(nnx.Module):
             self_mask=self_mask,
             cross_mask=cross_mask,
             is_training=is_training,
+            self_attention_cache=self_attention_cache,
+            use_cache=use_cache,
             rngs=rngs,
         )
 
