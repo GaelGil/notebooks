@@ -8,12 +8,12 @@ from jax import Array
 class Tokenizer:
     def __init__(
         self,
-        corpus_path: str = None,
-        tokenizer_path: str = None,
-        tokenizer_model_path: str = None,
-        model_prefix: str = None,
-        seq_len: int = None,
-        prefix: str = None,
+        corpus_path: str | None = None,
+        tokenizer_path: str | None = None,
+        tokenizer_model_path: str | None = None,
+        model_prefix: str | None = None,
+        seq_len: str | None = None,
+        prefix: str | None = None,
     ):
         """
         Args:
@@ -34,7 +34,7 @@ class Tokenizer:
         self.vocab_size = None
         self.model_prefix = model_prefix
         self.seq_len = seq_len
-        self.prefix: str = prefix
+        self.prefix = prefix
 
     def write_txt(self, data: list, f: object):
         """

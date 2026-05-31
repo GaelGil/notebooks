@@ -1,8 +1,8 @@
+import os
 import random
 
 import numpy as np
 from datasets import load_dataset
-import os
 
 
 class LangDataset:
@@ -10,11 +10,11 @@ class LangDataset:
         self,
         src_lang: str,
         target_lang: str,
-        dataset_name: str = None,
-        src_file: str = None,
-        target_file: str = None,
-        seq_len: int = None,
-        splits_path: str = None,
+        dataset_name: str | None = None,
+        src_file: str | None = None,
+        target_file: str | None = None,
+        seq_len: str | None = None,
+        splits_path: str | None = None,
     ):
         """
         Load the dataset from the Hugging Face Hub
@@ -33,11 +33,11 @@ class LangDataset:
         self.target_lang: str = target_lang
         self.src_file = src_file
         self.target_file = target_file
-        self.seq_len: int = seq_len
+        self.seq_len = seq_len
         self.dataset: dict = {}
-        self.dataset_name: str = dataset_name
+        self.dataset_name = dataset_name
         self.paths = {str: str}
-        self.splits_path: str = splits_path
+        self.splits_path = splits_path
 
     def load_data(self):
         """
@@ -66,6 +66,7 @@ class LangDataset:
             target_data = list(target)
             return src_data, target_data
         else:
+            assert self.dataset_name is not None
             self.dataset: dict = load_dataset(self.dataset_name)
             self.handle_null()
             src_data = self.dataset["train"][self.src_lang]
@@ -167,6 +168,7 @@ class LangDataset:
         Returns:
             None
         """
+        assert self.splits_path is not None
         os.makedirs(self.splits_path, exist_ok=True)
         rng = np.random.default_rng(seed=0)
         indices = rng.permutation(len(src))
