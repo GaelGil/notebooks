@@ -87,15 +87,17 @@ class DecoderBlock(nnx.Module):
 
         x_norm = self.norm2(x)
 
+        cross_attention_output, _ = self.cross_attention_block(
+            q=x_norm,
+            k=encoder_output,
+            v=encoder_output,
+            mask=cross_mask,
+            is_training=is_training,
+            rngs=rngs,
+        )
+
         x = x + self.dropout(
-            self.cross_attention_block(
-                q=x_norm,
-                k=encoder_output,
-                v=encoder_output,
-                mask=cross_mask,
-                is_training=is_training,
-                rngs=rngs,
-            ),
+            cross_attention_output,
             deterministic=not is_training,
             rngs=rngs,
         )
@@ -163,6 +165,6 @@ class Decoder(nnx.Module):
                 use_cache=use_cache,
             )
             if use_cache:
-                assert caches
+                assert caches is not None
                 caches.append(cache_output)
         return self.norm(x), caches if use_cache else None

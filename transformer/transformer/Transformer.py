@@ -116,7 +116,7 @@ class Transformer(nnx.Module):
             is_training=is_training,
             rngs=rngs,
         )
-        if not encoder_output:
+        if encoder_output is None:
             # pass the input embeddings with positinal encoding through the encoder
             encoder_output = self.encoder(
                 x=src_pos,
@@ -140,6 +140,7 @@ class Transformer(nnx.Module):
 
         # project the decoder output into vocab size and get outputs
         output = self.projection(decoder_output)
+        cache = None
         if use_cache:
             cache = {
                 "encoder_output": encoder_output,

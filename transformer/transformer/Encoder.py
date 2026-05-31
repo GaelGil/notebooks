@@ -61,15 +61,16 @@ class EncoderBlock(nnx.Module):
         """
 
         x_norm = self.norm1(x)
+        attention_output, _ = self.multi_head_attention_block(
+            q=x_norm,
+            k=x_norm,
+            v=x_norm,
+            mask=src_mask,
+            is_training=is_training,
+            rngs=rngs,
+        )
         x = x + self.dropout(
-            self.multi_head_attention_block(
-                q=x_norm,
-                k=x_norm,
-                v=x_norm,
-                mask=src_mask,
-                is_training=is_training,
-                rngs=rngs,
-            ),
+            attention_output,
             deterministic=not is_training,
             rngs=rngs,
         )
