@@ -1,9 +1,10 @@
+from pathlib import Path
+
 import orbax.checkpoint as ocp
 from jax import numpy as jnp
 
 from utils.config import config
 from utils.init_state import init_state
-from pathlib import Path
 from utils.Tokenizer import Tokenizer
 
 
@@ -48,30 +49,73 @@ def test():
     eos_id = tokenizer.sp.eos_id()
     es_ids = tokenizer.encode(
         # text="hola, ¿cual es la capital de Mexico?",
-        text="muchas flores son blancas",
+        text=["muchas", "flores", "son", "blancas"],
         add_bos=False,
         add_eos=False,
         prefix="<es_to_nah>",
     )
-    en_ids = tokenizer.encode(text="", add_bos=True, add_eos=False)
+    en_ids = tokenizer.encode(text=[""], add_bos=True, add_eos=False)
     es = jnp.array([es_ids], dtype=jnp.int32)  # [1, src_len]
     en = jnp.array([en_ids], dtype=jnp.int32)
+
     generated_ids = []
-    while True:
-        decoder_self_attention_mask = jnp.tril(
-            jnp.ones((en.shape[1], en.shape[1]), dtype=jnp.bool_)
-        )[None, None, :, :]
-        logits = model(
+    # Empty KV cache
+    self_attention_cache = [None] * config.N
+
+    decoder_mask = jnp.tril(jnp.ones((en.shape[1], en.shape[1]), dtype=jnp.bool_))[
+        None, None, :, :
+    ]
+
+    # Forward pass
+    logits, cache = model(
+        src=es,
+        target=en,
+        src_mask=None,
+        self_mask=decoder_mask,
+        cross_mask=None,
+        is_training=False,
+        self_attention_cache=self_attention_cache,
+        use_cache=True,
+    )
+
+    assert cache is not None
+    encoder_output = cache["encoder_output"]
+    self_attention_cache = cache["self_attention_cache"]
+
+    next_token = int(jnp.argmax(logits[0, -1]))
+
+    # Check for EOS
+    if next_token == eos_id:
+        return
+
+    # Yield token ID for streaming
+    yield str(next_token)
+
+    # Append to decoder input for next iteration
+    en_ids.append(next_token)
+
+    for _ in range(config.SEQ_LEN):
+        # Create causal mask for current sequence length
+        decoder_mask = jnp.tril(jnp.ones((en.shape[1], en.shape[1]), dtype=jnp.bool_))[
+            None, None, :, :
+        ]
+
+        # Forward pass
+        logits, cache = model(
             src=es,
             target=en,
             src_mask=None,
-            self_mask=decoder_self_attention_mask,
+            self_mask=decoder_mask,
             cross_mask=None,
             is_training=False,
+            self_attention_cache=self_attention_cache,
+            encoder_output=encoder_output,
+            use_cache=True,
         )
+        assert cache is not None
+        self_attention_cache = cache["self_attention_cache"]
+        # Greedy sampling: take argmax of last token logits
         next_token = int(jnp.argmax(logits[0, -1]))
-        print("next token:", next_token)
-        print("next token:", tokenizer.decode([next_token]))
         if next_token == eos_id:
             break
 
