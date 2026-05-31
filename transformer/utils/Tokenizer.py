@@ -12,7 +12,7 @@ class Tokenizer:
         tokenizer_path: str | None = None,
         tokenizer_model_path: str | None = None,
         model_prefix: str | None = None,
-        seq_len: str | None = None,
+        seq_len: int | None = None,
         prefix: str | None = None,
     ):
         """
@@ -128,7 +128,11 @@ class Tokenizer:
         self.sp.Load(f"{self.tokenizer_model_path}/{self.model_prefix}.model")
 
     def pad_sequences(
-        self, sequences: list, pad_id: int = 0, max_len: int = None, eos_id: int = None
+        self,
+        sequences: list,
+        pad_id: int = 0,
+        max_len: int | None = None,
+        eos_id: int | None = None,
     ) -> Array:
         """
         Function to pad sequences
@@ -140,6 +144,7 @@ class Tokenizer:
         Returns:
             padded: numpy array of shape [N, max_len]
         """
+        assert max_len is not None
         padded = []
         for seq in sequences:
             if len(seq) > max_len:
@@ -150,7 +155,7 @@ class Tokenizer:
             padded.append(seq + padding)
         return jnp.array(padded, dtype=jnp.int32)
 
-    def prep_data(self, src: list[str], target: list[str], prefix: str = None):
+    def prep_data(self, src: list[str], target: list[str], prefix: str | None = None):
         """
         Encode the data and pad it
         Args:
@@ -164,7 +169,7 @@ class Tokenizer:
         """
         src_ids = []
         target_ids = []
-
+        assert self.seq_len is not None
         for src, target in zip(src, target):
             # encode and add prefix
             src_ids.append(
@@ -205,11 +210,11 @@ class Tokenizer:
 
     def encode(
         self,
-        text: str,
+        text: list[str],
         add_bos: bool = True,
         add_eos: bool = True,
-        prefix: str = None,
-        max_len: int = None,
+        prefix: str | None = None,
+        max_len: int | None = None,
     ):
         """
         Args:
