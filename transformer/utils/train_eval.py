@@ -181,7 +181,7 @@ def train_step(
         Compute the loss function for a single batch
         """
 
-        logits = model(
+        logits, _ = model(
             src=encoder_input,
             src_mask=encoder_padding_mask,
             target=decoder_input,
@@ -298,7 +298,7 @@ def eval_step(
         encoder_decoder_mask,
     ) = batch
     # pass batch through the model in eval mode
-    logits = model(
+    logits, _ = model(
         src=encoder_input,
         src_mask=encoder_padding_mask,
         target=decoder_input,

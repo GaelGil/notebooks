@@ -27,12 +27,10 @@ def test():
     )
 
     config.CHECKPOINT_PATH = Path(
-        "./chckpnts/phase_two_200_schedule_b12_weight_decay_0_05_pt8/"
+        "./chckpnts/phase_two_200_schedule_b12_weight_decay_0_05_pt11/"
     )
 
     tokenizer.load_tokenizer()
-
-
 
     # initialize the checkpoint manager with the options
     manager = ocp.CheckpointManager(
@@ -52,11 +50,11 @@ def test():
     print(f"STEP: {step}")
     eos_id = tokenizer.sp.eos_id()
     es_ids = tokenizer.encode(
-        text="hola, ¿cual es la capital de Mexico?",
-        # text="muchas flores son blancas",
+        # text="hola, ¿cual es la capital de Mexico?",
+        text="muchas flores son blancas",
         add_bos=False,
         add_eos=False,
-        prefix="<es_to_en>",
+        prefix="<es_to_nah>",
     )
     en_ids = tokenizer.encode(text="", add_bos=True, add_eos=False)
     es = jnp.array([es_ids], dtype=jnp.int32)  # [1, src_len]
@@ -91,7 +89,6 @@ def test():
     # Check for EOS
     if next_token == eos_id:
         return
-
 
     # Append to decoder input for next iteration
     generated_ids.append(next_token)
