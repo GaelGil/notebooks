@@ -135,10 +135,10 @@ def main():
     config.DROPOUT = 0
     config.EPOCHS = 200
     config.BATCH_SIZE = 12
-    config.LR = 6e-5  # or 7e-5
+    config.LR = 5e-5  # or 7e-5
     # config.LR = 1e-4
     config.WEIGHT_DECAY = 0.05
-    config.INIT_LR = 0
+    config.INIT_LR = 3e-4
 
     # create mixed dataset for training
     train_data_phase2 = MixedDataset(
