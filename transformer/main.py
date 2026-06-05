@@ -130,7 +130,7 @@ def main():
     # config.DROPOUT_SCHEDULE = {0: 0, 10: 0.1, 20: 0.15, 30: 0.20, 40: 0.25}
 
     config.CHECKPOINT_PATH = Path(
-        "./chckpnts/phase_two_200_schedule_b12_weight_decay_0_05_pt13"
+        "./chckpnts/phase_two_200_schedule_b12_weight_decay_0_05_pt14"
     )
     config.DROPOUT = 0
     config.EPOCHS = 200
