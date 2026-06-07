@@ -1,38 +1,44 @@
 import grain
 from utils.Source import Source
-import random
 
 
 class MixedDataset(grain.DataLoader):
     """
     Combines English and Nahuatl data sources for Phase 2 training.
 
-    Uses 80/20 ratio: 80% Spanish->Nahuatl, 20% Spanish->English
-    to prevent catastrophic forgetting of English translation.
+    The ratio means:
+    - keep all Nahuatl samples
+    - add enough English samples to make the final dataset match the ratio
+
+    Example:
+    nah_ratio = 0.8
+    1000 Nahuatl samples -> add 250 English samples
+    final dataset = 1000 Nahuatl + 250 English = 80/20
     """
 
     def __init__(
         self,
         en_data: Source,
         nah_data: Source,
-        seed: int = 42,
+        nah_ratio: float = 0.8,
     ):
+        if not 0 < nah_ratio < 1:
+            raise ValueError("nah_ratio must be between 0 and 1")
+
         self.en_data = en_data
         self.nah_data = nah_data
 
-        self.n_nah = len(self.nah_data)
-        self.n_en = len(self.en_data)
+        self.n_nah = len(nah_data)
+        self.n_en = len(en_data)
 
-        rng = random.Random(seed)
-
-        self.en_indices = rng.sample(range(self.n_en), self.n_nah)
+        self.n_en_samples = int(self.n_nah * (1 - nah_ratio) / nah_ratio)
 
     def __len__(self):
-        return self.n_nah * 2
+        return self.n_nah + self.n_en_samples
 
     def __getitem__(self, idx):
         if idx < self.n_nah:
             return self.nah_data[idx]
-        else:
-            en_idx = self.en_indices[idx - self.n_nah]
-            return self.en_data[en_idx]
+
+        en_idx = (idx - self.n_nah) % self.n_en
+        return self.en_data[en_idx]
