@@ -27,7 +27,7 @@ def test():
     )
 
     config.CHECKPOINT_PATH = Path(
-        "./chckpnts/phase_two_200_schedule_b12_weight_decay_0_05_pt11/"
+        "./chckpnts/phase_two_200_schedule_b12_weight_decay_0_05_pt14/"
     )
 
     tokenizer.load_tokenizer()
@@ -50,11 +50,11 @@ def test():
     print(f"STEP: {step}")
     eos_id = tokenizer.sp.eos_id()
     es_ids = tokenizer.encode(
-        # text="hola, ¿cual es la capital de Mexico?",
-        text="muchas flores son blancas",
+        text="hola, ¿cual es tu nombre?",
+        # text="muchas flores son blancas",
         add_bos=False,
         add_eos=False,
-        prefix="<es_to_nah>",
+        prefix="<es_to_en>",
     )
     en_ids = tokenizer.encode(text="", add_bos=True, add_eos=False)
     es = jnp.array([es_ids], dtype=jnp.int32)  # [1, src_len]
