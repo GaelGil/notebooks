@@ -18,9 +18,13 @@ def init_state(
     Initialize the state from a checkpoint or create a new one
     Args:
         config: Config
+        src_vocab_size: int
+        target_vocab_size: int
+        manager: ocp.CheckpointManager
+        batches_per_epoch: int
 
     Returns:
-       tuple[Transformer, nnx.Optimizer]
+       tuple[Transformer, nnx.Optimizer, step]
     """
 
     # create dummy inputs
@@ -71,6 +75,7 @@ def init_state(
         rngs=rngs,
     )
 
+    # create learning rate schedule
     total_steps = batches_per_epoch * config.EPOCHS
     warmup_steps = int(0.05 * total_steps)
     lr_schedule_fn = optax.warmup_cosine_decay_schedule(
@@ -97,7 +102,7 @@ def init_state(
     abs_opt = nnx.eval_shape(
         lambda: nnx.Optimizer(abs_model, opt_adamw_with_schedule, wrt=nnx.Param)
     )
-    # # get the optimizer state
+    # get the optimizer state
     abs_opt_state = nnx.state(abs_opt)
     optimizer = nnx.Optimizer(model, opt_adamw_with_schedule, wrt=nnx.Param)
 
@@ -116,7 +121,6 @@ def init_state(
         nnx.update(model, restored["state"])
         nnx.update(optimizer, restored["optimizer"])
         # return the restored model and optimizer
-        # assert latest
         return model, optimizer, latest + 1
 
     # run the model with dummy inputs

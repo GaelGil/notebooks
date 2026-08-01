@@ -59,6 +59,8 @@ class DecoderBlock(nnx.Module):
             cross_mask: cross mask
             is_training: is training
             rngs: rngs
+            self_attention_cache: self attention cache
+            use_cache: use cache
 
         Returns:
             Array
@@ -147,6 +149,9 @@ class Decoder(nnx.Module):
             self_mask: self mask
             cross_mask: cross mask
             is_training: is training
+            rngs: rngs
+            self_attention_cache: self attention cache
+            use_cache: use cache
 
         Returns:
             tuple[Array, tuple | None]

@@ -6,6 +6,22 @@ from jax import numpy as jnp
 from utils.config import config
 from utils.init_state import init_state
 from utils.Tokenizer import Tokenizer
+from jax import Array
+
+
+def _create_causal_mask(current_len: int, past_len: int = 0) -> Array:
+    """
+    Create causal (triangular) attention mask.
+
+    This ensures each token can only attend to previous tokens,
+    which is required for autoregressive generation.
+    """
+    query_positions = (past_len + jnp.arange(current_len))[:, None]
+
+    key_positions = jnp.arange(past_len + current_len)[None, :]
+
+    mask = key_positions <= query_positions
+    return mask[None, None, :, :]
 
 
 def test():
@@ -65,10 +81,8 @@ def test():
     # Empty KV cache
     self_attention_cache = None
 
-    # past_len = 0
-    decoder_mask = jnp.tril(jnp.ones((en.shape[1], en.shape[1]), dtype=jnp.bool_))[
-        None, None, :, :
-    ]
+    past_len = 0
+    decoder_mask = _create_causal_mask(current_len=en.shape[1], past_len=past_len)
 
     # Forward pass
     logits, cache = model(
@@ -89,6 +103,7 @@ def test():
     next_token = int(jnp.argmax(logits[0, -1]))
     print(f"TOKEN: {next_token}")
     generated_ids = [next_token]
+
     # Check for EOS
     if next_token == eos_id:
         return
@@ -96,8 +111,12 @@ def test():
     en = jnp.array([[next_token]], dtype=jnp.int32)
 
     for _ in range(config.SEQ_LEN - 1):
-        # With KV cache, the query is only the latest token and can attend all cached keys.
-        decoder_mask = jnp.ones((1, 1, 1, en.shape[1]), dtype=jnp.bool_)
+        past_len = (
+            self_attention_cache[0][0].shape[2]
+            if self_attention_cache is not None
+            else 0
+        )
+        decoder_mask = _create_causal_mask(current_len=en.shape[1], past_len=past_len)
 
         # Forward pass
         logits, cache = model(
