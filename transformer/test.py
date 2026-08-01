@@ -1,12 +1,12 @@
 from pathlib import Path
 
 import orbax.checkpoint as ocp
+from jax import Array
 from jax import numpy as jnp
 
 from utils.config import config
 from utils.init_state import init_state
 from utils.Tokenizer import Tokenizer
-from jax import Array
 
 
 def _create_causal_mask(current_len: int, past_len: int = 0) -> Array:

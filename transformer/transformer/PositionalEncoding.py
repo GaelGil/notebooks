@@ -33,7 +33,7 @@ class PositionalEncoding(nnx.Module):
         x: Array,
         is_training: bool,
         rngs: nnx.Rngs | None,
-        positin_offset: int = 0,
+        position_offset: int = 0,
     ) -> Array:
         """
         Args:
@@ -41,7 +41,9 @@ class PositionalEncoding(nnx.Module):
             training: whether in training mode for dropout
         """
         B, T, _ = x.shape
-        positions = (jnp.arange(T, dtype=jnp.int32) + positin_offset)[None, :]  # (1, T)
+        positions = (jnp.arange(T, dtype=jnp.int32) + position_offset)[
+            None, :
+        ]  # (1, T)
         x = x + self.pe(positions)  # broadcasts to (B,T,D)
         # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
         return self.dropout(x, deterministic=not is_training, rngs=rngs)
