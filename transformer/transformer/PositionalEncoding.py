@@ -40,7 +40,7 @@ class PositionalEncoding(nnx.Module):
             x: input tensor of shape (batch_size, seq_len, d_model)
             training: whether in training mode for dropout
         """
-        B, T, _ = x.shape
+        _, T, _ = x.shape
         positions = (jnp.arange(T, dtype=jnp.int32) + position_offset)[
             None, :
         ]  # (1, T)

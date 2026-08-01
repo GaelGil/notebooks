@@ -103,12 +103,12 @@ class Transformer(nnx.Module):
         self_attention_cache: list[tuple] | None = None,
         use_cache: bool = False,
     ) -> tuple[Array, dict | None]:
-        # get the embeddings for the src
+        # get the embeddings for the src (seq_len, d_model)
         src_embeddings = self.src_embeddings(x=src)
-        # apply positional encoding to the src embeddings
+        # apply positional encoding to the src embeddings (seq_len, d_model)
         src_pos = self.src_pe(x=src_embeddings, is_training=is_training, rngs=rngs)
 
-        # get the embeddings for the target
+        # get the embeddings for the target (seq_len, d_model)
         target_embeddings = self.target_embeddings(x=target)
         position_offset = 0
         if use_cache and self_attention_cache is not None:

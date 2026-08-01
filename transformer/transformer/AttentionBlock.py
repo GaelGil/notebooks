@@ -109,13 +109,13 @@ class MultiHeadAttentionBlock(nnx.Module):
         """
         query = self.w_q(
             q
-        )  # (batch_size, seq_len, d_model) --> (batch_size, d_model, d_model)
+        )  # (batch_size, seq_len, d_model) --> (batch_size, seq_len, d_model)
         key = self.w_k(
             k
-        )  # (batch_size, seq_len, d_model)  --> (batch_size, d_model, d_model)
+        )  # (batch_size, seq_len, d_model)  --> (batch_size, seq_len, d_model)
         value = self.w_v(
             v
-        )  # (batch_size, seq_len, d_model)  --> (batch_size, d_model, d_model)
+        )  # (batch_size, seq_len, d_model)  --> (batch_size, seq_len, d_model)
 
         # these will be the same in the encoder
         batch_size_q, seq_len_q, _ = query.shape  # decoder query
