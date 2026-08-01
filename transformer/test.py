@@ -67,7 +67,8 @@ def test():
 
     eos_id = tokenizer.sp.eos_id()
     es_ids = tokenizer.encode(
-        text="hola, ¿cual es tu nombre?",
+        # text="hola, ¿cual es tu nombre?",
+        text="hola, ¿cual es la capital de Mexico?",
         # text="muchas flores son blancas",
         add_bos=False,
         add_eos=False,
@@ -111,17 +112,20 @@ def test():
     en = jnp.array([[next_token]], dtype=jnp.int32)
 
     for _ in range(config.SEQ_LEN - 1):
+        current_token = en[:, -1:]
         past_len = (
             self_attention_cache[0][0].shape[2]
             if self_attention_cache is not None
             else 0
         )
-        decoder_mask = _create_causal_mask(current_len=en.shape[1], past_len=past_len)
+        decoder_mask = _create_causal_mask(
+            current_len=current_token.shape[1], past_len=past_len
+        )
 
         # Forward pass
         logits, cache = model(
             src=es,
-            target=en[:, -1:],
+            target=current_token,
             src_mask=None,
             self_mask=decoder_mask,
             cross_mask=None,
