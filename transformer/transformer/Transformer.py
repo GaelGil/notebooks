@@ -110,11 +110,16 @@ class Transformer(nnx.Module):
 
         # get the embeddings for the target
         target_embeddings = self.target_embeddings(x=target)
+        position_offset = 0
+        if use_cache and self_attention_cache is not None:
+            position_offset = self_attention_cache[0][0].shape[2]
+
         # apply positonal encoding to the target embeddings
         target_pos = self.target_pe(
             x=target_embeddings,
             is_training=is_training,
             rngs=rngs,
+            position_offset=position_offset,
         )
         if encoder_output is None:
             # pass the input embeddings with positinal encoding through the encoder

@@ -48,6 +48,7 @@ def test():
         batches_per_epoch=100,
     )
     print(f"STEP: {step}")
+
     eos_id = tokenizer.sp.eos_id()
     es_ids = tokenizer.encode(
         text="hola, ¿cual es tu nombre?",
@@ -56,14 +57,15 @@ def test():
         add_eos=False,
         prefix="<es_to_en>",
     )
-    en_ids = tokenizer.encode(text="", add_bos=True, add_eos=False)
+    en_ids = [tokenizer.sp.bos_id()]
+
     es = jnp.array([es_ids], dtype=jnp.int32)  # [1, src_len]
     en = jnp.array([en_ids], dtype=jnp.int32)
 
-    generated_ids = []
     # Empty KV cache
-    self_attention_cache = [None] * config.N
+    self_attention_cache = None
 
+    # past_len = 0
     decoder_mask = jnp.tril(jnp.ones((en.shape[1], en.shape[1]), dtype=jnp.bool_))[
         None, None, :, :
     ]
@@ -85,17 +87,15 @@ def test():
     self_attention_cache = cache["self_attention_cache"]
 
     next_token = int(jnp.argmax(logits[0, -1]))
-    print(next_token)
+    print(f"TOKEN: {next_token}")
+    generated_ids = [next_token]
     # Check for EOS
     if next_token == eos_id:
         return
 
-    # Append to decoder input for next iteration
-    generated_ids.append(next_token)
-    en_ids.append(next_token)
-    en = jnp.concatenate([en, jnp.array([[next_token]], dtype=jnp.int32)], axis=1)
+    en = jnp.array([[next_token]], dtype=jnp.int32)
 
-    for _ in range(config.SEQ_LEN):
+    for _ in range(config.SEQ_LEN - 1):
         # With KV cache, the query is only the latest token and can attend all cached keys.
         decoder_mask = jnp.ones((1, 1, 1, en.shape[1]), dtype=jnp.bool_)
 
@@ -117,7 +117,7 @@ def test():
         next_token = int(jnp.argmax(logits[0, -1]))
         if next_token == eos_id:
             break
-        print(next_token)
+        print(f"TOKEN: {next_token}")
         generated_ids.append(next_token)
 
         en = jnp.concatenate([en, jnp.array([[next_token]], dtype=jnp.int32)], axis=1)
