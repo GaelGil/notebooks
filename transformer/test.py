@@ -67,8 +67,8 @@ def test():
 
     eos_id = tokenizer.sp.eos_id()
     es_ids = tokenizer.encode(
-        # text="hola, ¿cual es tu nombre?",
-        text="hola, ¿cual es la capital de Mexico?",
+        text="¿que hora es?",
+        # text="hola, ¿como te llamas?",
         # text="muchas flores son blancas",
         add_bos=False,
         add_eos=False,
