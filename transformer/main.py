@@ -140,7 +140,7 @@ def main():
     train_data_phase2 = MixedDataset(
         en_data=train_data,
         nah_data=es_nah_data,
-        nah_ratio=0,
+        nah_ratio=0.999,
     )
 
     # new samplers
