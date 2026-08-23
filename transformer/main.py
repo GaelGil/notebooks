@@ -95,22 +95,22 @@ def main():
         batches_per_epoch=batches_per_epoch,
     )
 
-    # logging.info(f"Training the model from step {step}")
-    # if step < config.EPOCHS:
-    #     train(
-    #         model=model,
-    #         optimizer=optimizer,
-    #         train_loader=train_loader,
-    #         val_loader=val_loader,
-    #         epochs=config.EPOCHS,
-    #         manager=manager,
-    #         logger=logging,
-    #         batches_per_epoch=batches_per_epoch,
-    #         val_batches_per_epoch=val_batches_per_epoch,
-    #         step=step,
-    #         seed=config.SEED,
-    #         dropout_schedule=config.DROPOUT_SCHEDULE,
-    #     )
+    logging.info(f"Training the model from step {step}")
+    if step < config.EPOCHS:
+        train(
+            model=model,
+            optimizer=optimizer,
+            train_loader=train_loader,
+            val_loader=val_loader,
+            epochs=config.EPOCHS,
+            manager=manager,
+            logger=logging,
+            batches_per_epoch=batches_per_epoch,
+            val_batches_per_epoch=val_batches_per_epoch,
+            step=step,
+            seed=config.SEED,
+            dropout_schedule=config.DROPOUT_SCHEDULE,
+        )
 
     logging.info("Setting up Phase 2")
     es_nah_data = Source(
