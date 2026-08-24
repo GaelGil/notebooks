@@ -1,10 +1,10 @@
 import json
 import os
 
-txt_file = "./metrics/phase_two_no_transfer.csv"
-checkpoint_dir = "./chckpnts/phase_two_no_transfer"
+txt_file = "./metrics/mini_model.csv"
+checkpoint_dir = "./mini_model"
 
-# Get all checkpoint folders after 99
+# Get all checkpoint folders after n
 epochs = []
 for name in os.listdir(checkpoint_dir):
     path = os.path.join(checkpoint_dir, name)
