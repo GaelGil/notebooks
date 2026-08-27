@@ -3,7 +3,7 @@ isoduration==20.11.0
 jsonpointer==2.4
 jupyterlab==4.4.1
 nltk==3.9.1
-pip==25.0.1
+pip==26.0
 pipdeptree==2.13.2
 scikit-learn==1.6.1
 seaborn==0.13.2
