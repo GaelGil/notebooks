@@ -1,14 +1,14 @@
 import json
 import os
 
-txt_file = "./metrics/mini_model.csv"
-checkpoint_dir = "./mini_model"
+txt_file = "./metrics/mini_model_two.csv"
+checkpoint_dir = "./chckpnts/mini_model_two"
 
 # Get all checkpoint folders after n
 epochs = []
 for name in os.listdir(checkpoint_dir):
     path = os.path.join(checkpoint_dir, name)
-    if os.path.isdir(path) and name.isdigit() and int(name) > 0:
+    if os.path.isdir(path) and name.isdigit() and int(name) > 58:
         epochs.append(int(name))
 
 epochs.sort()
