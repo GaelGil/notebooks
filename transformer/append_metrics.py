@@ -1,8 +1,8 @@
 import json
 import os
 
-txt_file = "./metrics/mini_model_two.csv"
-checkpoint_dir = "./chckpnts/mini_model_two"
+txt_file = "./metrics/mini_model_phase_two.csv"
+checkpoint_dir = "./chckpnts/mini_model_phase_two/"
 
 # Get all checkpoint folders after n
 epochs = []

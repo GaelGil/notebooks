@@ -128,7 +128,7 @@ def main():
     # update config for Phase 2
     config.DROPOUT_SCHEDULE = {0: 0, 5: 0.1, 10: 0.15, 15: 0.20, 20: 0.25}
 
-    config.CHECKPOINT_PATH = Path("./chckpnts/phase_two_no_transfer")
+    config.CHECKPOINT_PATH = Path("./chckpnts/mini_model_phase_two/")
     config.DROPOUT = 0
     config.EPOCHS = 200
     config.BATCH_SIZE = 12
@@ -140,7 +140,7 @@ def main():
     train_data_phase2 = MixedDataset(
         en_data=train_data,
         nah_data=es_nah_data,
-        nah_ratio=0.999,
+        nah_ratio=0.5,
     )
 
     # new samplers
