@@ -130,7 +130,7 @@ def main():
 
     config.CHECKPOINT_PATH = Path("./chckpnts/mini_model_phase_two/")
     config.DROPOUT = 0
-    config.EPOCHS = 200
+    config.EPOCHS = 350
     config.BATCH_SIZE = 12
     config.LR = 5e-5
     config.WEIGHT_DECAY = 0.05
